@@ -8,11 +8,11 @@ import scala.xml.Elem
 class BindingTests extends FunSuite {
   implicit val s = TestScheduler()
 
-  // test("Mounting Elem") {
-  //   val div = dom.document.createElement("div")
-  //   mount(div, <p class="cc" id="22">{"text"}</p>)
-  //   assert(div.innerHTML == """<p class="cc" id="22">text</p>""")
-  // }
+  test("Mounting Elem") {
+    val div = dom.document.createElement("div")
+    mount(div, <p class="cc" id="22">{"text"}</p>)
+    assert(div.innerHTML == """<p class="cc" id="22">text</p>""")
+  }
 
   test("Binding Elem") {
     val el: Var[Elem] = Var(<br/>)
@@ -47,15 +47,15 @@ class BindingTests extends FunSuite {
     assert(div.innerHTML == "<span> <p> <b>prepended</b><b>original text 1</b> </p> </span>")
   }
 
-  // test("Updating Attribute") {
-  //   val id: Var[String] = Var("oldId")
-  //   val hr: Binding[Elem] = id.map(i => <hr id={i}/>)
-  //   val div = dom.document.createElement("div")
-  //   mount(div, hr); s.tick()
-  //   assert(div.innerHTML == """<hr id="oldId">""")
-  //   id := "newId"; s.tick()
-  //   assert(div.innerHTML == """<hr id="newId">""")
-  // }
+  test("Updating Attribute") {
+    val id: Var[String] = Var("oldId")
+    val hr: Binding[Elem] = id.map(i => <hr id={i}/>)
+    val div = dom.document.createElement("div")
+    mount(div, hr); s.tick()
+    assert(div.innerHTML == """<hr id="oldId">""")
+    id := "newId"; s.tick()
+    assert(div.innerHTML == """<hr id="newId">""")
+  }
 
   test("ForYieldIf") {
     final case class User(firstName: Var[String], lastName: Var[String], age: Var[Int])
@@ -128,19 +128,19 @@ class BindingTests extends FunSuite {
     assert(div.innerHTML == "<p><span><br></span><span><br></span></p>")
   }
 
-  // test("Mounting with Style") {
-  //   def hr  = <hr style="border-left: 123px"/>
-  //   val div = dom.document.createElement("div")
-  //   mount(div, hr)
-  //   assert(div.firstChild.asInstanceOf[dom.html.HR].style.borderLeft == "123px")
-  // }
+  test("Mounting with Style") {
+    def hr  = <hr style="border-left: 123px"/>
+    val div = dom.document.createElement("div")
+    mount(div, hr)
+    assert(div.firstChild.asInstanceOf[dom.html.HR].style.borderLeft == "123px")
+  }
 
-  // test("Mounting with Class") {
-  //   def hr = <hr class="myClass"/>
-  //   val div = dom.document.createElement("div")
-  //   mount(div, hr)
-  //   assert(div.firstChild.asInstanceOf[dom.html.HR].className == "myClass")
-  // }
+  test("Mounting with Class") {
+    def hr = <hr class="myClass"/>
+    val div = dom.document.createElement("div")
+    mount(div, hr)
+    assert(div.firstChild.asInstanceOf[dom.html.HR].className == "myClass")
+  }
 
   // test("Comment") {
   //   val comment = <div><!--my comment--></div>
@@ -163,10 +163,10 @@ class BindingTests extends FunSuite {
   //   assert(div.innerHTML == "<div>&amp;&lt;©λ</div>")
   // }
 
-  // test("CustomAttribute") {
-  //   def hr = <hr data:custom-key="value"/>
-  //   val div = dom.document.createElement("div")
-  //   mount(div, hr)
-  //   assert(div.innerHTML == """<hr data:custom-key="value">""")
-  // }
+  test("CustomAttribute") {
+    def hr = <hr data:custom-key="value"/>
+    val div = dom.document.createElement("div")
+    mount(div, hr)
+    assert(div.innerHTML == """<hr data:custom-key="value">""")
+  }
 }

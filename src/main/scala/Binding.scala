@@ -61,10 +61,21 @@ object mount {
 
       case e @ Elem(_, label, metadata, _, child @ _*) =>
         val elemNode = dom.document.createElement(label)
+        metadata.collect {
+          case m: UnprefixedAttribute if m.key == "style" =>
+            elemNode.asInstanceOf[dom.html.Html].style.cssText = m.value.toString
+          case m: UnprefixedAttribute =>
+            elemNode.setAttribute(m.key, m.value.toString)
+          case m: PrefixedAttribute if m.pre == "style" =>
+            elemNode.asInstanceOf[dom.html.Html].style.setProperty(m.key, m.value.toString)
+          case m: PrefixedAttribute =>
+            elemNode.setAttribute(s"${m.pre}:${m.key}", m.value.toString)
+        }
         child.foreach(c => mount0(elemNode, c, None))
         parent.doMount(elemNode, mountPoint)
 
       case a: Atom[_]    => parent.doMount(dom.document.createTextNode(a.data.toString), mountPoint)
+      case Comment(text) => parent.doMount(dom.document.createComment(text), mountPoint)
       case Group(nodes)  => nodes.foreach(n => mount0(parent, n, mountPoint))
       case _             => println("I'm sorry.")
     }
