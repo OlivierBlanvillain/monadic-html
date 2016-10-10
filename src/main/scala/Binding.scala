@@ -74,6 +74,11 @@ object mount {
         child.foreach(c => mount0(elemNode, c, None))
         parent.doMount(elemNode, mountPoint)
 
+      case e: EntityRef  =>
+        val key    = e.entityName
+        val string = EntityRefMap(key).getOrElse { println(s"&${key}; is no is not a valid EntityRef."); key }
+        parent.doMount(dom.document.createTextNode(string), mountPoint)
+
       case a: Atom[_]    => parent.doMount(dom.document.createTextNode(a.data.toString), mountPoint)
       case Comment(text) => parent.doMount(dom.document.createComment(text), mountPoint)
       case Group(nodes)  => nodes.foreach(n => mount0(parent, n, mountPoint))

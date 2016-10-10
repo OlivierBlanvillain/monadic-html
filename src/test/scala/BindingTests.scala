@@ -142,12 +142,12 @@ class BindingTests extends FunSuite {
     assert(div.firstChild.asInstanceOf[dom.html.HR].className == "myClass")
   }
 
-  // test("Comment") {
-  //   val comment = <div><!--my comment--></div>
-  //   val div = dom.document.createElement("div")
-  //   mount(div, comment)
-  //   assert(div.innerHTML == "<div><!--my comment--></div>")
-  // }
+  test("Comment") {
+    val comment = <div><!--my comment--></div>
+    val div = dom.document.createElement("div")
+    mount(div, comment)
+    assert(div.innerHTML == "<div><!--my comment--></div>")
+  }
 
   test("Escape") {
     val escaped = <div>&#32;</div>
@@ -156,17 +156,21 @@ class BindingTests extends FunSuite {
     assert(div.innerHTML == "<div> </div>")
   }
 
-  // test("Entity") {
-  //   def entity = <div>&amp;&lt;&copy;&lambda;</div>
-  //   val div = dom.document.createElement("div")
-  //   mount(div, entity)
-  //   assert(div.innerHTML == "<div>&amp;&lt;©λ</div>")
-  // }
+  test("Entity") {
+    def entity = <div>&amp;&lt;&copy;&lambda;</div>
+    val div = dom.document.createElement("div")
+    mount(div, entity)
+    assert(div.innerHTML == "<div>&amp;&lt;©λ</div>")
+  }
 
   test("CustomAttribute") {
     def hr = <hr data:custom-key="value"/>
     val div = dom.document.createElement("div")
     mount(div, hr)
     assert(div.innerHTML == """<hr data:custom-key="value">""")
+  }
+
+  test("EntityRefMap arrays are equaly sized") {
+    assert(EntityRefMap.keys.size == EntityRefMap.values.size)
   }
 }
