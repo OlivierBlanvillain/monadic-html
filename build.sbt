@@ -19,7 +19,6 @@ scalacOptions := Seq(
   "-Yinline-warnings",
   "-Yno-adapted-args",
   "-Ywarn-dead-code",
-  "-Ywarn-value-discard",
   "-Ywarn-numeric-widen",
   "-Ywarn-unused-import")
 

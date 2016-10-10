@@ -1,68 +1,96 @@
 package monixbinding
 
-import monix.reactive.subjects.BehaviorSubject
+import monix.execution.Scheduler
 import monix.reactive.Observable
-import xml.{Node => XmlNode, _}
-import org.scalajs.dom.raw.{Node => DomNode}
+import monix.reactive.subjects.BehaviorSubject
 import org.scalajs.dom
+import org.scalajs.dom.raw.{Node => DomNode}
+import scala.scalajs.js
+import scala.xml.{Node => XmlNode, _}
 
-sealed abstract class Binding[A] extends Elem(null, "BINDING", Null, TopScope, true) {
+trait Binding[+A] {
   protected[monixbinding] def observable: Observable[A]
 
-  def map[B](f: A => B): Binding[B]              = Binding(observable.map(f))
-  def filter(f: A => Boolean): Binding[A]        = Binding(observable.filter(f))
-  def flatMap[B](f: A => Binding[B]): Binding[B] = Binding(observable.flatMap(x => f(x).observable))
-
-  override def toString: String = "<error>"
+  def map[B](f: A => B): Binding[B]              = Binding.fromObservable(observable.map(f))
+  def filter(f: A => Boolean): Binding[A]        = Binding.fromObservable(observable.filter(f))
+  def flatMap[B](f: A => Binding[B]): Binding[B] = Binding.fromObservable(observable.mergeMap(x => f(x).observable))
 }
 
 object Binding {
-  def apply[T](o: Observable[T]): Binding[T] = new Binding[T] { def observable = o }
+  def fromObservable[A](o: Observable[A]): Binding[A] = new Binding[A] { def observable = o }
+  def apply[A](initialValue: A): Binding[A] = Var(initialValue)
 }
 
-final case class Var[A](initialValue: A) extends Binding[A] {
-  protected[monixbinding] val undelying: BehaviorSubject[A] = BehaviorSubject(initialValue)
+final class Var[A](initialValue: A) extends Binding[A] {
+  protected[monixbinding] val undelying = BehaviorSubject(initialValue)
   protected[monixbinding] val observable: Observable[A] = undelying
 
-  def :=(newValue: A): Unit = { undelying.onNext(newValue); () }
+  def :=(newValue: A): Unit = undelying.onNext(newValue)
+  def update(f: A => A)(implicit s: Scheduler): Unit = undelying.firstL.runAsync(v => undelying.onNext(f(v.get.get)))
 }
 
-object mount {
-  /** Side-effectly mounts an `xml.Node | Bindings` tree on an actual `org.scalajs.dom.raw.Node`. */
-  def apply(parent: DomNode, child: XmlNode): Unit =
-    mount0(parent, child, None)
+object Var {
+  def apply[A](initialValue: A): Var[A] = new Var(initialValue)
+}
 
-  def mount0(parent: DomNode, child: XmlNode, replacingFor: Option[Observable[_]]): Unit =
+/** Side-effectly mounts an `xml.Node | Bindings[xml.Node]` tree on an actual `org.scalajs.dom.raw.Node`. */
+object mount {
+  def apply(parent: DomNode, child: XmlNode)(implicit s: Scheduler): Unit        = mount0(parent, child, None)
+  def apply(parent: DomNode, obs: Binding[XmlNode])(implicit s: Scheduler): Unit = mount0(parent, new Atom(obs), None)
+
+  private def mount0(parent: DomNode, child: XmlNode, mountPoint: Option[DomNode])(implicit s: Scheduler): Unit =
     child match {
-      case b: Binding[_] =>
-        b.foreach {
-          case n: XmlNode =>
-            mount0(parent, n, Some(b.observable))
-          case n =>
-            val e = s"Value $n should be wrapped in a single XML Node for binding."
-            throw new IllegalArgumentException(e)
+      case a: Atom[_] if a.data.isInstanceOf[Binding[_]] =>
+        val obs = a.data.asInstanceOf[Binding[_]].observable
+        val mountPoint = dom.document.createTextNode("")
+        mountPoint.mark = obs
+        parent.appendChild(mountPoint)
+        obs.foreach { v =>
+          parent.cleanMountPoint(mountPoint, obs)
+          v match {
+            case n: XmlNode  => mount0(parent, n, Some(mountPoint))
+            case seq: Seq[_] =>
+              val nodeSeq = seq.map {
+                case n: XmlNode => n
+                case a => new Atom(a)
+              }
+              mount0(parent, new Group(nodeSeq), Some(mountPoint))
+            case a => mount0(parent, new Atom(a), Some(mountPoint))
+          }
         }
 
       case e @ Elem(_, label, metadata, _, child @ _*) =>
         val elemNode = dom.document.createElement(label)
         child.foreach(c => mount0(elemNode, c, None))
-        mountMaybeReplacing(parent, elemNode, replacingFor)
+        parent.doMount(elemNode, mountPoint)
 
-      case Text(s: String) =>
-        val textNode = dom.document.createTextNode(s)
-        mountMaybeReplacing(parent, textNode, replacingFor)
-
-      case _ =>
-        val e = "You just found a XML Node whith is neither Text nor Elem, I'm sorry."
-        throw new IllegalArgumentException(e)
+      case a: Atom[_]    => parent.doMount(dom.document.createTextNode(a.data.toString), mountPoint)
+      case Group(nodes)  => nodes.foreach(n => mount0(parent, n, mountPoint))
+      case _             => println("I'm sorry.")
     }
 
-  def mountMaybeReplacing(parent: DomNode, child: DomNode, replacingFor: Option[Observable[_]]): Unit =
-    replacingFor match {
-      case None    => parent.appendChild(child); ()
-      case Some(o) =>
-        // TODO: Check in some global mutable map / the dom itself for an existing node binded to `o`)
-        // parent.replaceChilde(oldNode, elemNode)
-        ???
+  private implicit class MarkableNode(node: DomNode) {
+    def mark: Option[Observable[_]] =
+      node.asInstanceOf[js.Dynamic].mark match {
+        case o: Observable[_] => Some(o)
+        case _ => None
+      }
+
+    def mark_= (obs: Observable[_]): Unit =
+      node.asInstanceOf[js.Dynamic].mark = obs.asInstanceOf[js.Any]
+
+    def cleanMountPoint(mountPoint: DomNode, obs: Observable[_]): Unit = {
+      val sibling = mountPoint.previousSibling
+      if (sibling != null && sibling.mark.exists(obs.==)) {
+        node.removeChild(sibling)
+        cleanMountPoint(mountPoint, obs)
+      }
     }
+
+    def doMount(child: DomNode, mountPoint: Option[DomNode]): Unit =
+      mountPoint match {
+        case None        => node.appendChild(child)
+        case Some(point) => child.mark = point.mark.get; node.insertBefore(child, point)
+      }
+  }
 }
