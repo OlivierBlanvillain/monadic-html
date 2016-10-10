@@ -5,7 +5,6 @@ import monix.reactive.Observable
 import monix.reactive.subjects.BehaviorSubject
 import org.scalajs.dom
 import org.scalajs.dom.raw.{Node => DomNode}
-import scala.scalajs.js
 import scala.xml.{Node => XmlNode, _}
 
 trait Binding[+A] {
@@ -33,29 +32,27 @@ object Var {
   def apply[A](initialValue: A): Var[A] = new Var(initialValue)
 }
 
-/** Side-effectly mounts an `xml.Node | Bindings[xml.Node]` tree on an actual `org.scalajs.dom.raw.Node`. */
+/** Side-effectly mounts an `xml.Node | Bindings[xml.Node]` on a concrete `org.scalajs.dom.raw.Node`. */
 object mount {
   def apply(parent: DomNode, child: XmlNode)(implicit s: Scheduler): Unit        = mount0(parent, child, None)
   def apply(parent: DomNode, obs: Binding[XmlNode])(implicit s: Scheduler): Unit = mount0(parent, new Atom(obs), None)
 
-  private def mount0(parent: DomNode, child: XmlNode, mountPoint: Option[DomNode])(implicit s: Scheduler): Unit =
+  private def mount0(parent: DomNode, child: XmlNode, startPoint: Option[DomNode])(implicit s: Scheduler): Unit =
     child match {
       case a: Atom[_] if a.data.isInstanceOf[Binding[_]] =>
         val obs = a.data.asInstanceOf[Binding[_]].observable
-        val mountPoint = dom.document.createTextNode("")
-        mountPoint.mark = obs
-        parent.appendChild(mountPoint)
+        val (start, end) = parent.createMountSection()
         obs.foreach { v =>
-          parent.cleanMountPoint(mountPoint, obs)
+          parent.cleanMountSection(start, end)
           v match {
-            case n: XmlNode  => mount0(parent, n, Some(mountPoint))
+            case n: XmlNode  => mount0(parent, n, Some(start))
             case seq: Seq[_] =>
               val nodeSeq = seq.map {
                 case n: XmlNode => n
                 case a => new Atom(a)
               }
-              mount0(parent, new Group(nodeSeq), Some(mountPoint))
-            case a => mount0(parent, new Atom(a), Some(mountPoint))
+              mount0(parent, new Group(nodeSeq), Some(start))
+            case a => mount0(parent, new Atom(a), Some(start))
           }
         }
 
@@ -72,41 +69,59 @@ object mount {
             elemNode.setAttribute(s"${m.pre}:${m.key}", m.value.toString)
         }
         child.foreach(c => mount0(elemNode, c, None))
-        parent.doMount(elemNode, mountPoint)
+        parent.mountInSection(elemNode, startPoint)
 
       case e: EntityRef  =>
         val key    = e.entityName
-        val string = EntityRefMap(key).getOrElse { println(s"&${key}; is no is not a valid EntityRef."); key }
-        parent.doMount(dom.document.createTextNode(string), mountPoint)
+        val string = EntityRefMap(key)
+        parent.mountInSection(dom.document.createTextNode(string), startPoint)
 
-      case a: Atom[_]    => parent.doMount(dom.document.createTextNode(a.data.toString), mountPoint)
-      case Comment(text) => parent.doMount(dom.document.createComment(text), mountPoint)
-      case Group(nodes)  => nodes.foreach(n => mount0(parent, n, mountPoint))
-      case _             => println("I'm sorry.")
+      case a: Atom[_]    =>
+        val content = a.data.toString
+        if (!content.isEmpty)
+          parent.mountInSection(dom.document.createTextNode(content), startPoint)
+
+      case Comment(text) => parent.mountInSection(dom.document.createComment(text), startPoint)
+      case Group(nodes)  => nodes.foreach(n => mount0(parent, n, startPoint))
     }
 
-  private implicit class MarkableNode(node: DomNode) {
-    def mark: Option[Observable[_]] =
-      node.asInstanceOf[js.Dynamic].mark match {
-        case o: Observable[_] => Some(o)
-        case _ => None
-      }
+  /** For this ScalaDoc, suppose the following binding: `<div><br>{}<hr></div>`. */
+  private implicit class DomNodeSection(node: DomNode) {
+    /**
+     * Creats and inserts two empty text nodes into the DOM, which delimitate
+     * a mounting region between them point. Because the DOM API only exposes
+     * `.insertBefore` things are reversed: at the position of the `}`
+     * character in our binding example, we insert the start point, and at `{`
+     * goes the end.
+     */
+    def createMountSection(): (DomNode, DomNode) = {
+      val start = dom.document.createTextNode("")
+      val end   = dom.document.createTextNode("")
+      node.appendChild(end)
+      node.appendChild(start)
+      (start, end)
+    }
 
-    def mark_= (obs: Observable[_]): Unit =
-      node.asInstanceOf[js.Dynamic].mark = obs.asInstanceOf[js.Any]
+    /**
+     * Elements are then "inserted before" the start point, such that
+     * inserting List(a, b) looks as follows: `}` → `a}` → `ab}`. Note that a
+     * reference to the start point is sufficient here.
+     */
+    def mountInSection(child: DomNode, start: Option[DomNode]): Unit =
+      start.fold(node.appendChild(child))(point => node.insertBefore(child, point))
 
-    def cleanMountPoint(mountPoint: DomNode, obs: Observable[_]): Unit = {
-      val sibling = mountPoint.previousSibling
-      if (sibling != null && sibling.mark.exists(obs.==)) {
-        node.removeChild(sibling)
-        cleanMountPoint(mountPoint, obs)
+    /**
+     * Cleaning stuff is equally simple, `cleanMountSection` takes a references
+     * to start and end point, and (tail recursively) deletes nodes at the
+     * left of the start point until it reaches end of the mounting section.
+     */
+    def cleanMountSection(start: DomNode, end: DomNode): Unit = {
+      val next = start.previousSibling
+      if (next != end) {
+        node.removeChild(next)
+        cleanMountSection(start, end)
       }
     }
 
-    def doMount(child: DomNode, mountPoint: Option[DomNode]): Unit =
-      mountPoint match {
-        case None        => node.appendChild(child)
-        case Some(point) => child.mark = point.mark.get; node.insertBefore(child, point)
-      }
   }
 }

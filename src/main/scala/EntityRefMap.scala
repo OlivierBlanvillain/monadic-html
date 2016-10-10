@@ -3,9 +3,9 @@ package monixbinding
 import java.util.Arrays
 
 object EntityRefMap {
-  def apply(key: String): Option[String] = {
+  def apply(key: String): String = {
     val i = Arrays.binarySearch(keys.asInstanceOf[Array[AnyRef]], key)
-    if (i < 0) None else Some(values(i))
+    if (i < 0) key else values(i)
   }
 
   lazy val keys: Array[String] = Array(
