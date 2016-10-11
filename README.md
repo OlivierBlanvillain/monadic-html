@@ -2,13 +2,17 @@
 
 Tiny DOM binding library for Scala.js
 
-Requirements: Front-end friendly syntax (XHTML) with fast compilation speed (no macros).
+The Main Objective: friendly syntax for frontend developers (XHTML), fast compilation speeds + less cryptic compiler errors (no macros).
 
-Alternatives approaches such as [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala) or [scalatags](https://github.com/lihaoyi/scalatags) are compromising either of these requirements for some sort of HTML/CSS type-safety.
+This library is inspired by [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala)
+but makes a trade-off on type-safety and boilerplate in order to achieve *The Main Objective*.
+The trade-off is small and worth it, in my opinion, but you of course are free to disagree.
+
+[Scalatags](https://github.com/lihaoyi/scalatags) is another great library but compromises on the XHTML syntax.
 
 ## Design
 
-This library introduces two very simple concepts: `Binding` and `Var`.
+This library uses two concepts: `Binding` and `Var`.
 
 **`Binding[A]`** is some value of type `A` which can change over time. You can construct new bindings using `map`, `flatMap` and `filter` which will then get automatically updated when the initial `Binding` updates:
 
@@ -65,14 +69,13 @@ mount(div, component)
 
 ## FAQ
 
-**Why no type safety?**
+**Does the compiler catch typos in my html?**
 
-I've tried explaining to front-end developers how great type-safety, testability and IDE support (auto-completion, inline documentation, inline error reporting) is in Scala.js, and what they could gain by using libraries such as [Scalatags](https://github.com/lihaoyi/scalatags), [Scala-css](https://github.com/japgolly/scalacss) & other. This is basically the answer I've got:
+No. I've tried to explain to front-end developers the benefits of type-safety, testability and IDE support (auto-completion, inline documentation, inline error reporting) when writing frontend applications in Scala.js. I've tried to convince them how great libraries are like [Scalatags](https://github.com/lihaoyi/scalatags), [Scala-css](https://github.com/japgolly/scalacss) & other. This is pretty much the answer I always get:
 
-> I'm made a leaving off writing HTML & CSS by hand, I don't want to/care about learning better ways to do my job. Go back wasting your time compiling code and running tests in your 4GB consuming IDE, and leave me alone with my stuff.
+> I make a living writing HTML & CSS. I value fast iteration speeds and using standard html over complicated IDE setups that require 8GBs of ram and waiting ages for the compiler to run.
 
-Hard to argue anything against that.
-
+Hard to argue against that.
 
 **Why Monix?**
 
@@ -81,7 +84,7 @@ I'm lazy (and Monix is awesome!). But keep in mind that this ain't no JS, you ca
 
 **Global mutable state, Booo! Booo!!!**
 
-`Var`s don't have to be globally exposed, you can instantiate them very locally:
+`Var`s don't have to be globally exposed, you can instantiate them locally:
 
 ```scala
 def createComponent(): xml.Node = {
@@ -99,6 +102,8 @@ def dogs(readOnly: Binding[Int]): Binding[xml.Node] =
       <img src="doge.png"></img>
     }
   </div>
+var dangerousMutableVar = Var(1)
+dogs(dangerousMutableVar)
 ```
 
 **How can I turn a `Seq[Binding[A]]` into a `Binding[Seq[A]]`?**
