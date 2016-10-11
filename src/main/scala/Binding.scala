@@ -58,15 +58,14 @@ object mount {
 
       case e @ Elem(_, label, metadata, _, child @ _*) =>
         val elemNode = dom.document.createElement(label)
-        metadata.collect {
-          case m: UnprefixedAttribute if m.key == "style" =>
-            elemNode.asInstanceOf[dom.html.Html].style.cssText = m.value.toString
-          case m: UnprefixedAttribute =>
-            elemNode.setAttribute(m.key, m.value.toString)
-          case m: PrefixedAttribute if m.pre == "style" =>
-            elemNode.asInstanceOf[dom.html.Html].style.setProperty(m.key, m.value.toString)
-          case m: PrefixedAttribute =>
-            elemNode.setAttribute(s"${m.pre}:${m.key}", m.value.toString)
+
+        metadata.value match {
+          case null => ()
+          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Binding[_]] =>
+            a.data.asInstanceOf[Binding[_]].undelying
+            .foreach(value => elemNode.setMetadata(metadata, Some(value.toString)))
+          case _ =>
+            elemNode.setMetadata(metadata, None)
         }
         child.foreach(c => mount0(elemNode, c, None))
         parent.mountInSection(elemNode, startPoint)
@@ -86,7 +85,21 @@ object mount {
     }
 
   /** For this ScalaDoc, suppose the following binding: `<div><br>{}<hr></div>`. */
-  private implicit class DomNodeSection(node: DomNode) {
+  private implicit class DomNodeExtra(node: DomNode) {
+    def setMetadata(metadata: MetaData, value: Option[String]): Unit = {
+      val htmlNode = node.asInstanceOf[dom.html.Html]
+      metadata.collect {
+        case m: UnprefixedAttribute if m.key == "style" =>
+          htmlNode.style.cssText = value.getOrElse(m.value.toString)
+        case m: UnprefixedAttribute =>
+          htmlNode.setAttribute(m.key, value.getOrElse(m.value.toString))
+        case m: PrefixedAttribute if m.pre == "style" =>
+          htmlNode.style.setProperty(m.key, value.getOrElse(m.value.toString))
+        case m: PrefixedAttribute =>
+          htmlNode.setAttribute(s"${m.pre}:${m.key}", value.getOrElse(m.value.toString))
+      }
+    }
+
     /**
      * Creats and inserts two empty text nodes into the DOM, which delimitate
      * a mounting region between them point. Because the DOM API only exposes
@@ -122,6 +135,5 @@ object mount {
         cleanMountSection(start, end)
       }
     }
-
   }
 }

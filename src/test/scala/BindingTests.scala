@@ -57,7 +57,7 @@ class BindingTests extends FunSuite {
 
   test("Updating Attribute") {
     val id: Var[String] = Var("oldId")
-    val hr: Binding[Elem] = id.map(i => <hr id={i}/>)
+    val hr: Elem = <hr id={id}/>
     val div = dom.document.createElement("div")
     mount(div, hr)
     s.tick()
