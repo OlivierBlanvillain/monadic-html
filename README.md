@@ -42,7 +42,7 @@ The central idea is to write HTML views in term of these`Binding`s and `Var`s, s
 4. Updating `Var`s automatically propagates to the views!
 
 ```scala
-import monixbinding._
+import mhtml._
 import scala.xml.Node
 import org.scalajs.dom
 

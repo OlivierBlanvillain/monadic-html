@@ -1,4 +1,4 @@
-package monixbinding
+package mhtml
 
 import monix.execution.schedulers.TestScheduler
 import org.scalajs.dom

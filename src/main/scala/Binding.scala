@@ -1,4 +1,4 @@
-package monixbinding
+package mhtml
 
 import monix.execution.Scheduler
 import monix.reactive.Observable
@@ -8,24 +8,24 @@ import org.scalajs.dom.raw.{Node => DomNode}
 import scala.xml.{Node => XmlNode, _}
 
 trait Binding[+A] {
-  protected[monixbinding] def observable: Observable[A]
+  def underlying: Observable[A]
 
-  def map[B](f: A => B): Binding[B]              = Binding.fromObservable(observable.map(f))
-  def filter(f: A => Boolean): Binding[A]        = Binding.fromObservable(observable.filter(f))
-  def flatMap[B](f: A => Binding[B]): Binding[B] = Binding.fromObservable(observable.mergeMap(x => f(x).observable))
+  def map[B](f: A => B): Binding[B]              = Binding.fromObservable(underlying.map(f))
+  def filter(f: A => Boolean): Binding[A]        = Binding.fromObservable(underlying.filter(f))
+  def flatMap[B](f: A => Binding[B]): Binding[B] = Binding.fromObservable(underlying.mergeMap(x => f(x).underlying))
 }
 
 object Binding {
-  def fromObservable[A](o: Observable[A]): Binding[A] = new Binding[A] { def observable = o }
+  def fromObservable[A](o: Observable[A]): Binding[A] = new Binding[A] { def underlying = o }
   def apply[A](initialValue: A): Binding[A] = Var(initialValue)
 }
 
 final class Var[A](initialValue: A) extends Binding[A] {
-  protected[monixbinding] val undelying = BehaviorSubject(initialValue)
-  protected[monixbinding] val observable: Observable[A] = undelying
+  private val subject = BehaviorSubject(initialValue)
+  val underlying: Observable[A] = subject
 
-  def :=(newValue: A): Unit = undelying.onNext(newValue)
-  def update(f: A => A)(implicit s: Scheduler): Unit = undelying.firstL.runAsync(v => undelying.onNext(f(v.get)))
+  def :=(newValue: A): Unit = subject.onNext(newValue)
+  def update(f: A => A)(implicit s: Scheduler): Unit = subject.firstL.runAsync(v => subject.onNext(f(v.get)))
 }
 
 object Var {
@@ -40,7 +40,7 @@ object mount {
   private def mount0(parent: DomNode, child: XmlNode, startPoint: Option[DomNode])(implicit s: Scheduler): Unit =
     child match {
       case a: Atom[_] if a.data.isInstanceOf[Binding[_]] =>
-        val obs = a.data.asInstanceOf[Binding[_]].observable
+        val obs = a.data.asInstanceOf[Binding[_]].underlying
         val (start, end) = parent.createMountSection()
         obs.foreach { v =>
           parent.cleanMountSection(start, end)
