@@ -1,14 +1,11 @@
-# monixbinding
+# monadic-html
 
 Tiny DOM binding library for Scala.js
 
-The Main Objective: friendly syntax for frontend developers (XHTML), fast compilation speeds + less cryptic compiler errors (no macros).
+Main Objectives: friendly syntax for frontend developers (XHTML) and fast compilation speeds (no macros).
 
 This library is inspired by [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala)
-but makes a trade-off on type-safety and boilerplate in order to achieve *The Main Objective*.
-The trade-off is small and worth it, in my opinion, but you of course are free to disagree.
-
-[Scalatags](https://github.com/lihaoyi/scalatags) is another great library but compromises on the XHTML syntax.
+which heavily relies on macros to obtain type-safety and hide monadic context from users. [Scalatags](https://github.com/lihaoyi/scalatags) is another great library for a different approach: it defines a new type-safe DSL to write HTML.
 
 ## Design
 
@@ -69,11 +66,11 @@ mount(div, component)
 
 ## FAQ
 
-**Does the compiler catch typos in my html?**
+**Does the compiler catch HTML typos?**
 
-No. I've tried to explain to front-end developers the benefits of type-safety, testability and IDE support (auto-completion, inline documentation, inline error reporting) when writing frontend applications in Scala.js. I've tried to convince them how great libraries are like [Scalatags](https://github.com/lihaoyi/scalatags), [Scala-css](https://github.com/japgolly/scalacss) & other. This is pretty much the answer I always get:
+No, it only rejects invalid XML literals. I've tried to explain to front-end developers the benefits of type-safety, testability and IDE support (auto-completion, inline documentation, inline error reporting) when writing frontend applications in Scala.js. This is pretty much the answer I always get:
 
-> I make a living writing HTML & CSS. I value fast iteration speeds and using standard html over complicated IDE setups that require 8GBs of ram and waiting ages for the compiler to run.
+> I make a living writing HTML & CSS. I value fast iteration speeds and using standard HTML over slow compilers and complicated IDE setups.
 
 Hard to argue against that.
 
@@ -102,8 +99,6 @@ def dogs(readOnly: Binding[Int]): Binding[xml.Node] =
       <img src="doge.png"></img>
     }
   </div>
-var dangerousMutableVar = Var(1)
-dogs(dangerousMutableVar)
 ```
 
 **How can I turn a `Seq[Binding[A]]` into a `Binding[Seq[A]]`?**
