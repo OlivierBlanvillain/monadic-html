@@ -1,9 +1,11 @@
 enablePlugins(ScalaJSPlugin)
 
+resolvers += Resolver.sonatypeRepo("snapshots")
+
 libraryDependencies ++= Seq(
   "org.scala-js"   %%% "scalajs-dom" % "0.9.0",
   "io.monix"       %%% "monix"       % "2.0-RC7",
-  "scala-xml"      %%% "scala-xml"   % "1.0.6-SNAPSHOT",
+  "in.nvilla"      %%% "scala-xml"   % "1.0.6-SNAPSHOT",
   "org.scalatest"  %%% "scalatest"   % "3.0.0-RC3")
 
 scalaVersion := "2.11.8"

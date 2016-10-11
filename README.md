@@ -1,5 +1,7 @@
 # monadic-html
 
+[![Travis](https://travis-ci.org/OlivierBlanvillain/monadic-html.svg?branch=master)](https://travis-ci.org/OlivierBlanvillain/monadic-html) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/OlivierBlanvillain/monadic-html?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Tiny DOM binding library for Scala.js
 
 Main Objectives: friendly syntax for frontend developers (XHTML) and fast compilation speeds (no macros).
