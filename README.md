@@ -49,16 +49,14 @@ import org.scalajs.dom
 val count: Var[Int] = Var[Int](0)
 
 val dogs: Binding[Seq[Node]] =
-  1 to count map { _ =>
-    <img src="doge.png"></img>
-  }
+  count.map(Seq.fill(_)(<img src="doge.png"></img>))
 
 val component = // ← look, you can even use fancy names!
   <div style="background-color: blue;">
+    <button onclick={ () => count.update(_ + 1) }>Click Me!</button>
     <p>WOW!!!</p>
     <p>MUCH REACTIVE!!!</p>
     <p>SUCH BINDING!!!</p>
-    <button onClick={ () => count.update(1.+) }>Click Me!</button>
     {dogs}
   </div>
 

@@ -190,21 +190,62 @@ class BindingTests extends FunSuite {
 
   test("onClick = Function0") {
     var clicked = false
-    val button  = <button onclick={ () => clicked = true }>Click me!</button>
+    val button  = <button onclick={ () => clicked = true }>Click Me!</button>
     val div = dom.document.createElement("div")
     mount(div, button)
     assert(!clicked)
+    assert(div.firstChild.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
     div.firstChild.asInstanceOf[dom.html.Button].click()
     assert(clicked)
   }
 
   test("onClick = Function1") {
     var clicked = false
-    val button  = <button onclick={ _: dom.MouseEvent => clicked = true }>Click me!</button>
+    val button  = <button onclick={ _: dom.MouseEvent => clicked = true }>Click Me!</button>
     val div = dom.document.createElement("div")
     mount(div, button)
     assert(!clicked)
+    assert(div.firstChild.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
     div.firstChild.asInstanceOf[dom.html.Button].click()
     assert(clicked)
+  }
+
+  test("README example") {
+    import mhtml._
+    import scala.xml.Node
+    import org.scalajs.dom
+
+    val count: Var[Int] = Var[Int](0)
+
+    val dogs: Binding[Seq[Node]] =
+      count.map(Seq.fill(_)(<img src="doge.png"></img>))
+
+    val component = // ← look, you can even use fancy names!
+      <div style="background-color: blue;">
+        <button onclick={ () => count.update(_ + 1) }>Click Me!</button>
+        <p>WOW!!!</p>
+        <p>MUCH REACTIVE!!!</p>
+        <p>SUCH BINDING!!!</p>
+        {dogs}
+      </div>
+
+    val div = dom.document.createElement("div")
+    mount(div, component)
+
+    val start =
+   """<div style="background-color: blue;">
+        <button>Click Me!</button>
+        <p>WOW!!!</p>
+        <p>MUCH REACTIVE!!!</p>
+        <p>SUCH BINDING!!!</p>"""
+
+    assert(div.innerHTML == start + "\n        \n      </div>")
+    assert(div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
+    div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
+    s.tick()
+    assert(div.innerHTML == start + "\n        <img src=\"doge.png\">\n      </div>")
+    div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
+    s.tick()
+    assert(div.innerHTML == start + "\n        <img src=\"doge.png\"><img src=\"doge.png\">\n      </div>")
   }
 }
