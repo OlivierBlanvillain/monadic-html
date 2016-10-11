@@ -187,4 +187,24 @@ class BindingTests extends FunSuite {
   test("EntityRefMap arrays are equaly sized") {
     assert(EntityRefMap.keys.size == EntityRefMap.values.size)
   }
+
+  test("onClick = Function0") {
+    var clicked = false
+    val button  = <button onclick={ () => clicked = true }>Click me!</button>
+    val div = dom.document.createElement("div")
+    mount(div, button)
+    assert(!clicked)
+    div.firstChild.asInstanceOf[dom.html.Button].click()
+    assert(clicked)
+  }
+
+  test("onClick = Function1") {
+    var clicked = false
+    val button  = <button onclick={ _: dom.MouseEvent => clicked = true }>Click me!</button>
+    val div = dom.document.createElement("div")
+    mount(div, button)
+    assert(!clicked)
+    div.firstChild.asInstanceOf[dom.html.Button].click()
+    assert(clicked)
+  }
 }

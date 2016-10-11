@@ -58,7 +58,7 @@ val component = // ← look, you can even use fancy names!
     <p>WOW!!!</p>
     <p>MUCH REACTIVE!!!</p>
     <p>SUCH BINDING!!!</p>
-    <button onClick={ _: dom.Event => count.update(1.+) }>Click Me!</button>
+    <button onClick={ () => count.update(1.+) }>Click Me!</button>
     {dogs}
   </div>
 

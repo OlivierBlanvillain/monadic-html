@@ -5,6 +5,7 @@ import monix.reactive.Observable
 import monix.reactive.subjects.BehaviorSubject
 import org.scalajs.dom
 import org.scalajs.dom.raw.{Node => DomNode}
+import scala.scalajs.js
 import scala.xml.{Node => XmlNode, _}
 
 trait Binding[+A] {
@@ -13,6 +14,7 @@ trait Binding[+A] {
   def map[B](f: A => B): Binding[B]              = Binding.fromObservable(underlying.map(f))
   def filter(f: A => Boolean): Binding[A]        = Binding.fromObservable(underlying.filter(f))
   def flatMap[B](f: A => Binding[B]): Binding[B] = Binding.fromObservable(underlying.mergeMap(x => f(x).underlying))
+  def foreach(f: A => Unit)(implicit s: Scheduler): Unit = underlying.foreach(f)
 }
 
 object Binding {
@@ -61,9 +63,13 @@ object mount {
 
         metadata.value match {
           case null => ()
+          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Function0[_]] =>
+            elemNode.setEventListener(metadata, (_: dom.Event) => a.data.asInstanceOf[Function0[Unit]]())
+          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Function1[_, _]] =>
+            elemNode.setEventListener(metadata, a.data.asInstanceOf[Function1[dom.Event, Unit]])
           case (a: Atom[_]) :: _ if a.data.isInstanceOf[Binding[_]] =>
-            a.data.asInstanceOf[Binding[_]].undelying
-            .foreach(value => elemNode.setMetadata(metadata, Some(value.toString)))
+            a.data.asInstanceOf[Binding[_]].underlying
+              .foreach(value => elemNode.setMetadata(metadata, Some(value.toString)))
           case _ =>
             elemNode.setMetadata(metadata, None)
         }
@@ -86,6 +92,12 @@ object mount {
 
   /** For this ScalaDoc, suppose the following binding: `<div><br>{}<hr></div>`. */
   private implicit class DomNodeExtra(node: DomNode) {
+    def setEventListener(metadata: MetaData, listener: dom.Event => Unit): Unit =
+      metadata.collect {
+        case m: UnprefixedAttribute =>
+          node.asInstanceOf[js.Dynamic].updateDynamic(m.key)(listener)
+      }
+
     def setMetadata(metadata: MetaData, value: Option[String]): Unit = {
       val htmlNode = node.asInstanceOf[dom.html.Html]
       metadata.collect {
