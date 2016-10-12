@@ -55,7 +55,7 @@ class BindingTests extends FunSuite {
     assert(div.innerHTML == "<span> <p> <b>prepended</b><b>original text 1</b> </p> </span>")
   }
 
-  test("Updating Attribute") {
+  test("Updating attribute") {
     val id: Var[String] = Var("oldId")
     val hr: Elem = <hr id={id}/>
     val div = dom.document.createElement("div")
@@ -65,6 +65,23 @@ class BindingTests extends FunSuite {
     id := "newId"
     s.tick()
     assert(div.innerHTML == """<hr id="newId">""")
+  }
+
+  test("Updating attribute does not replace nodes") {
+    val clazz: Var[String] = Var("oldClass")
+    val tpe: Var[String] = Var("text")
+    val p: Elem = <p class={clazz}><input type={tpe}/></p>
+    val div = dom.document.createElement("div")
+    mount(div, p)
+    s.tick()
+    val customInput = "foo"
+    div.firstChild.firstChild.asInstanceOf[dom.html.Input].value = customInput
+    assert(div.innerHTML == """<p class="oldClass"><input type="text"></p>""")
+    clazz := "newClass"
+    tpe   := "password"
+    s.tick()
+    assert(div.innerHTML == """<p class="newClass"><input type="password"></p>""")
+    assert(div.firstChild.firstChild.asInstanceOf[dom.html.Input].value == customInput)
   }
 
   test("ForYieldIf") {
