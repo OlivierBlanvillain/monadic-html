@@ -25,7 +25,7 @@ final class Var[A](initialValue: A) extends Binding[A] {
   protected[monixbinding] val observable: Observable[A] = undelying
 
   def :=(newValue: A): Unit = undelying.onNext(newValue)
-  def update(f: A => A)(implicit s: Scheduler): Unit = undelying.firstL.runAsync(v => undelying.onNext(f(v.get.get)))
+  def update(f: A => A)(implicit s: Scheduler): Unit = undelying.firstL.runAsync(v => undelying.onNext(f(v.get)))
 }
 
 object Var {
