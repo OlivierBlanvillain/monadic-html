@@ -1,4 +1,4 @@
-package monixbinding
+package mhtml
 
 import java.util.Arrays
 

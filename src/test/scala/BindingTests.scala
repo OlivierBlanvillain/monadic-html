@@ -1,4 +1,4 @@
-package monixbinding
+package mhtml
 
 import monix.execution.schedulers.TestScheduler
 import org.scalajs.dom
@@ -55,9 +55,9 @@ class BindingTests extends FunSuite {
     assert(div.innerHTML == "<span> <p> <b>prepended</b><b>original text 1</b> </p> </span>")
   }
 
-  test("Updating Attribute") {
+  test("Updating attribute") {
     val id: Var[String] = Var("oldId")
-    val hr: Binding[Elem] = id.map(i => <hr id={i}/>)
+    val hr: Elem = <hr id={id}/>
     val div = dom.document.createElement("div")
     mount(div, hr)
     s.tick()
@@ -65,6 +65,23 @@ class BindingTests extends FunSuite {
     id := "newId"
     s.tick()
     assert(div.innerHTML == """<hr id="newId">""")
+  }
+
+  test("Updating attribute does not replace nodes") {
+    val clazz: Var[String] = Var("oldClass")
+    val tpe: Var[String] = Var("text")
+    val p: Elem = <p class={clazz}><input type={tpe}/></p>
+    val div = dom.document.createElement("div")
+    mount(div, p)
+    s.tick()
+    val customInput = "foo"
+    div.firstChild.firstChild.asInstanceOf[dom.html.Input].value = customInput
+    assert(div.innerHTML == """<p class="oldClass"><input type="text"></p>""")
+    clazz := "newClass"
+    tpe   := "password"
+    s.tick()
+    assert(div.innerHTML == """<p class="newClass"><input type="password"></p>""")
+    assert(div.firstChild.firstChild.asInstanceOf[dom.html.Input].value == customInput)
   }
 
   test("ForYieldIf") {
@@ -186,5 +203,66 @@ class BindingTests extends FunSuite {
 
   test("EntityRefMap arrays are equaly sized") {
     assert(EntityRefMap.keys.size == EntityRefMap.values.size)
+  }
+
+  test("onClick = Function0") {
+    var clicked = false
+    val button  = <button onclick={ () => clicked = true }>Click Me!</button>
+    val div = dom.document.createElement("div")
+    mount(div, button)
+    assert(!clicked)
+    assert(div.firstChild.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
+    div.firstChild.asInstanceOf[dom.html.Button].click()
+    assert(clicked)
+  }
+
+  test("onClick = Function1") {
+    var clicked = false
+    val button  = <button onclick={ _: dom.MouseEvent => clicked = true }>Click Me!</button>
+    val div = dom.document.createElement("div")
+    mount(div, button)
+    assert(!clicked)
+    assert(div.firstChild.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
+    div.firstChild.asInstanceOf[dom.html.Button].click()
+    assert(clicked)
+  }
+
+  test("README example") {
+    import mhtml._
+    import scala.xml.Node
+    import org.scalajs.dom
+
+    val count: Var[Int] = Var[Int](0)
+
+    val dogs: Binding[Seq[Node]] =
+      count.map(Seq.fill(_)(<img src="doge.png"></img>))
+
+    val component = // ← look, you can even use fancy names!
+      <div style="background-color: blue;">
+        <button onclick={ () => count.update(_ + 1) }>Click Me!</button>
+        <p>WOW!!!</p>
+        <p>MUCH REACTIVE!!!</p>
+        <p>SUCH BINDING!!!</p>
+        {dogs}
+      </div>
+
+    val div = dom.document.createElement("div")
+    mount(div, component)
+
+    val start =
+   """<div style="background-color: blue;">
+        <button>Click Me!</button>
+        <p>WOW!!!</p>
+        <p>MUCH REACTIVE!!!</p>
+        <p>SUCH BINDING!!!</p>"""
+
+    assert(div.innerHTML == start + "\n        \n      </div>")
+    assert(div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
+    div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
+    s.tick()
+    assert(div.innerHTML == start + "\n        <img src=\"doge.png\">\n      </div>")
+    div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
+    s.tick()
+    assert(div.innerHTML == start + "\n        <img src=\"doge.png\"><img src=\"doge.png\">\n      </div>")
   }
 }

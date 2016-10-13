@@ -1,31 +1,33 @@
-package monixbinding
+package mhtml
 
 import monix.execution.Scheduler
 import monix.reactive.Observable
 import monix.reactive.subjects.BehaviorSubject
 import org.scalajs.dom
 import org.scalajs.dom.raw.{Node => DomNode}
+import scala.scalajs.js
 import scala.xml.{Node => XmlNode, _}
 
 trait Binding[+A] {
-  protected[monixbinding] def observable: Observable[A]
+  def underlying: Observable[A]
 
-  def map[B](f: A => B): Binding[B]              = Binding.fromObservable(observable.map(f))
-  def filter(f: A => Boolean): Binding[A]        = Binding.fromObservable(observable.filter(f))
-  def flatMap[B](f: A => Binding[B]): Binding[B] = Binding.fromObservable(observable.mergeMap(x => f(x).observable))
+  def map[B](f: A => B): Binding[B]              = Binding.fromObservable(underlying.map(f))
+  def filter(f: A => Boolean): Binding[A]        = Binding.fromObservable(underlying.filter(f))
+  def flatMap[B](f: A => Binding[B]): Binding[B] = Binding.fromObservable(underlying.mergeMap(x => f(x).underlying))
+  def foreach(f: A => Unit)(implicit s: Scheduler): Unit = underlying.foreach(f)
 }
 
 object Binding {
-  def fromObservable[A](o: Observable[A]): Binding[A] = new Binding[A] { def observable = o }
+  def fromObservable[A](o: Observable[A]): Binding[A] = new Binding[A] { def underlying = o }
   def apply[A](initialValue: A): Binding[A] = Var(initialValue)
 }
 
 final class Var[A](initialValue: A) extends Binding[A] {
-  protected[monixbinding] val undelying = BehaviorSubject(initialValue)
-  protected[monixbinding] val observable: Observable[A] = undelying
+  private val subject = BehaviorSubject(initialValue)
+  val underlying: Observable[A] = subject
 
-  def :=(newValue: A): Unit = undelying.onNext(newValue)
-  def update(f: A => A)(implicit s: Scheduler): Unit = undelying.firstL.runAsync(v => undelying.onNext(f(v.get)))
+  def :=(newValue: A): Unit = subject.onNext(newValue)
+  def update(f: A => A)(implicit s: Scheduler): Unit = subject.firstL.runAsync(v => subject.onNext(f(v.get)))
 }
 
 object Var {
@@ -40,7 +42,7 @@ object mount {
   private def mount0(parent: DomNode, child: XmlNode, startPoint: Option[DomNode])(implicit s: Scheduler): Unit =
     child match {
       case a: Atom[_] if a.data.isInstanceOf[Binding[_]] =>
-        val obs = a.data.asInstanceOf[Binding[_]].observable
+        val obs = a.data.asInstanceOf[Binding[_]].underlying
         val (start, end) = parent.createMountSection()
         obs.foreach { v =>
           parent.cleanMountSection(start, end)
@@ -58,15 +60,18 @@ object mount {
 
       case e @ Elem(_, label, metadata, _, child @ _*) =>
         val elemNode = dom.document.createElement(label)
-        metadata.collect {
-          case m: UnprefixedAttribute if m.key == "style" =>
-            elemNode.asInstanceOf[dom.html.Html].style.cssText = m.value.toString
-          case m: UnprefixedAttribute =>
-            elemNode.setAttribute(m.key, m.value.toString)
-          case m: PrefixedAttribute if m.pre == "style" =>
-            elemNode.asInstanceOf[dom.html.Html].style.setProperty(m.key, m.value.toString)
-          case m: PrefixedAttribute =>
-            elemNode.setAttribute(s"${m.pre}:${m.key}", m.value.toString)
+
+        metadata.value match {
+          case null => ()
+          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Function0[_]] =>
+            elemNode.setEventListener(metadata, (_: dom.Event) => a.data.asInstanceOf[Function0[Unit]]())
+          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Function1[_, _]] =>
+            elemNode.setEventListener(metadata, a.data.asInstanceOf[Function1[dom.Event, Unit]])
+          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Binding[_]] =>
+            a.data.asInstanceOf[Binding[_]].underlying
+              .foreach(value => elemNode.setMetadata(metadata, Some(value.toString)))
+          case _ =>
+            elemNode.setMetadata(metadata, None)
         }
         child.foreach(c => mount0(elemNode, c, None))
         parent.mountInSection(elemNode, startPoint)
@@ -86,7 +91,27 @@ object mount {
     }
 
   /** For this ScalaDoc, suppose the following binding: `<div><br>{}<hr></div>`. */
-  private implicit class DomNodeSection(node: DomNode) {
+  private implicit class DomNodeExtra(node: DomNode) {
+    def setEventListener(metadata: MetaData, listener: dom.Event => Unit): Unit =
+      metadata.collect {
+        case m: UnprefixedAttribute =>
+          node.asInstanceOf[js.Dynamic].updateDynamic(m.key)(listener)
+      }
+
+    def setMetadata(metadata: MetaData, value: Option[String]): Unit = {
+      val htmlNode = node.asInstanceOf[dom.html.Html]
+      metadata.collect {
+        case m: UnprefixedAttribute if m.key == "style" =>
+          htmlNode.style.cssText = value.getOrElse(m.value.toString)
+        case m: UnprefixedAttribute =>
+          htmlNode.setAttribute(m.key, value.getOrElse(m.value.toString))
+        case m: PrefixedAttribute if m.pre == "style" =>
+          htmlNode.style.setProperty(m.key, value.getOrElse(m.value.toString))
+        case m: PrefixedAttribute =>
+          htmlNode.setAttribute(s"${m.pre}:${m.key}", value.getOrElse(m.value.toString))
+      }
+    }
+
     /**
      * Creats and inserts two empty text nodes into the DOM, which delimitate
      * a mounting region between them point. Because the DOM API only exposes
@@ -122,6 +147,5 @@ object mount {
         cleanMountSection(start, end)
       }
     }
-
   }
 }
