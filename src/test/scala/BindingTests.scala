@@ -88,7 +88,7 @@ class RxTests extends FunSuite {
     final case class User(firstName: Var[String], lastName: Var[String], age: Var[Int])
     val filterPattern: Var[String] = Var("")
 
-    val usersRx: Var[Seq[User]] = Var(Seq(
+    val usersRx: Var[List[User]] = Var(List(
       User(Var("Steve"), Var("Jobs"), Var(10)),
       User(Var("Tim"), Var("Cook"), Var(12)),
       User(Var("Jeff"), Var("Lauren"), Var(13))
@@ -105,19 +105,19 @@ class RxTests extends FunSuite {
           lastName.toLowerCase.contains(pattern)
       }
 
-    implicit class SequencingSeqFFS[A](self: Seq[Rx[A]]) {
-      def sequence: Rx[Seq[A]] =
-        self.foldRight(Rx(Seq[A]()))(for {n<-_;s<-_} yield n+:s)
+    implicit class SequencingListFFS[A](self: List[Rx[A]]) {
+      def sequence: Rx[List[A]] =
+        self.foldRight(Rx(List[A]()))(for {n<-_;s<-_} yield n+:s)
     }
 
     def tbodyRx: Elem =
       <tbody>{
-          usersRx.flatMap { userSeq: Seq[User] =>
-            userSeq
-              .map(shouldShow) // Seq[Rx[Boolean]]
-              .sequence        // Rx[Seq[Boolean]]
+          usersRx.flatMap { userList: List[User] =>
+            userList
+              .map(shouldShow) // List[Rx[Boolean]]
+              .sequence        // Rx[List[Boolean]]
               .map {
-                _ .zip(userSeq)
+                _ .zip(userList)
                   .collect { case (true, u) => u }
                   .map { user =>
                     <tr><td>{user.firstName}</td><td>{user.lastName}</td><td>{user.age}</td></tr>

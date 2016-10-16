@@ -1,38 +1,10 @@
 package mhtml
 
 import monix.execution.Scheduler
-import monix.reactive.Observable
-import monix.reactive.subjects.BehaviorSubject
 import org.scalajs.dom
 import org.scalajs.dom.raw.{Node => DomNode}
 import scala.scalajs.js
 import scala.xml.{Node => XmlNode, _}
-
-trait Rx[+A] {
-  def underlying: Observable[A]
-
-  def map[B](f: A => B): Rx[B]              = Rx.fromObservable(underlying.map(f))
-  def filter(f: A => Boolean): Rx[A]        = Rx.fromObservable(underlying.filter(f))
-  def flatMap[B](f: A => Rx[B]): Rx[B] = Rx.fromObservable(underlying.mergeMap(x => f(x).underlying))
-  def foreach(f: A => Unit)(implicit s: Scheduler): Unit = underlying.foreach(f)
-}
-
-object Rx {
-  def fromObservable[A](o: Observable[A]): Rx[A] = new Rx[A] { def underlying = o }
-  def apply[A](initialValue: A): Rx[A] = Var(initialValue)
-}
-
-final class Var[A](initialValue: A) extends Rx[A] {
-  private val subject = BehaviorSubject(initialValue)
-  val underlying: Observable[A] = subject
-
-  def :=(newValue: A): Unit = subject.onNext(newValue)
-  def update(f: A => A)(implicit s: Scheduler): Unit = subject.firstL.runAsync(v => subject.onNext(f(v.get)))
-}
-
-object Var {
-  def apply[A](initialValue: A): Var[A] = new Var(initialValue)
-}
 
 /** Side-effectly mounts an `xml.Node | Rxs[xml.Node]` on a concrete `org.scalajs.dom.raw.Node`. */
 object mount {
@@ -74,19 +46,19 @@ object mount {
             elemNode.setMetadata(metadata, None)
         }
         child.foreach(c => mount0(elemNode, c, None))
-        parent.mountInSection(elemNode, startPoint)
+        parent.mountHere(elemNode, startPoint)
 
       case e: EntityRef  =>
         val key    = e.entityName
         val string = EntityRefMap(key)
-        parent.mountInSection(dom.document.createTextNode(string), startPoint)
+        parent.mountHere(dom.document.createTextNode(string), startPoint)
 
       case a: Atom[_]    =>
         val content = a.data.toString
         if (!content.isEmpty)
-          parent.mountInSection(dom.document.createTextNode(content), startPoint)
+          parent.mountHere(dom.document.createTextNode(content), startPoint)
 
-      case Comment(text) => parent.mountInSection(dom.document.createComment(text), startPoint)
+      case Comment(text) => parent.mountHere(dom.document.createComment(text), startPoint)
       case Group(nodes)  => nodes.foreach(n => mount0(parent, n, startPoint))
     }
 
@@ -112,13 +84,11 @@ object mount {
       }
     }
 
-    /**
-     * Creats and inserts two empty text nodes into the DOM, which delimitate
-     * a mounting region between them point. Because the DOM API only exposes
-     * `.insertBefore` things are reversed: at the position of the `}`
-     * character in our binding example, we insert the start point, and at `{`
-     * goes the end.
-     */
+    // Creats and inserts two empty text nodes into the DOM, which delimitate
+    // a mounting region between them point. Because the DOM API only exposes
+    // `.insertBefore` things are reversed: at the position of the `}`
+    // character in our binding example, we insert the start point, and at `{`
+    // goes the end.
     def createMountSection(): (DomNode, DomNode) = {
       val start = dom.document.createTextNode("")
       val end   = dom.document.createTextNode("")
@@ -127,19 +97,15 @@ object mount {
       (start, end)
     }
 
-    /**
-     * Elements are then "inserted before" the start point, such that
-     * inserting List(a, b) looks as follows: `}` → `a}` → `ab}`. Note that a
-     * reference to the start point is sufficient here.
-     */
-    def mountInSection(child: DomNode, start: Option[DomNode]): Unit =
-      start.fold(node.appendChild(child))(point => node.insertBefore(child, point))
+    // Elements are then "inserted before" the start point, such that
+    // inserting List(a, b) looks as follows: `}` → `a}` → `ab}`. Note that a
+    // reference to the start point is sufficient here. */
+    def mountHere(child: DomNode, start: Option[DomNode]): Unit =
+      { start.fold(node.appendChild(child))(point => node.insertBefore(child, point)); () }
 
-    /**
-     * Cleaning stuff is equally simple, `cleanMountSection` takes a references
-     * to start and end point, and (tail recursively) deletes nodes at the
-     * left of the start point until it reaches end of the mounting section.
-     */
+    // Cleaning stuff is equally simple, `cleanMountSection` takes a references
+    // to start and end point, and (tail recursively) deletes nodes at the
+    // left of the start point until it reaches end of the mounting section. */
     def cleanMountSection(start: DomNode, end: DomNode): Unit = {
       val next = start.previousSibling
       if (next != end) {

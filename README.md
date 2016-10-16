@@ -101,14 +101,14 @@ def dogs(readOnly: Rx[Int]): Rx[xml.Node] =
   </div>
 ```
 
-**How can I turn a `Seq[Rx[A]]` into a `Rx[Seq[A]]`?**
+**How can I turn a `List[Rx[A]]` into a `Rx[List[A]]`?**
 
 Short answer:
 
 ```scala
-implicit class SequencingSeqFFS[A](self: Seq[Rx[A]]) {
-  def sequence: Rx[Seq[A]] =
-    self.foldRight(Rx(Seq[A]()))(for {n<-_;s<-_} yield n+:s)
+implicit class SequencingListFFS[A](self: List[Rx[A]]) {
+  def sequence: Rx[List[A]] =
+    self.foldRight(Rx(List[A]()))(for {n<-_;s<-_} yield n+:s)
 }
 ```
 

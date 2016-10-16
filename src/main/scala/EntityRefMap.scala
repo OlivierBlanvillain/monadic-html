@@ -2,7 +2,9 @@ package mhtml
 
 import java.util.Arrays
 
-object EntityRefMap {
+/** Map of EntityRef to their String representation. Data in stored in two
+  * `Ordering[String]` sorted arrays, and accessed using binary search. */
+private[mhtml] object EntityRefMap {
   def apply(key: String): String = {
     val i = Arrays.binarySearch(keys.asInstanceOf[Array[AnyRef]], key)
     if (i < 0) key else values(i)
