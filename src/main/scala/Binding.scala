@@ -8,21 +8,21 @@ import org.scalajs.dom.raw.{Node => DomNode}
 import scala.scalajs.js
 import scala.xml.{Node => XmlNode, _}
 
-trait Binding[+A] {
+trait Rx[+A] {
   def underlying: Observable[A]
 
-  def map[B](f: A => B): Binding[B]              = Binding.fromObservable(underlying.map(f))
-  def filter(f: A => Boolean): Binding[A]        = Binding.fromObservable(underlying.filter(f))
-  def flatMap[B](f: A => Binding[B]): Binding[B] = Binding.fromObservable(underlying.mergeMap(x => f(x).underlying))
+  def map[B](f: A => B): Rx[B]              = Rx.fromObservable(underlying.map(f))
+  def filter(f: A => Boolean): Rx[A]        = Rx.fromObservable(underlying.filter(f))
+  def flatMap[B](f: A => Rx[B]): Rx[B] = Rx.fromObservable(underlying.mergeMap(x => f(x).underlying))
   def foreach(f: A => Unit)(implicit s: Scheduler): Unit = underlying.foreach(f)
 }
 
-object Binding {
-  def fromObservable[A](o: Observable[A]): Binding[A] = new Binding[A] { def underlying = o }
-  def apply[A](initialValue: A): Binding[A] = Var(initialValue)
+object Rx {
+  def fromObservable[A](o: Observable[A]): Rx[A] = new Rx[A] { def underlying = o }
+  def apply[A](initialValue: A): Rx[A] = Var(initialValue)
 }
 
-final class Var[A](initialValue: A) extends Binding[A] {
+final class Var[A](initialValue: A) extends Rx[A] {
   private val subject = BehaviorSubject(initialValue)
   val underlying: Observable[A] = subject
 
@@ -34,15 +34,15 @@ object Var {
   def apply[A](initialValue: A): Var[A] = new Var(initialValue)
 }
 
-/** Side-effectly mounts an `xml.Node | Bindings[xml.Node]` on a concrete `org.scalajs.dom.raw.Node`. */
+/** Side-effectly mounts an `xml.Node | Rxs[xml.Node]` on a concrete `org.scalajs.dom.raw.Node`. */
 object mount {
   def apply(parent: DomNode, child: XmlNode)(implicit s: Scheduler): Unit        = mount0(parent, child, None)
-  def apply(parent: DomNode, obs: Binding[XmlNode])(implicit s: Scheduler): Unit = mount0(parent, new Atom(obs), None)
+  def apply(parent: DomNode, obs: Rx[XmlNode])(implicit s: Scheduler): Unit = mount0(parent, new Atom(obs), None)
 
   private def mount0(parent: DomNode, child: XmlNode, startPoint: Option[DomNode])(implicit s: Scheduler): Unit =
     child match {
-      case a: Atom[_] if a.data.isInstanceOf[Binding[_]] =>
-        val obs = a.data.asInstanceOf[Binding[_]].underlying
+      case a: Atom[_] if a.data.isInstanceOf[Rx[_]] =>
+        val obs = a.data.asInstanceOf[Rx[_]].underlying
         val (start, end) = parent.createMountSection()
         obs.foreach { v =>
           parent.cleanMountSection(start, end)
@@ -67,8 +67,8 @@ object mount {
             elemNode.setEventListener(metadata, (_: dom.Event) => a.data.asInstanceOf[Function0[Unit]]())
           case (a: Atom[_]) :: _ if a.data.isInstanceOf[Function1[_, _]] =>
             elemNode.setEventListener(metadata, a.data.asInstanceOf[Function1[dom.Event, Unit]])
-          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Binding[_]] =>
-            a.data.asInstanceOf[Binding[_]].underlying
+          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Rx[_]] =>
+            a.data.asInstanceOf[Rx[_]].underlying
               .foreach(value => elemNode.setMetadata(metadata, Some(value.toString)))
           case _ =>
             elemNode.setMetadata(metadata, None)

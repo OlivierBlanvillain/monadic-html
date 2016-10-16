@@ -5,7 +5,7 @@ import org.scalajs.dom
 import org.scalatest.FunSuite
 import scala.xml.Elem
 
-class BindingTests extends FunSuite {
+class RxTests extends FunSuite {
   implicit val s: TestScheduler = TestScheduler()
 
   test("Mounting Elem") {
@@ -14,7 +14,7 @@ class BindingTests extends FunSuite {
     assert(div.innerHTML == """<p class="cc" id="22">text</p>""")
   }
 
-  test("Binding Elem") {
+  test("Rx Elem") {
     val el: Var[Elem] = Var(<br/>)
     val div = dom.document.createElement("div")
     mount(div, el)
@@ -88,13 +88,13 @@ class BindingTests extends FunSuite {
     final case class User(firstName: Var[String], lastName: Var[String], age: Var[Int])
     val filterPattern: Var[String] = Var("")
 
-    val usersBinding: Var[Seq[User]] = Var(Seq(
+    val usersRx: Var[Seq[User]] = Var(Seq(
       User(Var("Steve"), Var("Jobs"), Var(10)),
       User(Var("Tim"), Var("Cook"), Var(12)),
       User(Var("Jeff"), Var("Lauren"), Var(13))
     ))
 
-    def shouldShow(user: User): Binding[Boolean] =
+    def shouldShow(user: User): Rx[Boolean] =
       for {
         pattern   <- filterPattern
         firstName <- user.firstName
@@ -105,17 +105,17 @@ class BindingTests extends FunSuite {
           lastName.toLowerCase.contains(pattern)
       }
 
-    implicit class SequencingSeqFFS[A](self: Seq[Binding[A]]) {
-      def sequence: Binding[Seq[A]] =
-        self.foldRight(Binding(Seq[A]()))(for {n<-_;s<-_} yield n+:s)
+    implicit class SequencingSeqFFS[A](self: Seq[Rx[A]]) {
+      def sequence: Rx[Seq[A]] =
+        self.foldRight(Rx(Seq[A]()))(for {n<-_;s<-_} yield n+:s)
     }
 
-    def tbodyBinding: Elem =
+    def tbodyRx: Elem =
       <tbody>{
-          usersBinding.flatMap { userSeq: Seq[User] =>
+          usersRx.flatMap { userSeq: Seq[User] =>
             userSeq
-              .map(shouldShow) // Seq[Binding[Boolean]]
-              .sequence        // Binding[Seq[Boolean]]
+              .map(shouldShow) // Seq[Rx[Boolean]]
+              .sequence        // Rx[Seq[Boolean]]
               .map {
                 _ .zip(userSeq)
                   .collect { case (true, u) => u }
@@ -126,11 +126,11 @@ class BindingTests extends FunSuite {
           }
       }</tbody>
 
-    val tableBinding =
-      <table><thead><tr><td>First Name</td><td>Second Name</td><td>Age</td></tr></thead>{tbodyBinding}</table>
+    val tableRx =
+      <table><thead><tr><td>First Name</td><td>Second Name</td><td>Age</td></tr></thead>{tbodyRx}</table>
 
     val div = dom.document.createElement("div")
-    mount(div, tableBinding)
+    mount(div, tableRx)
     s.tick()
     s.tick()
     s.tick()
@@ -234,7 +234,7 @@ class BindingTests extends FunSuite {
 
     val count: Var[Int] = Var[Int](0)
 
-    val dogs: Binding[Seq[Node]] =
+    val dogs: Rx[Seq[Node]] =
       count.map(Seq.fill(_)(<img src="doge.png"></img>))
 
     val component = // ← look, you can even use fancy names!

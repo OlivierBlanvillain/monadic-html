@@ -6,33 +6,33 @@ Tiny DOM binding library for Scala.js
 
 Main Objectives: friendly syntax for frontend developers (XHTML) and fast compilation speeds (no macros).
 
-This library is inspired by [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala)
+This library is inspired by [Rx.scala](https://github.com/ThoughtWorksInc/Rx.scala)
 which heavily relies on macros to obtain type-safety and hide monadic context from users. [Scalatags](https://github.com/lihaoyi/scalatags) is another great library for a different approach: it defines a new type-safe DSL to write HTML.
 
 ## Design
 
-This library uses two concepts: `Binding` and `Var`.
+This library uses two concepts: `Rx` and `Var`.
 
-**`Binding[A]`** is some value of type `A` which can change over time. You can construct new bindings using `map`, `flatMap` and `filter` which will then get automatically updated when the initial `Binding` updates:
+**`Rx[A]`** is some value of type `A` which can change over time. You can construct new bindings using `map`, `flatMap` and `filter` which will then get automatically updated when the initial `Rx` updates:
 
 ```scala
-trait Binding[+A] {
-  def map[B](f: A => B): Binding[B]
-  def filter(f: A => Boolean): Binding[A]
-  def flatMap[B](f: A => Binding[B]): Binding[B]
+trait Rx[+A] {
+  def map[B](f: A => B): Rx[B]
+  def filter(f: A => Boolean): Rx[A]
+  def flatMap[B](f: A => Rx[B]): Rx[B]
 }
 ```
 
-**`Var[A]`** extends `Binding[A]` with two additional methods, `:=` and `update`, which lets you update the value contained in the variable `Var[A]`:
+**`Var[A]`** extends `Rx[A]` with two additional methods, `:=` and `update`, which lets you update the value contained in the variable `Var[A]`:
 
 ```scala
-class Var[A](initialValue: A) extends Binding[A] {
+class Var[A](initialValue: A) extends Rx[A] {
   def :=(newValue: A): Unit
   def update(f: A => A): Unit
 }
 ```
 
-The central idea is to write HTML views in term of these`Binding`s and `Var`s, such that update are automatically propagated from the source `Var`s the way to the actual DOM. The core value propagation logic was built using basic blocks from [Monix](https://github.com/monixio/monix), which makes it very reliable, pluggable to other stuff Monix based stuff such as [monixwire](https://github.com/OlivierBlanvillain/monixwire), and [out of the box testable](src/test/scala/BindingTests.scala).
+The central idea is to write HTML views in term of these`Rx`s and `Var`s, such that update are automatically propagated from the source `Var`s the way to the actual DOM. The core value propagation logic was built using basic blocks from [Monix](https://github.com/monixio/monix), which makes it very reliable, pluggable to other stuff Monix based stuff such as [monixwire](https://github.com/OlivierBlanvillain/monixwire), and [out of the box testable](src/test/scala/RxTests.scala).
 
 ## Getting Started
 
@@ -48,7 +48,7 @@ import org.scalajs.dom
 
 val count: Var[Int] = Var[Int](0)
 
-val dogs: Binding[Seq[Node]] =
+val dogs: Rx[Seq[Node]] =
   count.map(Seq.fill(_)(<img src="doge.png"></img>))
 
 val component = // ← look, you can even use fancy names!
@@ -90,10 +90,10 @@ def createComponent(): xml.Node = {
 }
 ```
 
-Furthermore, you can restrict access to the `:=` method by using the fact that `Var[T] <: Binding[T]` as follows:
+Furthermore, you can restrict access to the `:=` method by using the fact that `Var[T] <: Rx[T]` as follows:
 
 ```scala
-def dogs(readOnly: Binding[Int]): Binding[xml.Node] =
+def dogs(readOnly: Rx[Int]): Rx[xml.Node] =
   <div>
     1 to readOnly map { _ =>
       <img src="doge.png"></img>
@@ -101,14 +101,14 @@ def dogs(readOnly: Binding[Int]): Binding[xml.Node] =
   </div>
 ```
 
-**How can I turn a `Seq[Binding[A]]` into a `Binding[Seq[A]]`?**
+**How can I turn a `Seq[Rx[A]]` into a `Rx[Seq[A]]`?**
 
 Short answer:
 
 ```scala
-implicit class SequencingSeqFFS[A](self: Seq[Binding[A]]) {
-  def sequence: Binding[Seq[A]] =
-    self.foldRight(Binding(Seq[A]()))(for {n<-_;s<-_} yield n+:s)
+implicit class SequencingSeqFFS[A](self: Seq[Rx[A]]) {
+  def sequence: Rx[Seq[A]] =
+    self.foldRight(Rx(Seq[A]()))(for {n<-_;s<-_} yield n+:s)
 }
 ```
 
@@ -117,9 +117,9 @@ implicit class SequencingSeqFFS[A](self: Seq[Binding[A]]) {
 ```scala
 import cats.implicits._
 
-implicit val BindingMonadInstance: cats.Monad[Binding] = new cats.Monad[Binding] {
-  def pure[A](x: A): Binding[A] = apply(x)
-  def flatMap[A, B](fa: Binding[A])(f: A => Binding[B]): Binding[B] = fa.flatMap(f)
-  def tailRecM[A, B](a: A)(f: (A) => Binding[Either[A, B]]): Binding[B] = defaultTailRecM(a)(f)
+implicit val RxMonadInstance: cats.Monad[Rx] = new cats.Monad[Rx] {
+  def pure[A](x: A): Rx[A] = apply(x)
+  def flatMap[A, B](fa: Rx[A])(f: A => Rx[B]): Rx[B] = fa.flatMap(f)
+  def tailRecM[A, B](a: A)(f: (A) => Rx[Either[A, B]]): Rx[B] = defaultTailRecM(a)(f)
 }
 ```
