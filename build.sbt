@@ -21,7 +21,8 @@ scalacOptions := Seq(
   "-Yno-adapted-args",
   "-Ywarn-dead-code",
   "-Ywarn-numeric-widen",
-  "-Ywarn-unused-import")
+  "-Ywarn-unused-import",
+  "-Ywarn-value-discard")
 
 testOptions  in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
 requiresDOM  in Test := true

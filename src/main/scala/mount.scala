@@ -14,14 +14,17 @@ object mount {
   def apply(parent: DomNode, obs: Rx[XmlNode]): Unit =
     { mount0(parent, new Atom(obs), None); () }
 
-  private def mount0(parent: DomNode, child: XmlNode, startPoint: Option[DomNode]): Unit =
+  private def mount0(parent: DomNode, child: XmlNode, startPoint: Option[DomNode]): Cancelable =
     child match {
       case a: Atom[_] if a.data.isInstanceOf[Rx[_]] =>
         val (start, end) = parent.createMountSection()
+        var cancelable = Cancelable.empty
         a.data.asInstanceOf[Rx[_]].foreach { v =>
           parent.cleanMountSection(start, end)
-          v match {
-            case n: XmlNode  => mount0(parent, n, Some(start))
+          cancelable.cancel
+          cancelable = v match {
+            case n: XmlNode  =>
+              mount0(parent, n, Some(start))
             case seq: Seq[_] =>
               val nodeSeq = seq.map {
                 case n: XmlNode => n
@@ -36,8 +39,8 @@ object mount {
       case e @ Elem(_, label, metadata, _, child @ _*) =>
         val elemNode = dom.document.createElement(label)
 
-        metadata.value match {
-          case null => ()
+        val cancelMetadata: Cancelable = metadata.value match {
+          case null => Cancelable.empty
           case (a: Atom[_]) :: _ if a.data.isInstanceOf[Function0[_]] =>
             elemNode.setEventListener(metadata, (_: dom.Event) => a.data.asInstanceOf[Function0[Unit]]())
           case (a: Atom[_]) :: _ if a.data.isInstanceOf[Function1[_, _]] =>
@@ -47,33 +50,41 @@ object mount {
               .foreach(value => elemNode.setMetadata(metadata, Some(value.toString)))
           case _ =>
             elemNode.setMetadata(metadata, None)
+            Cancelable.empty
         }
-        child.foreach(c => mount0(elemNode, c, None))
+        val cancels = child.map(c => mount0(elemNode, c, None))
         parent.mountHere(elemNode, startPoint)
+        Cancelable { () => cancelMetadata.cancel(); cancels.foreach(_.cancel()) }
 
       case e: EntityRef  =>
         val key    = e.entityName
         val string = EntityRefMap(key)
         parent.mountHere(dom.document.createTextNode(string), startPoint)
+        Cancelable.empty
 
       case a: Atom[_]    =>
         val content = a.data.toString
         if (!content.isEmpty)
           parent.mountHere(dom.document.createTextNode(content), startPoint)
+        Cancelable.empty
 
       case Comment(text) =>
         parent.mountHere(dom.document.createComment(text), startPoint)
+        Cancelable.empty
 
       case Group(nodes)  =>
-        nodes.foreach(n => mount0(parent, n, startPoint))
+        val cancels = nodes.map(n => mount0(parent, n, startPoint))
+        Cancelable(() => cancels.foreach(_.cancel))
     }
 
   private implicit class DomNodeExtra(node: DomNode) {
-    def setEventListener(metadata: MetaData, listener: dom.Event => Unit): Unit =
+    def setEventListener(metadata: MetaData, listener: dom.Event => Unit): Cancelable =
       metadata.headOption.map {
         case m: UnprefixedAttribute =>
-          node.asInstanceOf[js.Dynamic].updateDynamic(m.key)(listener)
-      }
+          val dyn = node.asInstanceOf[js.Dynamic]
+          dyn.updateDynamic(m.key)(listener)
+          Cancelable(() => dyn.updateDynamic(m.key)(null))
+      }.getOrElse(Cancelable.empty)
 
     def setMetadata(metadata: MetaData, value: Option[String]): Unit = {
       val htmlNode = node.asInstanceOf[dom.html.Html]
