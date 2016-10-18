@@ -1,15 +1,11 @@
-enablePlugins(ScalaJSPlugin)
+val scalajsdom = "0.9.1"
+val scalaxml   = "1.0.6"
+val scalatest  = "3.0.0"
+val cats       = "0.7.2"
 
-resolvers += Resolver.sonatypeRepo("snapshots")
-
-libraryDependencies ++= Seq(
-  "org.scala-js"   %%% "scalajs-dom" % "0.9.1",
-  "in.nvilla"      %%% "scala-xml"   % "1.0.6", // https://github.com/scala/scala-xml/pull/109
-  "org.scalatest"  %%% "scalatest"   % "3.0.0" % "test")
-
-scalaVersion := "2.11.8"
-
-scalacOptions := Seq(
+resolvers     in ThisBuild += Resolver.sonatypeRepo("snapshots")
+scalaVersion  in ThisBuild := "2.11.8"
+scalacOptions in ThisBuild := Seq(
   "-deprecation",
   "-encoding", "UTF-8",
   "-feature",
@@ -24,7 +20,33 @@ scalacOptions := Seq(
   "-Ywarn-unused-import",
   "-Ywarn-value-discard")
 
-testOptions  in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF")
-requiresDOM  in Test := true
-scalaJSStage in Test := FastOptStage
-jsEnv        in Test := PhantomJSEnv().value
+lazy val root = project.in(file("."))
+  .aggregate(`monadic-html`, `monadic-rxJS`, `monadic-rxJVM`, `monadic-rx-catsJS`, `monadic-rx-catsJVM`, tests)
+  .settings(publish := {}, publishLocal := {})
+
+lazy val `monadic-html` = project
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(`monadic-rxJS`)
+  .settings(libraryDependencies ++= Seq(
+    "org.scala-js"  %%% "scalajs-dom" % scalajsdom,
+    "in.nvilla"     %%% "scala-xml"   % scalaxml))
+
+lazy val tests = project
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(`monadic-html`)
+  .settings(
+    publish := {}, publishLocal := {},
+    libraryDependencies += "org.scalatest" %%% "scalatest" % scalatest % "test",
+    testOptions  in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"),
+    scalaJSStage in Test := FastOptStage,
+    jsEnv        in Test := PhantomJSEnv().value)
+
+lazy val `monadic-rxJS`  = `monadic-rx`.js
+lazy val `monadic-rxJVM` = `monadic-rx`.jvm
+lazy val `monadic-rx`    = crossProject.crossType(CrossType.Full)
+
+lazy val `monadic-rx-catsJS`  = `monadic-rx-cats`.js
+lazy val `monadic-rx-catsJVM` = `monadic-rx-cats`.jvm
+lazy val `monadic-rx-cats`    = crossProject.crossType(CrossType.Pure)
+  .dependsOn(`monadic-rx`)
+  .settings(libraryDependencies += "org.typelevel" %%% "cats" % cats)

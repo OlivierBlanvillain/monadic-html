@@ -4,7 +4,7 @@ import org.scalajs.dom
 import org.scalatest.FunSuite
 import scala.xml.Elem
 
-class RxTests extends FunSuite {
+class Tests extends FunSuite {
   test("Mounting Elem") {
     val div = dom.document.createElement("div")
     mount(div, <p class="cc" id="22">{"text"}</p>)

@@ -51,7 +51,7 @@ final class Var[A] private[mhtml] (initialValue: Opt[A], register: Var[A] => Can
   // Current registration to the feeding `Rx`, canceled whenever nobody's listening.
   private[this] var registration: Cancelable = Cancelable.empty
   // Mutable set of all currently subscribed functions, implementing with an `Array`.
-  private[this] val subscribers: scalajs.js.Array[A => Unit] = new scalajs.js.Array[A => Unit]
+  private[this] val subscribers = buffer.empty[A => Unit]
 
   override def foreach(s: A => Unit): Cancelable = {
     if (subscribers.isEmpty) registration = register(this)
