@@ -4,9 +4,8 @@ resolvers += Resolver.sonatypeRepo("snapshots")
 
 libraryDependencies ++= Seq(
   "org.scala-js"   %%% "scalajs-dom" % "0.9.1",
-  "io.monix"       %%% "monix"       % "2.0.4",
-  "in.nvilla"      %%% "scala-xml"   % "1.0.6",
-  "org.scalatest"  %%% "scalatest"   % "3.0.0")
+  "in.nvilla"      %%% "scala-xml"   % "1.0.6", // https://github.com/scala/scala-xml/pull/109
+  "org.scalatest"  %%% "scalatest"   % "3.0.0" % "test")
 
 scalaVersion := "2.11.8"
 

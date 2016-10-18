@@ -1,13 +1,10 @@
 package mhtml
 
-import monix.execution.schedulers.TestScheduler
 import org.scalajs.dom
 import org.scalatest.FunSuite
 import scala.xml.Elem
 
 class RxTests extends FunSuite {
-  implicit val s: TestScheduler = TestScheduler()
-
   test("Mounting Elem") {
     val div = dom.document.createElement("div")
     mount(div, <p class="cc" id="22">{"text"}</p>)
@@ -18,8 +15,6 @@ class RxTests extends FunSuite {
     val el: Var[Elem] = Var(<br/>)
     val div = dom.document.createElement("div")
     mount(div, el)
-    assert(div.innerHTML == "")
-    s.tick()
     assert(div.innerHTML == "<br>")
   }
 
@@ -28,13 +23,10 @@ class RxTests extends FunSuite {
     val span: Elem = <span><p>pre {text} <br/> post </p></span>
     val div = dom.document.createElement("div")
     mount(div, span)
-    s.tick()
     assert(div.innerHTML == "<span><p>pre original text <br> post </p></span>")
     text := "changed"
-    s.tick()
     assert(div.innerHTML == "<span><p>pre changed <br> post </p></span>")
     text := "changed again"
-    s.tick()
     assert(div.innerHTML == "<span><p>pre changed again <br> post </p></span>")
   }
 
@@ -43,15 +35,10 @@ class RxTests extends FunSuite {
     val span: Elem = <span> <p> { list.map(xs => for (x <- xs) yield <b>{x}</b>) } </p> </span>
     val div = dom.document.createElement("div")
     mount(div, span)
-    s.tick()
     assert(div.innerHTML == "<span> <p> <b>original text 0</b><b>original text 1</b> </p> </span>")
     list.update("prepended" +: _)
-    s.tick()
-    s.tick()
     assert(div.innerHTML == "<span> <p> <b>prepended</b><b>original text 0</b><b>original text 1</b> </p> </span>")
     list.update(_.patch(1, Nil, 1)) // Remove element as position 1
-    s.tick()
-    s.tick()
     assert(div.innerHTML == "<span> <p> <b>prepended</b><b>original text 1</b> </p> </span>")
   }
 
@@ -60,10 +47,8 @@ class RxTests extends FunSuite {
     val hr: Elem = <hr id={id}/>
     val div = dom.document.createElement("div")
     mount(div, hr)
-    s.tick()
     assert(div.innerHTML == """<hr id="oldId">""")
     id := "newId"
-    s.tick()
     assert(div.innerHTML == """<hr id="newId">""")
   }
 
@@ -73,13 +58,11 @@ class RxTests extends FunSuite {
     val p: Elem = <p class={clazz}><input type={tpe}/></p>
     val div = dom.document.createElement("div")
     mount(div, p)
-    s.tick()
     val customInput = "foo"
     div.firstChild.firstChild.asInstanceOf[dom.html.Input].value = customInput
     assert(div.innerHTML == """<p class="oldClass"><input type="text"></p>""")
     clazz := "newClass"
     tpe   := "password"
-    s.tick()
     assert(div.innerHTML == """<p class="newClass"><input type="password"></p>""")
     assert(div.firstChild.firstChild.asInstanceOf[dom.html.Input].value == customInput)
   }
@@ -131,18 +114,10 @@ class RxTests extends FunSuite {
 
     val div = dom.document.createElement("div")
     mount(div, tableRx)
-    s.tick()
-    s.tick()
-    s.tick()
-    s.tick()
 
     assert(div.innerHTML == """<table><thead><tr><td>First Name</td><td>Second Name</td><td>Age</td></tr></thead><tbody><tr><td>Steve</td><td>Jobs</td><td>10</td></tr><tr><td>Tim</td><td>Cook</td><td>12</td></tr><tr><td>Jeff</td><td>Lauren</td><td>13</td></tr></tbody></table>""")
 
     filterPattern := "o"
-    s.tick()
-    s.tick()
-    s.tick()
-    s.tick()
 
     assert(div.innerHTML == """<table><thead><tr><td>First Name</td><td>Second Name</td><td>Age</td></tr></thead><tbody><tr><td>Steve</td><td>Jobs</td><td>10</td></tr><tr><td>Tim</td><td>Cook</td><td>12</td></tr></tbody></table>""")
   }
@@ -152,10 +127,8 @@ class RxTests extends FunSuite {
     val parent = <p><span>{child}</span><span>{child}</span></p>
     val div = dom.document.createElement("div")
     mount(div, parent)
-    s.tick()
     assert(div.innerHTML == "<p><span><hr></span><span><hr></span></p>")
     child := <br/>
-    s.tick()
     assert(div.innerHTML == "<p><span><br></span><span><br></span></p>")
   }
 
@@ -259,10 +232,8 @@ class RxTests extends FunSuite {
     assert(div.innerHTML == start + "\n        \n      </div>")
     assert(div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
-    s.tick()
     assert(div.innerHTML == start + "\n        <img src=\"doge.png\">\n      </div>")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
-    s.tick()
     assert(div.innerHTML == start + "\n        <img src=\"doge.png\"><img src=\"doge.png\">\n      </div>")
   }
 }

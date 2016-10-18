@@ -1,22 +1,24 @@
 package mhtml
 
-import monix.execution.Scheduler
 import org.scalajs.dom
 import org.scalajs.dom.raw.{Node => DomNode}
 import scala.scalajs.js
 import scala.xml.{Node => XmlNode, _}
 
-/** Side-effectly mounts an `xml.Node | Rxs[xml.Node]` on a concrete `org.scalajs.dom.raw.Node`. */
 object mount {
-  def apply(parent: DomNode, child: XmlNode)(implicit s: Scheduler): Unit        = mount0(parent, child, None)
-  def apply(parent: DomNode, obs: Rx[XmlNode])(implicit s: Scheduler): Unit = mount0(parent, new Atom(obs), None)
+  /** Side-effectly mounts an `xml.Node` to a `org.scalajs.dom.raw.Node`. */
+  def apply(parent: DomNode, child: XmlNode): Unit =
+    { mount0(parent, child, None); () }
 
-  private def mount0(parent: DomNode, child: XmlNode, startPoint: Option[DomNode])(implicit s: Scheduler): Unit =
+  /** Side-effectly mounts an `Rx[xml.Node]` to a `org.scalajs.dom.raw.Node`. */
+  def apply(parent: DomNode, obs: Rx[XmlNode]): Unit =
+    { mount0(parent, new Atom(obs), None); () }
+
+  private def mount0(parent: DomNode, child: XmlNode, startPoint: Option[DomNode]): Unit =
     child match {
       case a: Atom[_] if a.data.isInstanceOf[Rx[_]] =>
-        val obs = a.data.asInstanceOf[Rx[_]].underlying
         val (start, end) = parent.createMountSection()
-        obs.foreach { v =>
+        a.data.asInstanceOf[Rx[_]].foreach { v =>
           parent.cleanMountSection(start, end)
           v match {
             case n: XmlNode  => mount0(parent, n, Some(start))
@@ -26,7 +28,8 @@ object mount {
                 case a => new Atom(a)
               }
               mount0(parent, new Group(nodeSeq), Some(start))
-            case a => mount0(parent, new Atom(a), Some(start))
+            case a =>
+              mount0(parent, new Atom(a), Some(start))
           }
         }
 
@@ -40,7 +43,7 @@ object mount {
           case (a: Atom[_]) :: _ if a.data.isInstanceOf[Function1[_, _]] =>
             elemNode.setEventListener(metadata, a.data.asInstanceOf[Function1[dom.Event, Unit]])
           case (a: Atom[_]) :: _ if a.data.isInstanceOf[Rx[_]] =>
-            a.data.asInstanceOf[Rx[_]].underlying
+            a.data.asInstanceOf[Rx[_]]
               .foreach(value => elemNode.setMetadata(metadata, Some(value.toString)))
           case _ =>
             elemNode.setMetadata(metadata, None)
@@ -58,21 +61,23 @@ object mount {
         if (!content.isEmpty)
           parent.mountHere(dom.document.createTextNode(content), startPoint)
 
-      case Comment(text) => parent.mountHere(dom.document.createComment(text), startPoint)
-      case Group(nodes)  => nodes.foreach(n => mount0(parent, n, startPoint))
+      case Comment(text) =>
+        parent.mountHere(dom.document.createComment(text), startPoint)
+
+      case Group(nodes)  =>
+        nodes.foreach(n => mount0(parent, n, startPoint))
     }
 
-  /** For this ScalaDoc, suppose the following binding: `<div><br>{}<hr></div>`. */
   private implicit class DomNodeExtra(node: DomNode) {
     def setEventListener(metadata: MetaData, listener: dom.Event => Unit): Unit =
-      metadata.collect {
+      metadata.headOption.map {
         case m: UnprefixedAttribute =>
           node.asInstanceOf[js.Dynamic].updateDynamic(m.key)(listener)
       }
 
     def setMetadata(metadata: MetaData, value: Option[String]): Unit = {
       val htmlNode = node.asInstanceOf[dom.html.Html]
-      metadata.collect {
+      metadata.foreach {
         case m: UnprefixedAttribute if m.key == "style" =>
           htmlNode.style.cssText = value.getOrElse(m.value.toString)
         case m: UnprefixedAttribute =>
