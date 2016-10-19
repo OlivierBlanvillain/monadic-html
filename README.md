@@ -1,38 +1,18 @@
-# monadic-html
+# monadic-html [![Travis](https://travis-ci.org/OlivierBlanvillain/monadic-html.svg?branch=master)](https://gitter.im/monadic-html/Lobby) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/monadic-html/Lobby)
 
-[![Travis](https://travis-ci.org/OlivierBlanvillain/monadic-html.svg?branch=master)](https://travis-ci.org/OlivierBlanvillain/monadic-html) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/OlivierBlanvillain/monadic-html?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+<img align=right src="project/cats.jpg"/>
 
 Tiny DOM binding library for Scala.js
 
 Main Objectives: friendly syntax for frontend developers (XHTML) and fast compilation speeds (no macros).
 
-This library is inspired by [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala)
-which heavily relies on macros to obtain type-safety and hide monadic context from users. [Scalatags](https://github.com/lihaoyi/scalatags) is another great library for a different approach: it defines a new type-safe DSL to write HTML.
-
-## Design
-
-This library uses two concepts: `Binding` and `Var`.
-
-**`Binding[A]`** is some value of type `A` which can change over time. You can construct new bindings using `map`, `flatMap` and `filter` which will then get automatically updated when the initial `Binding` updates:
-
 ```scala
-trait Binding[+A] {
-  def map[B](f: A => B): Binding[B]
-  def filter(f: A => Boolean): Binding[A]
-  def flatMap[B](f: A => Binding[B]): Binding[B]
-}
+"in.nvilla" %%% "monadic-html" % "latest.integration"
 ```
 
-**`Var[A]`** extends `Binding[A]` with two additional methods, `:=` and `update`, which lets you update the value contained in the variable `Var[A]`:
+The core value propagation library is also available separately for both platforms as `monadic-rx`. Integration with [cats](https://github.com/typelevel/cats) is optionaly available as `monadic-rx-cats`.
 
-```scala
-class Var[A](initialValue: A) extends Binding[A] {
-  def :=(newValue: A): Unit
-  def update(f: A => A): Unit
-}
-```
-
-The central idea is to write HTML views in term of these`Binding`s and `Var`s, such that update are automatically propagated from the source `Var`s the way to the actual DOM. The core value propagation logic was built using basic blocks from [Monix](https://github.com/monixio/monix), which makes it very reliable, pluggable to other stuff Monix based stuff such as [monixwire](https://github.com/OlivierBlanvillain/monixwire), and [out of the box testable](src/test/scala/BindingTests.scala).
+This library is inspired by [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala) and [Scala.rx](https://github.com/lihaoyi/scala.rx) which both relies on macros to obtain type-safety and hide monadic context from users.
 
 ## Getting Started
 
@@ -48,8 +28,8 @@ import org.scalajs.dom
 
 val count: Var[Int] = Var[Int](0)
 
-val dogs: Binding[Seq[Node]] =
-  count.map(Seq.fill(_)(<img src="doge.png"></img>))
+val dogs: Rx[Seq[Node]] =
+  count.map(i => Seq.fill(i)(<img src="doge.png"></img>))
 
 val component = // ← look, you can even use fancy names!
   <div style="background-color: blue;">
@@ -64,6 +44,31 @@ val div = dom.document.createElement("div")
 mount(div, component)
 ```
 
+## Design
+
+This library uses two concepts: `Rx` and `Var`.
+
+**`Rx[A]`** is some value of type `A` which can change over time. You can construct new bindings using `map`, `flatMap` and `filter` which will then get automatically updated when the initial `Rx` updates:
+
+```scala
+trait Rx[+A] {
+  def map[B](f: A => B): Rx[B]
+  def filter(f: A => Boolean): Rx[A]
+  def flatMap[B](f: A => Rx[B]): Rx[B]
+}
+```
+
+**`Var[A]`** extends `Rx[A]` with two additional methods, `:=` and `update`, which lets you update the value contained in the variable `Var[A]`:
+
+```scala
+class Var[A](initialValue: A) extends Rx[A] {
+  def :=(newValue: A): Unit
+  def update(f: A => A): Unit
+}
+```
+
+The central idea is to write HTML views in term of these`Rx`s and `Var`s, such that update are automatically propagated from the source `Var`s the way to the actual DOM.
+
 ## FAQ
 
 **Does the compiler catch HTML typos?**
@@ -73,10 +78,6 @@ No, it only rejects invalid XML literals. I've tried to explain to front-end dev
 > I make a living writing HTML & CSS. I value fast iteration speeds and using standard HTML over slow compilers and complicated IDE setups.
 
 Hard to argue against that.
-
-**Why Monix?**
-
-I'm lazy (and Monix is awesome!). But keep in mind that this ain't no JS, you can depend on large libraries at no cost. Everything you don't use will get dead code eliminated.
 
 
 **Global mutable state, Booo! Booo!!!**
@@ -90,10 +91,10 @@ def createComponent(): xml.Node = {
 }
 ```
 
-Furthermore, you can restrict access to the `:=` method by using the fact that `Var[T] <: Binding[T]` as follows:
+Furthermore, you can restrict access to the `:=` method by using the fact that `Var[T] <: Rx[T]` as follows:
 
 ```scala
-def dogs(readOnly: Binding[Int]): Binding[xml.Node] =
+def dogs(readOnly: Rx[Int]): Rx[xml.Node] =
   <div>
     1 to readOnly map { _ =>
       <img src="doge.png"></img>
@@ -101,25 +102,24 @@ def dogs(readOnly: Binding[Int]): Binding[xml.Node] =
   </div>
 ```
 
-**How can I turn a `Seq[Binding[A]]` into a `Binding[Seq[A]]`?**
+
+**How can I turn a `List[Rx[A]]` into a `Rx[List[A]]`?**
 
 Short answer:
 
 ```scala
-implicit class SequencingSeqFFS[A](self: Seq[Binding[A]]) {
-  def sequence: Binding[Seq[A]] =
-    self.foldRight(Binding(Seq[A]()))(for {n<-_;s<-_} yield n+:s)
+implicit class SequencingListFFS[A](self: List[Rx[A]]) {
+  def sequence: Rx[List[A]] =
+    self.foldRight(Rx(List[A]()))(for {n<-_;s<-_} yield n+:s)
 }
 ```
 
 [Long answer:](https://github.com/typelevel/cats/blob/master/docs/src/main/tut/traverse.md)
 
 ```scala
-import cats.implicits._
+"in.nvilla" %%% "monadic-rx-cats" % "latest.integration"
+```
 
-implicit val BindingMonadInstance: cats.Monad[Binding] = new cats.Monad[Binding] {
-  def pure[A](x: A): Binding[A] = apply(x)
-  def flatMap[A, B](fa: Binding[A])(f: A => Binding[B]): Binding[B] = fa.flatMap(f)
-  def tailRecM[A, B](a: A)(f: (A) => Binding[Either[A, B]]): Binding[B] = defaultTailRecM(a)(f)
-}
+```scala
+import cats.implicits._, mhtml.cats._
 ```

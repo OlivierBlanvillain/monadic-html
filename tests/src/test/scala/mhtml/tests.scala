@@ -1,25 +1,20 @@
 package mhtml
 
-import monix.execution.schedulers.TestScheduler
 import org.scalajs.dom
 import org.scalatest.FunSuite
 import scala.xml.Elem
 
-class BindingTests extends FunSuite {
-  implicit val s: TestScheduler = TestScheduler()
-
+class Tests extends FunSuite {
   test("Mounting Elem") {
     val div = dom.document.createElement("div")
     mount(div, <p class="cc" id="22">{"text"}</p>)
     assert(div.innerHTML == """<p class="cc" id="22">text</p>""")
   }
 
-  test("Binding Elem") {
+  test("Rx Elem") {
     val el: Var[Elem] = Var(<br/>)
     val div = dom.document.createElement("div")
     mount(div, el)
-    assert(div.innerHTML == "")
-    s.tick()
     assert(div.innerHTML == "<br>")
   }
 
@@ -28,13 +23,10 @@ class BindingTests extends FunSuite {
     val span: Elem = <span><p>pre {text} <br/> post </p></span>
     val div = dom.document.createElement("div")
     mount(div, span)
-    s.tick()
     assert(div.innerHTML == "<span><p>pre original text <br> post </p></span>")
     text := "changed"
-    s.tick()
     assert(div.innerHTML == "<span><p>pre changed <br> post </p></span>")
     text := "changed again"
-    s.tick()
     assert(div.innerHTML == "<span><p>pre changed again <br> post </p></span>")
   }
 
@@ -43,15 +35,10 @@ class BindingTests extends FunSuite {
     val span: Elem = <span> <p> { list.map(xs => for (x <- xs) yield <b>{x}</b>) } </p> </span>
     val div = dom.document.createElement("div")
     mount(div, span)
-    s.tick()
     assert(div.innerHTML == "<span> <p> <b>original text 0</b><b>original text 1</b> </p> </span>")
     list.update("prepended" +: _)
-    s.tick()
-    s.tick()
     assert(div.innerHTML == "<span> <p> <b>prepended</b><b>original text 0</b><b>original text 1</b> </p> </span>")
     list.update(_.patch(1, Nil, 1)) // Remove element as position 1
-    s.tick()
-    s.tick()
     assert(div.innerHTML == "<span> <p> <b>prepended</b><b>original text 1</b> </p> </span>")
   }
 
@@ -60,10 +47,8 @@ class BindingTests extends FunSuite {
     val hr: Elem = <hr id={id}/>
     val div = dom.document.createElement("div")
     mount(div, hr)
-    s.tick()
     assert(div.innerHTML == """<hr id="oldId">""")
     id := "newId"
-    s.tick()
     assert(div.innerHTML == """<hr id="newId">""")
   }
 
@@ -73,13 +58,11 @@ class BindingTests extends FunSuite {
     val p: Elem = <p class={clazz}><input type={tpe}/></p>
     val div = dom.document.createElement("div")
     mount(div, p)
-    s.tick()
     val customInput = "foo"
     div.firstChild.firstChild.asInstanceOf[dom.html.Input].value = customInput
     assert(div.innerHTML == """<p class="oldClass"><input type="text"></p>""")
     clazz := "newClass"
     tpe   := "password"
-    s.tick()
     assert(div.innerHTML == """<p class="newClass"><input type="password"></p>""")
     assert(div.firstChild.firstChild.asInstanceOf[dom.html.Input].value == customInput)
   }
@@ -88,13 +71,13 @@ class BindingTests extends FunSuite {
     final case class User(firstName: Var[String], lastName: Var[String], age: Var[Int])
     val filterPattern: Var[String] = Var("")
 
-    val usersBinding: Var[Seq[User]] = Var(Seq(
+    val usersRx: Var[List[User]] = Var(List(
       User(Var("Steve"), Var("Jobs"), Var(10)),
       User(Var("Tim"), Var("Cook"), Var(12)),
       User(Var("Jeff"), Var("Lauren"), Var(13))
     ))
 
-    def shouldShow(user: User): Binding[Boolean] =
+    def shouldShow(user: User): Rx[Boolean] =
       for {
         pattern   <- filterPattern
         firstName <- user.firstName
@@ -105,19 +88,19 @@ class BindingTests extends FunSuite {
           lastName.toLowerCase.contains(pattern)
       }
 
-    implicit class SequencingSeqFFS[A](self: Seq[Binding[A]]) {
-      def sequence: Binding[Seq[A]] =
-        self.foldRight(Binding(Seq[A]()))(for {n<-_;s<-_} yield n+:s)
+    implicit class SequencingListFFS[A](self: List[Rx[A]]) {
+      def sequence: Rx[List[A]] =
+        self.foldRight(Rx(List[A]()))(for {n<-_;s<-_} yield n+:s)
     }
 
-    def tbodyBinding: Elem =
+    def tbodyRx: Elem =
       <tbody>{
-          usersBinding.flatMap { userSeq: Seq[User] =>
-            userSeq
-              .map(shouldShow) // Seq[Binding[Boolean]]
-              .sequence        // Binding[Seq[Boolean]]
+          usersRx.flatMap { userList: List[User] =>
+            userList
+              .map(shouldShow) // List[Rx[Boolean]]
+              .sequence        // Rx[List[Boolean]]
               .map {
-                _ .zip(userSeq)
+                _ .zip(userList)
                   .collect { case (true, u) => u }
                   .map { user =>
                     <tr><td>{user.firstName}</td><td>{user.lastName}</td><td>{user.age}</td></tr>
@@ -126,23 +109,15 @@ class BindingTests extends FunSuite {
           }
       }</tbody>
 
-    val tableBinding =
-      <table><thead><tr><td>First Name</td><td>Second Name</td><td>Age</td></tr></thead>{tbodyBinding}</table>
+    val tableRx =
+      <table><thead><tr><td>First Name</td><td>Second Name</td><td>Age</td></tr></thead>{tbodyRx}</table>
 
     val div = dom.document.createElement("div")
-    mount(div, tableBinding)
-    s.tick()
-    s.tick()
-    s.tick()
-    s.tick()
+    mount(div, tableRx)
 
     assert(div.innerHTML == """<table><thead><tr><td>First Name</td><td>Second Name</td><td>Age</td></tr></thead><tbody><tr><td>Steve</td><td>Jobs</td><td>10</td></tr><tr><td>Tim</td><td>Cook</td><td>12</td></tr><tr><td>Jeff</td><td>Lauren</td><td>13</td></tr></tbody></table>""")
 
     filterPattern := "o"
-    s.tick()
-    s.tick()
-    s.tick()
-    s.tick()
 
     assert(div.innerHTML == """<table><thead><tr><td>First Name</td><td>Second Name</td><td>Age</td></tr></thead><tbody><tr><td>Steve</td><td>Jobs</td><td>10</td></tr><tr><td>Tim</td><td>Cook</td><td>12</td></tr></tbody></table>""")
   }
@@ -152,10 +127,8 @@ class BindingTests extends FunSuite {
     val parent = <p><span>{child}</span><span>{child}</span></p>
     val div = dom.document.createElement("div")
     mount(div, parent)
-    s.tick()
     assert(div.innerHTML == "<p><span><hr></span><span><hr></span></p>")
     child := <br/>
-    s.tick()
     assert(div.innerHTML == "<p><span><br></span><span><br></span></p>")
   }
 
@@ -234,8 +207,8 @@ class BindingTests extends FunSuite {
 
     val count: Var[Int] = Var[Int](0)
 
-    val dogs: Binding[Seq[Node]] =
-      count.map(Seq.fill(_)(<img src="doge.png"></img>))
+    val dogs: Rx[Seq[Node]] =
+      count.map(i => Seq.fill(i)(<img src="doge.png"></img>))
 
     val component = // ← look, you can even use fancy names!
       <div style="background-color: blue;">
@@ -259,10 +232,77 @@ class BindingTests extends FunSuite {
     assert(div.innerHTML == start + "\n        \n      </div>")
     assert(div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
-    s.tick()
     assert(div.innerHTML == start + "\n        <img src=\"doge.png\">\n      </div>")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
-    s.tick()
     assert(div.innerHTML == start + "\n        <img src=\"doge.png\"><img src=\"doge.png\">\n      </div>")
+  }
+
+  test("Scala.Rx README router") {
+    var fakeTime: Int = 123
+
+    trait WebPage {
+      def fTime: Int = fakeTime
+      val time: Var[Int] = Var(fTime)
+      def update(): Unit = time := fTime
+      val html: Rx[String]
+    }
+
+    class HomePage extends WebPage {
+      val html: Rx[String] = time.map(s"Home Page! time: ".+)
+    }
+
+    class AboutPage extends WebPage {
+      val html: Rx[String] = time.map(s"About Me, time: ".+)
+    }
+
+    val url = Var("www.mysite.com/home")
+
+    val page: Rx[WebPage] =
+      url.map {
+        case "www.mysite.com/home"  => new HomePage()
+        case "www.mysite.com/about" => new AboutPage()
+      }
+
+    var result: String = ""
+    page.foreach { p => p.html.foreach(x => result = x); () }
+    assert(result == "Home Page! time: 123")
+
+    fakeTime = 234
+    page.foreach(_.update()).cancel()
+    assert(result == "Home Page! time: 234")
+
+    fakeTime = 345
+    url := "www.mysite.com/about"
+    assert(result == "About Me, time: 345")
+
+    fakeTime = 456
+    page.foreach(_.update()).cancel()
+    assert(result == "About Me, time: 456")
+  }
+
+  test("Scala.Rx README leak") {
+    var count: Int = 0
+    val a: Var[Int] = Var(1)
+    val b: Var[Int] = Var(2)
+    def mkRx(i: Int): Rx[Int] = b.map { v => count += 1; i + v }
+
+    val c: Rx[Int] = a.flatMap(mkRx)
+
+    var result: (Int, Int) = null
+    c.foreach { i => result = (i, count) }
+
+    assert((3, 1) == result)
+
+    a := 4
+    assert((6, 2) == result)
+
+    b := 3
+    assert((7, 3) == result)
+
+    (0 to 100).foreach { i => a := i }
+    assert((103, 104) == result)
+
+    b := 4
+    assert((104, 105) == result)
   }
 }
