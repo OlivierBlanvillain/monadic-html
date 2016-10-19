@@ -1,13 +1,48 @@
-# monadic-html
+# monadic-html [![Travis](https://travis-ci.org/OlivierBlanvillain/monadic-html.svg?branch=master)](https://gitter.im/monadic-html/Lobby) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/monadic-html/Lobby)
 
-[![Travis](https://travis-ci.org/OlivierBlanvillain/monadic-html.svg?branch=master)](https://travis-ci.org/OlivierBlanvillain/monadic-html) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/OlivierBlanvillain/monadic-html?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+<img align=right src="project/cats.jpg"/>
 
 Tiny DOM binding library for Scala.js
 
 Main Objectives: friendly syntax for frontend developers (XHTML) and fast compilation speeds (no macros).
 
-This library is inspired by [Rx.scala](https://github.com/ThoughtWorksInc/Rx.scala)
-which heavily relies on macros to obtain type-safety and hide monadic context from users. [Scalatags](https://github.com/lihaoyi/scalatags) is another great library for a different approach: it defines a new type-safe DSL to write HTML.
+```scala
+"in.nvilla" %%% "monadic-html" % "latest.integration"
+```
+
+The core value propagation library is also available separately for both platforms as `monadic-rx`. Integration with [cats](https://github.com/typelevel/cats) is optionaly available as `monadic-rx-cats`.
+
+This library is inspired by [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala) and [Scala.rx](https://github.com/lihaoyi/scala.rx) which both relies on macros to obtain type-safety and hide monadic context from users.
+
+## Getting Started
+
+1. Define `Var`s to store mutable data
+2. Write views in a mix of XHTML and Scala expressions
+3. Mount your beauty to the DOM
+4. Updating `Var`s automatically propagates to the views!
+
+```scala
+import mhtml._
+import scala.xml.Node
+import org.scalajs.dom
+
+val count: Var[Int] = Var[Int](0)
+
+val dogs: Rx[Seq[Node]] =
+  count.map(i => Seq.fill(i)(<img src="doge.png"></img>))
+
+val component = // ← look, you can even use fancy names!
+  <div style="background-color: blue;">
+    <button onclick={ () => count.update(_ + 1) }>Click Me!</button>
+    <p>WOW!!!</p>
+    <p>MUCH REACTIVE!!!</p>
+    <p>SUCH BINDING!!!</p>
+    {dogs}
+  </div>
+
+val div = dom.document.createElement("div")
+mount(div, component)
+```
 
 ## Design
 
@@ -32,37 +67,7 @@ class Var[A](initialValue: A) extends Rx[A] {
 }
 ```
 
-The central idea is to write HTML views in term of these`Rx`s and `Var`s, such that update are automatically propagated from the source `Var`s the way to the actual DOM. The core value propagation logic was built using basic blocks from [Monix](https://github.com/monixio/monix), which makes it very reliable, pluggable to other stuff Monix based stuff such as [monixwire](https://github.com/OlivierBlanvillain/monixwire), and [out of the box testable](src/test/scala/RxTests.scala).
-
-## Getting Started
-
-1. Define `Var`s to store mutable data
-2. Write views in a mix of XHTML and Scala expressions
-3. Mount your beauty to the DOM
-4. Updating `Var`s automatically propagates to the views!
-
-```scala
-import mhtml._
-import scala.xml.Node
-import org.scalajs.dom
-
-val count: Var[Int] = Var[Int](0)
-
-val dogs: Rx[Seq[Node]] =
-  count.map(Seq.fill(_)(<img src="doge.png"></img>))
-
-val component = // ← look, you can even use fancy names!
-  <div style="background-color: blue;">
-    <button onclick={ () => count.update(_ + 1) }>Click Me!</button>
-    <p>WOW!!!</p>
-    <p>MUCH REACTIVE!!!</p>
-    <p>SUCH BINDING!!!</p>
-    {dogs}
-  </div>
-
-val div = dom.document.createElement("div")
-mount(div, component)
-```
+The central idea is to write HTML views in term of these`Rx`s and `Var`s, such that update are automatically propagated from the source `Var`s the way to the actual DOM.
 
 ## FAQ
 
@@ -73,10 +78,6 @@ No, it only rejects invalid XML literals. I've tried to explain to front-end dev
 > I make a living writing HTML & CSS. I value fast iteration speeds and using standard HTML over slow compilers and complicated IDE setups.
 
 Hard to argue against that.
-
-**Why Monix?**
-
-I'm lazy (and Monix is awesome!). But keep in mind that this ain't no JS, you can depend on large libraries at no cost. Everything you don't use will get dead code eliminated.
 
 
 **Global mutable state, Booo! Booo!!!**
@@ -101,6 +102,7 @@ def dogs(readOnly: Rx[Int]): Rx[xml.Node] =
   </div>
 ```
 
+
 **How can I turn a `List[Rx[A]]` into a `Rx[List[A]]`?**
 
 Short answer:
@@ -115,11 +117,9 @@ implicit class SequencingListFFS[A](self: List[Rx[A]]) {
 [Long answer:](https://github.com/typelevel/cats/blob/master/docs/src/main/tut/traverse.md)
 
 ```scala
-import cats.implicits._
+"in.nvilla" %%% "monadic-rx-cats" % "latest.integration"
+```
 
-implicit val RxMonadInstance: cats.Monad[Rx] = new cats.Monad[Rx] {
-  def pure[A](x: A): Rx[A] = apply(x)
-  def flatMap[A, B](fa: Rx[A])(f: A => Rx[B]): Rx[B] = fa.flatMap(f)
-  def tailRecM[A, B](a: A)(f: (A) => Rx[Either[A, B]]): Rx[B] = defaultTailRecM(a)(f)
-}
+```scala
+import cats.implicits._, mhtml.cats._
 ```

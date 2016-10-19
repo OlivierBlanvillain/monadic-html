@@ -208,7 +208,7 @@ class Tests extends FunSuite {
     val count: Var[Int] = Var[Int](0)
 
     val dogs: Rx[Seq[Node]] =
-      count.map(Seq.fill(_)(<img src="doge.png"></img>))
+      count.map(i => Seq.fill(i)(<img src="doge.png"></img>))
 
     val component = // ← look, you can even use fancy names!
       <div style="background-color: blue;">
