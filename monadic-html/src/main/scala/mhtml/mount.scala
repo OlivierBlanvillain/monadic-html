@@ -8,13 +8,13 @@ import scala.xml.{Node => XmlNode, _}
 object mount {
   /** Side-effectly mounts an `xml.Node` to a `org.scalajs.dom.raw.Node`. */
   def apply(parent: DomNode, child: XmlNode): Unit =
-    { mount0(parent, child, None); () }
+    { mountNode(parent, child, None); () }
 
   /** Side-effectly mounts an `Rx[xml.Node]` to a `org.scalajs.dom.raw.Node`. */
   def apply(parent: DomNode, obs: Rx[XmlNode]): Unit =
-    { mount0(parent, new Atom(obs), None); () }
+    { mountNode(parent, new Atom(obs), None); () }
 
-  private def mount0(parent: DomNode, child: XmlNode, startPoint: Option[DomNode]): Cancelable =
+  private def mountNode(parent: DomNode, child: XmlNode, startPoint: Option[DomNode]): Cancelable =
     child match {
       case a: Atom[_] if a.data.isInstanceOf[Rx[_]] =>
         val (start, end) = parent.createMountSection()
@@ -24,15 +24,15 @@ object mount {
           cancelable.cancel
           cancelable = v match {
             case n: XmlNode  =>
-              mount0(parent, n, Some(start))
+              mountNode(parent, n, Some(start))
             case seq: Seq[_] =>
               val nodeSeq = seq.map {
                 case n: XmlNode => n
                 case a => new Atom(a)
               }
-              mount0(parent, new Group(nodeSeq), Some(start))
+              mountNode(parent, new Group(nodeSeq), Some(start))
             case a =>
-              mount0(parent, new Atom(a), Some(start))
+              mountNode(parent, new Atom(a), Some(start))
           }
         }
 
@@ -52,9 +52,9 @@ object mount {
             elemNode.setMetadata(metadata, None)
             Cancelable.empty
         }
-        val cancels = child.map(c => mount0(elemNode, c, None))
+        val cancelChild = child.map(c => mountNode(elemNode, c, None))
         parent.mountHere(elemNode, startPoint)
-        Cancelable { () => cancelMetadata.cancel(); cancels.foreach(_.cancel()) }
+        Cancelable { () => cancelMetadata.cancel(); cancelChild.foreach(_.cancel()) }
 
       case e: EntityRef  =>
         val key    = e.entityName
@@ -73,7 +73,7 @@ object mount {
         Cancelable.empty
 
       case Group(nodes)  =>
-        val cancels = nodes.map(n => mount0(parent, n, startPoint))
+        val cancels = nodes.map(n => mountNode(parent, n, startPoint))
         Cancelable(() => cancels.foreach(_.cancel))
     }
 
