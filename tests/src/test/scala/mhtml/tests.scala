@@ -175,7 +175,7 @@ class Tests extends FunSuite {
   }
 
   test("EntityRefMap arrays are equaly sized") {
-    assert(EntityRefMap.keys.size == EntityRefMap.values.size)
+    assert(EntityRefMap.keys.length == EntityRefMap.values.length)
   }
 
   test("onClick = Function0") {
@@ -299,7 +299,7 @@ class Tests extends FunSuite {
     b := 3
     assert((7, 3) == result)
 
-    (0 to 100).foreach { i => a := i }
+    Range.inclusive(0, 100).foreach { i => a := i }
     assert((103, 104) == result)
 
     b := 4

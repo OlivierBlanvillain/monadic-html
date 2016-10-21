@@ -1,6 +1,6 @@
 package mhtml
 
-/** Reactive value of type [[A]].
+/** Reactive value of type `A`.
   * Automatically recalculation when one of it's dependencies is updated. */
 sealed trait Rx[+A] {
   /** Applies the side effecting function `f` to each element of this [[Rx]].
