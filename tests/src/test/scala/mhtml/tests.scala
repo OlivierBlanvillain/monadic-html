@@ -180,24 +180,45 @@ class Tests extends FunSuite {
 
   test("onClick = Function0") {
     var clicked = false
-    val button  = <button onclick={ () => clicked = true }>Click Me!</button>
+    val button  = <button class="c" onclick={ () => clicked = true } id="1">Click Me!</button>
     val div = dom.document.createElement("div")
     mount(div, button)
     assert(!clicked)
-    assert(div.firstChild.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
     div.firstChild.asInstanceOf[dom.html.Button].click()
     assert(clicked)
+    assert(div.innerHTML == """<button class="c" id="1">Click Me!</button>""")
   }
 
   test("onClick = Function1") {
     var clicked = false
-    val button  = <button onclick={ _: dom.MouseEvent => clicked = true }>Click Me!</button>
+    def handler(e: dom.MouseEvent): Unit = clicked = true
+    val button  = <button class="c" onclick={handler _} id="1">Click Me!</button>
     val div = dom.document.createElement("div")
     mount(div, button)
     assert(!clicked)
-    assert(div.firstChild.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
     div.firstChild.asInstanceOf[dom.html.Button].click()
     assert(clicked)
+    assert(div.innerHTML == """<button class="c" id="1">Click Me!</button>""")
+  }
+
+  test("onClick = Var[Function0]") {
+    var ext = 0
+    def handler1(e: dom.MouseEvent): Unit = ext = 1
+    def handler2(e: dom.MouseEvent): Unit = ext = 2
+    val varHandler = Var[dom.MouseEvent => Unit](handler1)
+    val button  = <button class="c" onclick={varHandler} id="1">Click Me!</button>
+    val div = dom.document.createElement("div")
+    mount(div, button)
+    assert(ext == 0)
+    div.firstChild.asInstanceOf[dom.html.Button].click()
+    assert(ext == 1)
+    varHandler := handler2
+    div.firstChild.asInstanceOf[dom.html.Button].click()
+    assert(ext == 2)
+    varHandler := handler1
+    div.firstChild.asInstanceOf[dom.html.Button].click()
+    assert(ext == 1)
+    assert(div.innerHTML == """<button class="c" id="1">Click Me!</button>""")
   }
 
   test("README example") {

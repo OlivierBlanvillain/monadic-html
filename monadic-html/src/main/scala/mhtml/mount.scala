@@ -38,23 +38,10 @@ object mount {
 
       case e @ Elem(_, label, metadata, _, child @ _*) =>
         val elemNode = dom.document.createElement(label)
-
-        val cancelMetadata: Cancelable = metadata.value match {
-          case null => Cancelable.empty
-          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Function0[_]] =>
-            elemNode.setEventListener(metadata, (_: dom.Event) => a.data.asInstanceOf[Function0[Unit]]())
-          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Function1[_, _]] =>
-            elemNode.setEventListener(metadata, a.data.asInstanceOf[Function1[dom.Event, Unit]])
-          case (a: Atom[_]) :: _ if a.data.isInstanceOf[Rx[_]] =>
-            a.data.asInstanceOf[Rx[_]]
-              .foreach(value => elemNode.setMetadata(metadata, Some(value.toString)))
-          case _ =>
-            elemNode.setMetadata(metadata, None)
-            Cancelable.empty
-        }
+        val cancelMetadata = metadata.map { m => mountMetadata(elemNode, m, m.value.asInstanceOf[Atom[_]].data) }
         val cancelChild = child.map(c => mountNode(elemNode, c, None))
         parent.mountHere(elemNode, startPoint)
-        Cancelable { () => cancelMetadata.cancel(); cancelChild.foreach(_.cancel()) }
+        Cancelable { () => cancelMetadata.foreach(_.cancel()); cancelChild.foreach(_.cancel()) }
 
       case e: EntityRef  =>
         val key    = e.entityName
@@ -77,26 +64,37 @@ object mount {
         Cancelable(() => cancels.foreach(_.cancel))
     }
 
-  private implicit class DomNodeExtra(node: DomNode) {
-    def setEventListener(metadata: MetaData, listener: dom.Event => Unit): Cancelable =
-      metadata.headOption.map {
-        case m: UnprefixedAttribute =>
-          val dyn = node.asInstanceOf[js.Dynamic]
-          dyn.updateDynamic(m.key)(listener)
-          Cancelable(() => dyn.updateDynamic(m.key)(null))
-      }.getOrElse(Cancelable.empty)
+  private def mountMetadata(parent: DomNode, m: MetaData, v: Any): Cancelable = v match {
+    case r: Rx[_] =>
+      val rx: Rx[_] = r
+      var cancelable = Cancelable.empty
+      rx.foreach { value =>
+        cancelable.cancel
+        cancelable = mountMetadata(parent, m, value)
+      }
+    case f: Function0[Unit @ unchecked] =>
+      parent.setEventListener(m.key, (_: dom.Event) => f())
+    case f: Function1[_, Unit @ unchecked] =>
+      parent.setEventListener(m.key, f)
+    case _ =>
+      parent.setMetadata(m, v.toString)
+      Cancelable.empty
+  }
 
-    def setMetadata(metadata: MetaData, value: Option[String]): Unit = {
+  private implicit class DomNodeExtra(node: DomNode) {
+    def setEventListener[A](key: String, listener: A => Unit): Cancelable = {
+      val dyn = node.asInstanceOf[js.Dynamic]
+      dyn.updateDynamic(key)(listener)
+      Cancelable(() => dyn.updateDynamic(key)(null))
+    }
+
+    def setMetadata(m: MetaData, v: String): Unit = {
       val htmlNode = node.asInstanceOf[dom.html.Html]
-      metadata.foreach {
-        case m: UnprefixedAttribute if m.key == "style" =>
-          htmlNode.style.cssText = value.getOrElse(m.value.toString)
-        case m: UnprefixedAttribute =>
-          htmlNode.setAttribute(m.key, value.getOrElse(m.value.toString))
-        case m: PrefixedAttribute if m.pre == "style" =>
-          htmlNode.style.setProperty(m.key, value.getOrElse(m.value.toString))
-        case m: PrefixedAttribute =>
-          htmlNode.setAttribute(s"${m.pre}:${m.key}", value.getOrElse(m.value.toString))
+      def set(k: String): Unit =
+        if (k == "style") htmlNode.style.cssText = v else htmlNode.setAttribute(k, v)
+      m match {
+        case m: PrefixedAttribute => set(s"${m.pre}:${m.key}")
+        case _ => set(m.key)
       }
     }
 
