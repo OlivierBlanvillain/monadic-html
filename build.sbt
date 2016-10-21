@@ -48,7 +48,6 @@ scalacOptions in ThisBuild := Seq(
   "-Xlint",
   "-Yinline-warnings",
   "-Yno-adapted-args",
-  "-Yno-predef",
   "-Ywarn-dead-code",
   "-Ywarn-numeric-widen",
   "-Ywarn-unused-import",
