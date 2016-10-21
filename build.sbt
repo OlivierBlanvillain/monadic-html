@@ -53,8 +53,12 @@ scalacOptions in ThisBuild := Seq(
   "-Ywarn-unused-import",
   "-Ywarn-value-discard")
 
-releasePublishArtifactsAction := PgpKeys.publishSigned.value
-releaseProcess += ReleaseStep(action = Command.process("sonatypeReleaseAll", _))
+import ReleaseTransformations._
+releaseProcess := Seq(
+  checkSnapshotDependencies, inquireVersions, runClean, runTest, setReleaseVersion, commitReleaseVersion, tagRelease,
+  ReleaseStep(action = Command.process("publishSigned", _)), setNextVersion, commitNextVersion,
+  ReleaseStep(action = Command.process("sonatypeReleaseAll", _)), pushChanges
+)
 publishArtifact in Test in ThisBuild := false
 pomIncludeRepository    in ThisBuild := Function.const(false)
 organization            in ThisBuild := "in.nvilla"
