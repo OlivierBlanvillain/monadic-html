@@ -92,7 +92,9 @@ object Var {
 }
 
 /** Action that can be used to cancel `foreach` subscription. */
-final case class Cancelable(cancel: () => Unit) extends AnyVal
+final case class Cancelable(cancel: () => Unit) extends AnyVal {
+  def alsoCanceling(c: () => Cancelable): Cancelable = Cancelable { () => cancel(); c().cancel() }
+}
 object Cancelable { val empty = Cancelable(() => ()) }
 
 // Box-less `Option`

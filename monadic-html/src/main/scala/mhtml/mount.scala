@@ -34,7 +34,7 @@ object mount {
             case a =>
               mountNode(parent, new Atom(a), Some(start))
           }
-        }
+        } alsoCanceling (() => cancelable)
 
       case e @ Elem(_, label, metadata, _, child @ _*) =>
         val elemNode = dom.document.createElement(label)
@@ -71,7 +71,7 @@ object mount {
       rx.foreach { value =>
         cancelable.cancel
         cancelable = mountMetadata(parent, m, value)
-      }
+      } alsoCanceling (() => cancelable)
     case f: Function0[Unit @ unchecked] =>
       parent.setEventListener(m.key, (_: dom.Event) => f())
     case f: Function1[_, Unit @ unchecked] =>
