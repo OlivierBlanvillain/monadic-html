@@ -77,7 +77,7 @@ object mount {
     case f: Function1[_, Unit @ unchecked] =>
       parent.setEventListener(m.key, f)
     case _ =>
-      parent.setMetadata(m, v.toString)
+      parent.setMetadata(m, v)
       Cancelable.empty
   }
 
@@ -88,10 +88,15 @@ object mount {
       Cancelable(() => dyn.updateDynamic(key)(null))
     }
 
-    def setMetadata(m: MetaData, v: String): Unit = {
+    def setMetadata(m: MetaData, v: Any): Unit = {
       val htmlNode = node.asInstanceOf[dom.html.Html]
       def set(k: String): Unit =
-        if (k == "style") htmlNode.style.cssText = v else htmlNode.setAttribute(k, v)
+        if (v == null) htmlNode.removeAttribute(k)
+        else {
+          val str = v.toString
+          if (k == "style") htmlNode.style.cssText = str
+          else htmlNode.setAttribute(k, str)
+        }
       m match {
         case m: PrefixedAttribute => set(s"${m.pre}:${m.key}")
         case _ => set(m.key)

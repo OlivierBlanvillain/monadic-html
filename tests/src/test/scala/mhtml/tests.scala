@@ -50,6 +50,8 @@ class Tests extends FunSuite {
     assert(div.innerHTML == """<hr id="oldId">""")
     id := "newId"
     assert(div.innerHTML == """<hr id="newId">""")
+    id := null
+    assert(div.innerHTML == """<hr>""")
   }
 
   test("Updating attribute does not replace nodes") {
