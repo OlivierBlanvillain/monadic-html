@@ -1,4 +1,4 @@
-# monadic-html [![Travis](https://travis-ci.org/OlivierBlanvillain/monadic-html.svg?branch=master)](https://travis-ci.org/OlivierBlanvillain/monadic-html) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/monadic-html/Lobby) [![Maven](https://img.shields.io/maven-central/v/in.nvilla/monadic-html_2.11.svg?label=latest)](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22in.nvilla%22%20monadic)
+# monadic-html [![Travis](https://travis-ci.org/OlivierBlanvillain/monadic-html.svg?branch=master)](https://travis-ci.org/OlivierBlanvillain/monadic-html) [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/monadic-html/Lobby) [![Maven](https://img.shields.io/maven-central/v/in.nvilla/monadic-html_sjs0.6_2.11.svg?label=maven)](http://search.maven.org/#search%7Cgav%7C1%7Cg%3A%22in.nvilla%22%20AND%20a%3A%22monadic-html_sjs0.6_2.11%22)
 
 <img align=right src="project/cats.jpg"/>
 
@@ -43,6 +43,8 @@ val component = // ← look, you can even use fancy names!
 val div = dom.document.createElement("div")
 mount(div, component)
 ```
+
+More examples are available in the reference [TodoMVC implementation](https://github.com/olafurpg/mhtml-todo/) and in the [test suite](tests/src/test/scala/mhtml/tests.scala).
 
 ## Design
 
