@@ -54,6 +54,16 @@ class Tests extends FunSuite {
     assert(div.innerHTML == """<hr>""")
   }
 
+  test("Optional attribute") {
+    val id: Var[Option[String]] = Var(Some("oldId"))
+    val hr: Elem = <hr id={id}/>
+    val div = dom.document.createElement("div")
+    mount(div, hr)
+    assert(div.innerHTML == """<hr id="oldId">""")
+    id := None
+    assert(div.innerHTML == """<hr>""")
+  }
+
   test("Updating attribute does not replace nodes") {
     val clazz: Var[String] = Var("oldClass")
     val tpe: Var[String] = Var("text")
