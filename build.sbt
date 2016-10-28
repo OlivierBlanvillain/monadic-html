@@ -6,8 +6,12 @@ val cats       = "0.7.2"
 scalaVersion  in ThisBuild := "2.11.8"
 
 lazy val root = project.in(file("."))
-  .aggregate(`monadic-html`, `monadic-rxJS`, `monadic-rxJVM`, `monadic-rx-catsJS`, `monadic-rx-catsJVM`, tests)
+  .aggregate(`monadic-examples`, `monadic-html`, `monadic-rxJS`, `monadic-rxJVM`, `monadic-rx-catsJS`, `monadic-rx-catsJVM`, tests)
   .settings(noPublishSettings: _*)
+
+lazy val `monadic-examples` = project
+  .dependsOn(`monadic-html`)
+  .enablePlugins(ScalaJSPlugin)
 
 lazy val `monadic-html` = project
   .enablePlugins(ScalaJSPlugin)
@@ -51,7 +55,7 @@ scalacOptions in ThisBuild := Seq(
   "-Xlint",
   "-Yinline-warnings",
   "-Yno-adapted-args",
-  "-Ywarn-dead-code",
+//  "-Ywarn-dead-code", // can't do js.native
   "-Ywarn-numeric-widen",
   "-Ywarn-unused-import",
   "-Ywarn-value-discard")

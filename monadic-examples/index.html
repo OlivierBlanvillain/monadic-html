@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>mthml examples</title>
+    <link rel="stylesheet" type="text/css"
+          href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+</head>
+<body>
+<style>
+    .chosen-searchbar {
+        width: inherit;
+        box-shadow: inset 0px -3px 0px rgba(0, 0, 0, 0.23);
+        -moz-box-shadow: inset 0px -3px 0px rgba(0, 0, 0, 0.23);
+        -webkit-box-shadow: inset 0px -3px 0px rgba(0, 0, 0, 0.23);
+        padding: 10px 12px;
+        height: auto;
+        padding-bottom: 13px;
+        border-bottom: 0px;
+    }
+
+    .chosen-searchbar:focus, .chosen-highlight {
+        box-shadow: inset 0px -1px 0px rgba(0, 0, 0, 0.3);
+        -moz-box-shadow: inset 0px -1px 0px rgba(0, 0, 0, 0.3);
+        -webkit-box-shadow: inset 0px -1px 0px rgba(0, 0, 0, 0.3);
+    }
+
+    .chosen-wrapper {
+        position: relative;
+    }
+
+    .chosen-options {
+        z-index: 99;
+        position: absolute;
+        background-color: #fff;
+        border: 1px solid #f1f1f1;
+        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+        margin-top: -2px;
+    }
+
+    .chosen-options ul {
+        margin: 0px;
+        padding: 0px;
+        list-style: none;
+    }
+
+    .chosen-options ul li {
+        border-bottom: 1px solid #f1f1f1;
+    }
+
+    .chosen-options ul li:last-child {
+        border-bottom: none;
+    }
+
+    .chosen-options ul li a {
+        padding: 5px 20px;
+        color: #222;
+        display: block;
+    }
+
+    .chosen-options ul li a:hover {
+        background-color: #fafafa;
+        cursor: pointer;
+        color: #428bca;
+    }
+
+    .chosen-options ul li.active a {
+        background-color: #428bca;
+        color: #fff;
+    }
+</style>
+<script type="text/javascript"
+        src="target/scala-2.11/monadic-examples-fastopt.js"></script>
+<script type="text/javascript">
+    mhtml.examples.Main().main();
+</script>
+</body>
+</html>
