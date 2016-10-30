@@ -4,7 +4,6 @@ import scala.xml.Elem
 import scala.xml.Node
 
 import mhtml._
-import Utils._
 
 object ProductTable extends Example {
   case class Product(name: String,
@@ -38,9 +37,9 @@ object ProductTable extends Example {
     val filteredProducts: Rx[Seq[Elem]] = rxState.map { state =>
       allProducts.filter(productFilter(state)).map(row)
     }
-    val onkeyup = inputEvent(
+    val onkeyup = Utils.inputEvent(
       input => rxState.update(_.copy(query = input.value)))
-    val onclick = inputEvent(
+    val onclick = Utils.inputEvent(
       input => rxState.update(_.copy(showOnlyStockedItems = input.checked)))
     <div>
       <form>

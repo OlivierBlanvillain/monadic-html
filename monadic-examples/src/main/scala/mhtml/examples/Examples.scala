@@ -1,6 +1,9 @@
 package mhtml.examples
 
+import scala.scalajs.js
 import scala.scalajs.js.JSApp
+import scala.scalajs.js.annotation.JSGlobalScope
+import scala.util.Failure
 import scala.util.Success
 import scala.xml.Node
 
@@ -22,11 +25,12 @@ trait Example {
 
   lazy val sourceCode: Rx[String] = {
     val init = Var("Loading...")
-    println(rawUrl)
-
-    Utils.fromFuture(Ajax.get(rawUrl)).collect {
-      case Some(Success(x)) if x.status == 200 =>
+    Utils.fromFuture(Ajax.get(rawUrl)).foreach {
+      case Some(Success(x)) =>
         init := x.responseText
+      case Some(Failure(x)) =>
+        init := x.toString
+      case _ =>
     }
     init
   }
@@ -36,9 +40,7 @@ trait Example {
       <h1>{name}</h1>
       {app}
       <h2>Source code</h2>
-      <pre><code>
-        {sourceCode}
-      </code></pre>
+      <pre><code class="scala">{sourceCode}</code></pre>
     </div>
 
 }
@@ -60,6 +62,18 @@ object Main extends JSApp {
     examples.find(_.url == dom.window.location.hash).getOrElse(examples.head)
 
   val activeExample: Var[Example] = Var(getActiveApp)
+  val runCodeHighlighter = activeExample.foreach { _ =>
+    js.timers.setTimeout(300) {
+      try {
+        DOMGlobalScope.hljs.highlightBlock(
+          dom.document.getElementsByTagName("code")(0))
+      } catch {
+        case e: Throwable =>
+          e.printStackTrace()
+      }
+    }
+    ()
+  }
 
   dom.window.onhashchange = { _: Event =>
     activeExample.update { old =>
@@ -81,4 +95,14 @@ object Main extends JSApp {
   def main(): Unit = {
     mount(dom.document.body, mainApp)
   }
+}
+
+@js.native
+@JSGlobalScope
+object DOMGlobalScope extends js.Object {
+  val hljs: HighlightJS = js.native
+}
+@js.native
+trait HighlightJS extends js.Object {
+  def highlightBlock(block: dom.Node): Unit = js.native
 }

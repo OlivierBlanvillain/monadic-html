@@ -1,7 +1,5 @@
 package mhtml.examples
 
-import Utils.inputEvent
-import Utils.fromFuture
 import scala.scalajs.js
 import scala.scalajs.js.JSON
 import scala.scalajs.js.timers.SetTimeoutHandle
@@ -33,20 +31,20 @@ object GhRepo {
 object GithubAvatar extends Example {
   val api = "https://api.github.com"
 
-  def doRequest[T](suffix: String)(f: js.Dynamic => T = { x: js.Dynamic =>
-    x.asInstanceOf[T]
-  }): Rx[Option[Try[T]]] =
-    fromFuture(Ajax.get(s"$api/$suffix")).map(_.map { t =>
-      t.withFilter(_.status == 200).map { x =>
-        println(x.responseText)
-        val json = JSON.parse(x.responseText)
-        println("JSON: " + json)
-        f(json)
-      }
-    })
+  def doRequest[T](suffix: String)(f: js.Dynamic => T): Rx[Option[Try[T]]] =
+    Utils
+      .fromFuture(Ajax.get(s"$api/$suffix"))
+      .map(_.map { t =>
+        t.withFilter(_.status == 200).map { x =>
+          println(x.responseText)
+          val json = JSON.parse(x.responseText)
+          println("JSON: " + json)
+          f(json)
+        }
+      })
 
   def getUser(username: String) =
-    doRequest[GhUser](s"users/$username")()
+    doRequest(s"users/$username")(_.asInstanceOf[GhUser])
   def getRepos(username: String): Rx[Option[Try[List[GhRepo]]]] =
     doRequest(s"users/$username/repos?sort=updated") { x =>
       x.asInstanceOf[js.Array[GhRepo]].toList
@@ -109,7 +107,8 @@ object GithubAvatar extends Example {
 
   def app: Node = {
     val rxUsername = Var("")
-    val onkeyup = inputEvent(input => rxUsername.update(_ => input.value))
+    val onkeyup =
+      Utils.inputEvent(input => rxUsername.update(_ => input.value))
     <div>
       <input type="text" onkeyup={debounce(300)(onkeyup)}/>
       {rxUsername.map(profile)}

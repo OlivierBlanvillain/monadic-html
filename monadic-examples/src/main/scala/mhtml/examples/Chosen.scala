@@ -25,77 +25,91 @@ object Searcheable {
     instance[String](identity)
 }
 
-class QueryMatcher[T](queryUpper: String)(implicit val ev: Searcheable[T]) {
-  val query = queryUpper.toLowerCase
-  def unapply(arg: T): Option[(String, String, String)] = {
-    val toSearch = ev.show(arg)
-    val index = toSearch.toLowerCase.indexOf(query)
-    if (index == -1) None
-    else {
-      val before = toSearch.substring(0, index)
-      val after = toSearch.substring(index + query.length)
-      val matched = toSearch.substring(index, index + query.length)
-      Some((before, matched, after))
-    }
-  }
-}
-
 /** Searchable select lists inspired by https://harvesthq.github.io/chosen/ */
 object Chosen {
+  def underline(toUnderline: String, query: String): Node = {
+    val index = toUnderline.toLowerCase.indexOf(query)
+    if (index == -1) <span>{toUnderline}</span>
+    else {
+      val before = toUnderline.substring(0, index)
+      val after = toUnderline.substring(index + query.length)
+      val matched = toUnderline.substring(index, index + query.length)
+      <span>{before}<u>{matched}</u>{after}</span>
+    }
+  }
 
-  def singleSelect[T <: AnyRef](getOptions: String => Rx[Seq[T]],
-                                placeholder: String = "")(
+  // This implementation is super naive and does
+  def singleSelect[T](getCandidates: String => Rx[Seq[T]],
+                      placeholder: String = "",
+                      maxCandidates: Int = 10)(
       implicit ev: Searcheable[T]): (Node, Rx[Option[T]]) = {
-    val id = "chosen-" + Math.random().toInt
+    val id = "chosen-" + Math
+        .random()
+        .toInt // used to grab reference to input.
     val rxFocused = Var(false)
     val rxIndex = Var(0)
     val rxQuery = Var("")
     val rxSelected = Var(Option.empty[T])
     def setCandidate(candidate: T): Unit = {
       rxSelected := Some(candidate)
+      rxFocused := false
       dom.document.getElementById(id) match {
         case input: HTMLInputElement => input.value = ev.show(candidate)
         case _ =>
       }
     }
-    val rxCandidatesWithApp: Rx[(Seq[T], Node)] =
-      for {
-        query <- rxQuery
-        index <- rxIndex
-        options <- getOptions(query)
-      } yield {
-        val Match = new QueryMatcher[T](query)
-        val candidatesWithMatches = options.collect {
-          case candidate @ Match(a, b, c) => (candidate, a, b, c)
-        }
-        val candidates = candidatesWithMatches.map(_._1)
-        val listItems =
-          candidatesWithMatches.zipWithIndex.collect {
-            case ((candidate, before, matched, after), i) =>
-              val cssClass =
-                if (i == index) "chosen-highlight"
-                else ""
-              <li class={cssClass}>
+    val rxCandidatesWithApp: Rx[(Node, Seq[T])] = for {
+      query <- rxQuery
+      index <- rxIndex
+      allCandidates <- getCandidates(query)
+      queryLower = query.toLowerCase
+    } yield {
+      val candidates =
+        allCandidates.filter(ev.show(_).toLowerCase.contains(queryLower))
+      val toDrop = Math.max(0, index - 3)
+      val listItems =
+        candidates.zipWithIndex.slice(toDrop, toDrop + maxCandidates).map {
+          case (candidate, i) =>
+            val cssClass =
+              if (i == index) "chosen-highlight"
+              else ""
+            <li class={cssClass}>
                 <a onclick={() => setCandidate(candidate)}>
-                  {before}<u>{matched}</u>{after}
+                  {underline(ev.show(candidate), queryLower)}
                 </a>
               </li>
-          }
-        val div =
-          <div class="chosen-options">
-            <ul style={rxFocused.map(if (_) "" else "display: none")}>
-              {listItems}
+        }
+      val itemsBefore: Node =
+        if (toDrop == 0) <span></span>
+        else <li>{toDrop} more items...</li>
+      val itemsAfter: Node = {
+        val remaining =
+          Math.max(0, candidates.length - (toDrop + maxCandidates))
+        if (remaining == 0) <span></span>
+        else <li>{remaining} more items...</li>
+      }
+      val style = rxFocused.map { focused =>
+        val display = if (focused) "" else "display: none"
+        s"$display"
+      }
+      val div =
+        <div class="chosen-options">
+            <ul style={style}>
+              {itemsBefore}
+              {listItems.toList}
+              {itemsAfter}
             </ul>
           </div>
-        candidates -> div
-      }
-    val rxCandidates: Rx[Seq[T]] = rxCandidatesWithApp.map(_._1)
+      div -> candidates
+    }
+    val rxCandidates: Rx[Seq[T]] = rxCandidatesWithApp.map(_._2)
     val highlightedCandidate: Rx[T] = (for {
       index <- rxIndex
       candidates <- rxCandidates
     } yield {
       candidates.zipWithIndex.find(_._2 == index).map(_._1)
     }).collect { case Some(x) => x }
+    // event handlers
     val onkeyup = { e: KeyboardEvent =>
       e.keyCode match {
         case KeyCode.Up => rxIndex.update(x => Math.max(x - 1, 0))
@@ -103,23 +117,22 @@ object Chosen {
           rxCandidates.foreach { candidates =>
             rxIndex.update(x => Math.min(x + 1, candidates.length - 1))
           }.cancel()
-          rxFocused.update {
-            case false => true
-            case x => x
-          }
+          rxFocused := true
         case KeyCode.Enter =>
           highlightedCandidate.foreach(setCandidate).cancel()
         case _ =>
           e.target match {
             case input: HTMLInputElement =>
-              rxQuery.update(_ => input.value)
+              rxQuery := input.value
+              rxIndex := 0
+              rxFocused := true
             case _ =>
           }
       }
       ()
     }
     val onblur = { _: Event =>
-      js.timers.setTimeout(200)(rxFocused := false)
+      js.timers.setTimeout(300)(rxFocused := false)
       ()
     }
     val app =
@@ -130,7 +143,8 @@ object Chosen {
                class="chosen-searchbar"
                onblur={onblur}
                onfocus={() => rxFocused := true}
-               onkeyup={onkeyup}/>{rxCandidatesWithApp.map(_._2)}
+               onkeyup={onkeyup}/>
+        {rxCandidatesWithApp.map(_._1)}
       </div>
     (app, rxSelected)
   }
