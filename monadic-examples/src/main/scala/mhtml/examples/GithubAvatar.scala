@@ -1,7 +1,7 @@
 package mhtml.examples
 
 import Utils.inputEvent
-import scala.concurrent.Future
+import Utils.fromFuture
 import scala.scalajs.js
 import scala.scalajs.js.JSON
 import scala.scalajs.js.timers.SetTimeoutHandle
@@ -31,14 +31,7 @@ object GhRepo {
 }
 
 object GithubAvatar extends Example {
-  import scala.concurrent.ExecutionContext.Implicits.global
   val api = "https://api.github.com"
-
-  def fromFuture[T](future: Future[T]): Rx[Option[Try[T]]] = {
-    val result = Var(Option.empty[Try[T]])
-    future.onComplete(x => result := Some(x))
-    result
-  }
 
   def doRequest[T](suffix: String)(f: js.Dynamic => T = { x: js.Dynamic =>
     x.asInstanceOf[T]

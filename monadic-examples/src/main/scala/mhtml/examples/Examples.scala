@@ -1,72 +1,46 @@
 package mhtml.examples
 
-import scala.scalajs.js
 import scala.scalajs.js.JSApp
+import scala.util.Success
 import scala.xml.Node
 
 import mhtml._
-import mhtml.examples.Utils._
 import org.scalajs.dom
 import org.scalajs.dom.Event
-import org.scalajs.dom.raw.HTMLInputElement
+import org.scalajs.dom.ext.Ajax
 
 trait Example {
   def app: Node
   def cancel(): Unit = ()
   val name = this.getClass.getSimpleName
   val url = "#/" + name
-}
+  private def rawUrl =
+    s"https://raw.githubusercontent.com/" +
+      s"olafurpg/monadic-html/" +
+      s"examples/monadic-examples/src/main/scala/mhtml/examples/" +
+      s"$name.scala"
 
-object HelloWorld extends Example {
-  val app = <h2>Hello {"World"}!</h2>
-}
+  lazy val sourceCode: Rx[String] = {
+    val init = Var("Loading...")
+    println(rawUrl)
 
-object HelloWorldInteractive extends Example {
-  def app = {
-    val rxName = Var("World")
+    Utils.fromFuture(Ajax.get(rawUrl)).collect {
+      case Some(Success(x)) if x.status == 200 =>
+        init := x.responseText
+    }
+    init
+  }
+
+  def demo: Node =
     <div>
-      <input type="text" placeholder="Enter your name..." onkeyup={inputEvent(rxName := _.value)}/>
-      <h2>Hello {rxName}!</h2>
+      <h1>{name}</h1>
+      {app}
+      <h2>Source code</h2>
+      <pre><code>
+        {sourceCode}
+      </code></pre>
     </div>
-  }
-}
 
-object Timer extends Example {
-  var interval: js.UndefOr[js.timers.SetIntervalHandle] = js.undefined
-  def app: Node = {
-    val counter = Var(0)
-    interval = js.timers.setInterval(1000)(counter.update(_ + 1))
-    <p>Seconds elapsed: {counter}</p>
-  }
-  override def cancel() = {
-    interval foreach js.timers.clearInterval
-    interval = js.undefined
-  }
-}
-
-object FocusElement extends Example {
-  val id = "theInput"
-  def focusOnInput(): Unit = dom.document.getElementById(id) match {
-    case input: HTMLInputElement => input.focus()
-    case _ =>
-  }
-  def app: Node = {
-    <div>
-      <div onclick={() => focusOnInput()}>click to focus on input</div>
-      <input type="text" id={id}/>
-    </div>
-  }
-}
-
-object Counter extends Example {
-  def app: Node = {
-    val counter = Var(0)
-    <div>
-      <button onclick={() => counter.update(_ - 1)}>-</button>
-      {counter}
-      <button onclick={() => counter.update(_ + 1)}>+</button>
-    </div>
-  }
 }
 
 object Main extends JSApp {
@@ -85,7 +59,7 @@ object Main extends JSApp {
   def getActiveApp =
     examples.find(_.url == dom.window.location.hash).getOrElse(examples.head)
 
-  val activeExample = Var(getActiveApp)
+  val activeExample: Var[Example] = Var(getActiveApp)
 
   dom.window.onhashchange = { _: Event =>
     activeExample.update { old =>
@@ -101,10 +75,7 @@ object Main extends JSApp {
   val mainApp =
     <div>
       {navigation}
-      <div>
-        <h1>{activeExample.map(_.name)}</h1>
-        {activeExample.map(_.app)}
-      </div>
+      {activeExample.map(_.demo)}
     </div>
 
   def main(): Unit = {

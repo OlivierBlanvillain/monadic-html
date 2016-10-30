@@ -13,7 +13,6 @@ import org.scalajs.dom.raw.HTMLInputElement
 /** Typeclass for [[Chosen]] select lists */
 trait Searcheable[T] {
   def show(t: T): String
-
   def isCandidate(query: String)(t: T): Boolean =
     show(t).toLowerCase().contains(query)
 }
