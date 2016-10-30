@@ -91,15 +91,11 @@ object mount {
     def setMetadata(m: MetaData, v: Any): Unit = {
       val htmlNode = node.asInstanceOf[dom.html.Html]
       def set(k: String): Unit =
-        v match {
-          case null | None => htmlNode.removeAttribute(k)
-          case _ =>
-            val str = v match {
-              case Some(x) => x.toString
-              case x => x.toString
-            }
-            if (k == "style") htmlNode.style.cssText = str
-            else htmlNode.setAttribute(k, str)
+        if (v == null) htmlNode.removeAttribute(k)
+        else {
+          val str = v.toString
+          if (k == "style") htmlNode.style.cssText = str
+          else htmlNode.setAttribute(k, str)
         }
       m match {
         case m: PrefixedAttribute => set(s"${m.pre}:${m.key}")

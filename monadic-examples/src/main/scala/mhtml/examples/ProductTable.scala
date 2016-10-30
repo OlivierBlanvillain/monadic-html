@@ -26,7 +26,7 @@ object ProductTable extends Example {
       (!s.showOnlyStockedItems || p.stocked)
 
   def row(product: Product) = {
-    val color = Option("color: red").filterNot(_ => product.stocked)
+    val color = if (product.stocked) "" else "color: red"
     <tr>
       <td><span style={color}>{product.name}</span></td>
       <td>{product.price}</td>

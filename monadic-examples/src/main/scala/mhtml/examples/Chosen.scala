@@ -5,10 +5,26 @@ import scala.xml.Elem
 import scala.xml.Node
 
 import mhtml._
+import Utils._
 import org.scalajs.dom.Event
 import org.scalajs.dom.KeyboardEvent
 import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.raw.HTMLInputElement
+
+/** Typeclass for [[Chosen]] select lists */
+trait Searcheable[T] {
+  def show(t: T): String
+
+  def isCandidate(query: String)(t: T): Boolean =
+    show(t).toLowerCase().contains(query)
+}
+
+object Searcheable {
+  def instance[T](f: T => String): Searcheable[T] = new Searcheable[T] {
+    override def show(t: T): String = f(t)
+  }
+  implicit val stringSearchable: Searcheable[String] =
+    instance[String](identity)
+}
 
 /** Searchable select lists inspired by https://harvesthq.github.io/chosen/ */
 object Chosen {
@@ -24,7 +40,6 @@ object Chosen {
     }
   }
 
-  // TODO(olafur) this implementation is kinda messy, clean up.
   def singleSelect[T <: AnyRef](getOptions: String => Rx[Seq[T]],
                                 placeholder: String = "")(
       implicit ev: Searcheable[T]): (Node, Rx[Option[T]]) = {
@@ -55,12 +70,10 @@ object Chosen {
                 else ""
               val li =
                 <li class={cssClass}>
-                    <a onclick={() => setCandidate(candidate)}>
-                      {before}<u>
-                      {matched}
-                    </u>{after}
-                    </a>
-                  </li>
+                  <a onclick={() => setCandidate(candidate)}>
+                    {before}<u>{matched}</u>{after}
+                  </a>
+                </li>
               candidate -> li
           }
           .unzip
