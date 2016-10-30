@@ -1,53 +1,63 @@
 package mhtml.examples
 
+import scala.util.Failure
+import scala.util.Success
 import scala.xml.Node
 
 import mhtml._
+import org.scalajs.dom
+import org.scalajs.dom.ext.Ajax
 
 object SelectList extends Example {
-  def app: Node = {
-    // format: off
-    val options = Seq[String](
-      "Stankovic", "de Mulder", "Naidenoff", "Hosono", "Connolly", "Barber",
-      "Bishop", "Levy", "Haas", "Mineff", "Lewy", "Hanna", "Allison", "Saalfeld",
-      "Baxter", "Kelly", "McCoy", "Johnson", "Keane", "Williams", "Allison",
-      "Fleming", "Penasco y Castellana", "Abelson", "Francatelli", "Hays",
-      "Ryerson", "Lahtinen", "Hendekovic", "Hart", "Nilsson", "Kantor", "Moraweck",
-      "Wick", "Spedden", "Dennis", "Danoff", "Slayter", "Caldwell", "Sage",
-      "Young", "Nysveen", "Ball", "Goldsmith", "Hippach", "McCoy", "Partner",
-      "Graham", "Vander Planke", "Frauenthal", "Denkoff", "Pears", "Burns", "Dahl",
-      "Blackwell", "Navratil", "Fortune", "Collander", "Sedgwick", "Fox", "Brown",
-      "Smith", "Davison", "Coutts", "Dimic", "Odahl", "Williams-Lambert", "Elias",
-      "Arnold-Franchi", "Yousif", "Vanden Steen", "Bowerman", "Funk", "McGovern",
-      "Braund", "Karlsson", "Hirvonen", "Goodwin", "Frost", "Rouse", "Turkula",
-      "Bishop", "Lefebre", "Hoyt", "Kent", "Somerton", "Coutts", "Hagland",
-      "Windelov", "Molson", "Artagaveytia", "Stanley", "Yousseff", "Eustis",
-      "Shellard", "Allison", "Svensson", "Calic", "Canavan", "O'Sullivan",
-      "Laitinen", "Maioni", "Penasco y Castellana", "Quick", "Bradley", "Olsen",
-      "Lang", "Daly", "Webber", "McGough", "Rothschild", "Coleff", "Walker",
-      "Lemore", "Ryan", "Angle", "Pavlovic", "Perreault", "Vovk", "Lahoud",
-      "Hippach", "Kassem", "Farrell", "Ridsdale", "Farthing", "Salonen", "Hocking",
-      "Quick", "Toufik", "Elias", "Peter", "Cacic", "Hart", "Butt", "LeRoy",
-      "Risien", "Frolicher", "Crosby", "Andersson", "Andersson", "Beane",
-      "Douglas", "Nicholson", "Beane", "Padro y Manent", "Goldsmith", "Davies",
-      "Thayer", "Sharp", "O'Brien", "Leeni", "Ohman", "Wright", "Duff Gordon",
-      "Robbins", "Taussig", "de Messemaeker", "Morrow", "Sivic", "Norman",
-      "Simmons", "Meanwell", "Davies", "Stoytcheff", "Palsson", "Doharr",
-      "Jonsson", "Harris", "Appleton", "Flynn", "Kelly", "Rush", "Patchett",
-      "Garside", "Silvey", "Caram", "Jussila", "Christy", "Thayer", "Downton",
-      "Ross", "Paulner", "Taussig", "Jarvis", "Frolicher-Stehli", "Gilinski",
-      "Murdlin", "Rintamaki", "Stephenson", "Elsbury", "Bourke", "Chapman"
-    )
-    // format: on
+  val countriesUrl =
+    "https://gist.githubusercontent.com/marijn/396531/raw/5007a42db72636a9eee6efcb115fbfe348ff45ee/countries.txt"
+  def svgUrl(iso: String): String =
+    s"https://raw.githubusercontent.com/hjnilsson/country-flags/master/svg/${iso.toLowerCase}.svg"
 
-    val (app, selected) = Chosen.singleSelect(_ => Var(options))
-    val message = selected.map {
-      case Some(x) => s"You selected: '$x'"
-      case _ => "Please select a name from the list"
+  // Each line in the input is formatted like this:
+  // AS|American Samoa
+  val country = "([A-Z]{2})\\|(.*)".r
+
+  case class Country(name: String, isoCode: String) {
+    def svg: Node = {
+      val id = Math.random().toString // Random id to insert loaded svg.
+      Utils.fromFuture(Ajax.get(svgUrl(isoCode))).foreach {
+        case Some(Success(response)) =>
+          // Can't scala.xml.Xml.load to get scala.xml.Node instance, instead
+          // we bypass mhtml and insert the svg directly into the dom.
+          val elem = dom.document.getElementById(id)
+          elem.innerHTML = response.responseText
+        case _ =>
+      }
+      <span id={id}></span>
+    }
+  }
+  object Country {
+    implicit val countrySearchable = Searcheable.instance[Country](_.name)
+  }
+
+  def app: Node = {
+    val options = Var(Seq.empty[Country])
+    Utils.fromFuture(Ajax.get(countriesUrl)).foreach {
+      case Some(Success(response)) =>
+        options := response.responseText.lines.collect {
+          case country(code, name) => Country(name, code)
+        }.toSeq
+      case Some(Failure(e)) =>
+        e.printStackTrace()
+      case _ =>
+    }
+    val (app, selected) = Chosen.singleSelect(_ => options)
+    val message: Rx[Node] = selected.map {
+      case Some(x) => <div>
+        <p>You selected: '{x.name}'</p>
+        <p>{x.svg}</p>
+      </div>
+      case _ => <p>Please select a name from the list</p>
     }
     <div>
-      <p>{message}</p>
       {app}
+      <p>{message}</p>
     </div>
   }
 }

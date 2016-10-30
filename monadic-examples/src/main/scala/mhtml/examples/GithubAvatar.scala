@@ -107,10 +107,9 @@ object GithubAvatar extends Example {
 
   def app: Node = {
     val rxUsername = Var("")
-    val onkeyup =
-      Utils.inputEvent(input => rxUsername.update(_ => input.value))
+    val onkeyup = Utils.inputEvent(input => rxUsername.update(_ => input.value))
     <div>
-      <input type="text" onkeyup={debounce(300)(onkeyup)}/>
+      <input type="text" oninput={debounce(300)(onkeyup)}/>
       {rxUsername.map(profile)}
     </div>
   }

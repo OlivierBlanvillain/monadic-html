@@ -38,18 +38,20 @@ object Chosen {
     }
   }
 
-  // This implementation is super naive and does
   def singleSelect[T](getCandidates: String => Rx[Seq[T]],
                       placeholder: String = "",
                       maxCandidates: Int = 10)(
       implicit ev: Searcheable[T]): (Node, Rx[Option[T]]) = {
-    val id = "chosen-" + Math
-        .random()
-        .toInt // used to grab reference to input.
+    val id = "chosen-" + Math.random().toInt // to reference input dom
     val rxFocused = Var(false)
     val rxIndex = Var(0)
     val rxQuery = Var("")
     val rxSelected = Var(Option.empty[T])
+    def setQuery(value: String): Unit = {
+      rxQuery := value
+      rxIndex := 0
+      rxFocused := true
+    }
     def setCandidate(candidate: T): Unit = {
       rxSelected := Some(candidate)
       rxFocused := false
@@ -74,10 +76,10 @@ object Chosen {
               if (i == index) "chosen-highlight"
               else ""
             <li class={cssClass}>
-                <a onclick={() => setCandidate(candidate)}>
-                  {underline(ev.show(candidate), queryLower)}
-                </a>
-              </li>
+              <a onclick={() => setCandidate(candidate)}>
+                {underline(ev.show(candidate), queryLower)}
+              </a>
+            </li>
         }
       val itemsBefore: Node =
         if (toDrop == 0) <span></span>
@@ -103,16 +105,16 @@ object Chosen {
       div -> candidates
     }
     val rxCandidates: Rx[Seq[T]] = rxCandidatesWithApp.map(_._2)
-    val highlightedCandidate: Rx[T] = (for {
-      index <- rxIndex
-      candidates <- rxCandidates
-    } yield {
-      candidates.zipWithIndex.find(_._2 == index).map(_._1)
-    }).collect { case Some(x) => x }
+    val highlightedCandidate: Rx[T] =
+      (for { index <- rxIndex; candidates <- rxCandidates } yield {
+        candidates.zipWithIndex.find(_._2 == index).map(_._1)
+      }).collect { case Some(x) => x }
     // event handlers
     val onkeyup = { e: KeyboardEvent =>
       e.keyCode match {
-        case KeyCode.Up => rxIndex.update(x => Math.max(x - 1, 0))
+        case KeyCode.Up =>
+          rxIndex.update(x => Math.max(x - 1, 0))
+          rxFocused := true
         case KeyCode.Down =>
           rxCandidates.foreach { candidates =>
             rxIndex.update(x => Math.min(x + 1, candidates.length - 1))
@@ -122,10 +124,7 @@ object Chosen {
           highlightedCandidate.foreach(setCandidate).cancel()
         case _ =>
           e.target match {
-            case input: HTMLInputElement =>
-              rxQuery := input.value
-              rxIndex := 0
-              rxFocused := true
+            case input: HTMLInputElement => setQuery(input.value)
             case _ =>
           }
       }

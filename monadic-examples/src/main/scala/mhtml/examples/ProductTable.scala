@@ -20,9 +20,10 @@ object ProductTable extends Example {
     Product("Nexus 7", 199.99, "Electronics", true)
   )
 
-  def productFilter(s: State)(p: Product): Boolean =
-    p.name.toLowerCase.contains(s.query.toLowerCase) &&
-      (!s.showOnlyStockedItems || p.stocked)
+  def productFilter(query: String, showOnlyStockedItems: Boolean)(
+      p: Product): Boolean =
+    p.name.toLowerCase.contains(query.toLowerCase) &&
+      (!showOnlyStockedItems || p.stocked)
 
   def row(product: Product) = {
     val color = if (product.stocked) "" else "color: red"
@@ -33,14 +34,18 @@ object ProductTable extends Example {
   }
 
   def app: Node = {
-    val rxState = Var(State("", showOnlyStockedItems = false))
-    val filteredProducts: Rx[Seq[Elem]] = rxState.map { state =>
-      allProducts.filter(productFilter(state)).map(row)
+    val rxQuery = Var("")
+    val rxShowOnlyStockedItems = Var(false)
+    val filteredProducts: Rx[Seq[Elem]] = for {
+      query <- rxQuery
+      onlyStockedItems <- rxShowOnlyStockedItems
+    } yield {
+      allProducts.filter(productFilter(query, onlyStockedItems)).map(row)
     }
-    val onkeyup = Utils.inputEvent(
-      input => rxState.update(_.copy(query = input.value)))
-    val onclick = Utils.inputEvent(
-      input => rxState.update(_.copy(showOnlyStockedItems = input.checked)))
+    val onkeyup =
+      Utils.inputEvent(input => rxQuery := input.value)
+    val onclick =
+      Utils.inputEvent(input => rxShowOnlyStockedItems := input.checked)
     <div>
       <form>
         <input type="text" placeholder="Search bar..." onkeyup={onkeyup}/>

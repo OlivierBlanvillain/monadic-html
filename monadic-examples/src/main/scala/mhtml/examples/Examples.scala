@@ -17,9 +17,15 @@ trait Example {
   def cancel(): Unit = ()
   val name = this.getClass.getSimpleName
   val url = "#/" + name
+  private val org = "olafurpg"
+  private def githubUrl =
+    s"https://github.com/" +
+      s"$org/monadic-html/" +
+      s"blob/examples/monadic-examples/src/main/scala/mhtml/examples/" +
+      s"$name.scala"
   private def rawUrl =
     s"https://raw.githubusercontent.com/" +
-      s"olafurpg/monadic-html/" +
+      s"$org/monadic-html/" +
       s"examples/monadic-examples/src/main/scala/mhtml/examples/" +
       s"$name.scala"
 
@@ -40,6 +46,7 @@ trait Example {
       <h1>{name}</h1>
       {app}
       <h2>Source code</h2>
+      <p><a href={githubUrl}>{githubUrl}</a></p>
       <pre><code class="scala">{sourceCode}</code></pre>
     </div>
 
@@ -63,6 +70,8 @@ object Main extends JSApp {
 
   val activeExample: Var[Example] = Var(getActiveApp)
   val runCodeHighlighter = activeExample.foreach { _ =>
+    // We don't know when the source code has loaded onto the dom, so we guess it
+    // happens after 300ms, worst case the code example is not syntax highlighted.
     js.timers.setTimeout(300) {
       try {
         DOMGlobalScope.hljs.highlightBlock(
