@@ -17,6 +17,10 @@ sealed trait Rx[+A] {
   def filter(f: A => Boolean): Rx[A] =
     Var.create[A](self => foreach(a => if (f(a)) self := a else ()))
 
+  /** Returns a new [[Rx]] filtered by where `f` is defined and mapped by `f` */
+  def collect[B](f: PartialFunction[A, B]): Rx[B] =
+    this.filter(f.isDefinedAt).map(f)
+
   /** Returns a new [[Rx]] that flat-maps each element of this [[Rx]] via `f`. */
   def flatMap[B](f: A => Rx[B]): Rx[B] = {
     var cc = Cancelable.empty
