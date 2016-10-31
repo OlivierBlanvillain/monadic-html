@@ -3,8 +3,8 @@ package mhtml.examples
 import mhtml._
 
 object HelloWorldInteractive extends Example {
-  def app = {
-    val rxName = Var("World")
+  def app: xml.Node = {
+    val rxName = Var("world")
     <div>
       <input type="text"
              placeholder="Enter your name..."

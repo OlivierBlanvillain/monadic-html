@@ -1,8 +1,5 @@
 package mhtml.examples
 
-import scala.xml.Elem
-import scala.xml.Node
-
 import mhtml._
 
 object ProductTable extends Example {
@@ -33,10 +30,10 @@ object ProductTable extends Example {
     </tr>
   }
 
-  def app: Node = {
+  def app: xml.Node = {
     val rxQuery = Var("")
     val rxShowOnlyStockedItems = Var(false)
-    val filteredProducts: Rx[Seq[Elem]] = for {
+    val filteredProducts: Rx[Seq[xml.Node]] = for {
       query <- rxQuery
       onlyStockedItems <- rxShowOnlyStockedItems
     } yield {

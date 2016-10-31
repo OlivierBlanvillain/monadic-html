@@ -123,10 +123,6 @@ object Chosen {
         case KeyCode.Enter =>
           highlightedCandidate.foreach(setCandidate).cancel()
         case _ =>
-          e.target match {
-            case input: HTMLInputElement => setQuery(input.value)
-            case _ =>
-          }
       }
       ()
     }
@@ -142,7 +138,8 @@ object Chosen {
                class="chosen-searchbar"
                onblur={onblur}
                onfocus={() => rxFocused := true}
-               onkeyup={onkeyup}/>
+               onkeydown={onkeyup}
+               oninput={Utils.inputEvent(input => setQuery(input.value))}/>
         {rxCandidatesWithApp.map(_._1)}
       </div>
     (app, rxSelected)

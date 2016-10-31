@@ -3,7 +3,6 @@ package mhtml.examples
 import scala.scalajs.js
 import scala.scalajs.js.JSApp
 import scala.scalajs.js.annotation.JSGlobalScope
-import scala.util.Failure
 import scala.util.Success
 import scala.xml.Node
 
@@ -17,15 +16,15 @@ trait Example {
   def cancel(): Unit = ()
   val name = this.getClass.getSimpleName
   val url = "#/" + name
-  private val org = "olafurpg"
+  private val organization = "olafurpg"
   private def githubUrl =
     s"https://github.com/" +
-      s"$org/monadic-html/" +
+      s"$organization/monadic-html/" +
       s"blob/examples/monadic-examples/src/main/scala/mhtml/examples/" +
       s"$name.scala"
   private def rawUrl =
     s"https://raw.githubusercontent.com/" +
-      s"$org/monadic-html/" +
+      s"$organization/monadic-html/" +
       s"examples/monadic-examples/src/main/scala/mhtml/examples/" +
       s"$name.scala"
 
@@ -34,20 +33,19 @@ trait Example {
     Utils.fromFuture(Ajax.get(rawUrl)).foreach {
       case Some(Success(x)) =>
         init := x.responseText
-      case Some(Failure(x)) =>
-        init := x.toString
       case _ =>
     }
     init
   }
-
   def demo: Node =
-    <div>
+    <div class="highlight">
       <h1>{name}</h1>
-      {app}
+      <div class="demo">
+        {app}
+      </div>
       <h2>Source code</h2>
       <p><a href={githubUrl}>{githubUrl}</a></p>
-      <pre><code class="scala">{sourceCode}</code></pre>
+      <pre class="highlight"><code class="scala">{sourceCode}</code></pre>
     </div>
 
 }
@@ -69,6 +67,7 @@ object Main extends JSApp {
     examples.find(_.url == dom.window.location.hash).getOrElse(examples.head)
 
   val activeExample: Var[Example] = Var(getActiveApp)
+
   val runCodeHighlighter = activeExample.foreach { _ =>
     // We don't know when the source code has loaded onto the dom, so we guess it
     // happens after 300ms, worst case the code example is not syntax highlighted.
@@ -83,6 +82,7 @@ object Main extends JSApp {
     }
     ()
   }
+
 
   dom.window.onhashchange = { _: Event =>
     activeExample.update { old =>

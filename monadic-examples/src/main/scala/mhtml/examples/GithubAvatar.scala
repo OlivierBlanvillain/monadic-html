@@ -31,17 +31,24 @@ object GhRepo {
 object GithubAvatar extends Example {
   val api = "https://api.github.com"
 
+  def app: Node = {
+    val rxUsername = Var("")
+    val onkeyup =
+      Utils.inputEvent(input => rxUsername.update(_ => input.value))
+    <div>
+      <input type="text" oninput={debounce(300)(onkeyup)}/>
+      {rxUsername.map(profile)}
+    </div>
+  }
+
   def doRequest[T](suffix: String)(f: js.Dynamic => T): Rx[Option[Try[T]]] =
     Utils
       .fromFuture(Ajax.get(s"$api/$suffix"))
-      .map(_.map { t =>
-        t.withFilter(_.status == 200).map { x =>
-          println(x.responseText)
-          val json = JSON.parse(x.responseText)
-          println("JSON: " + json)
-          f(json)
-        }
-      })
+      .map(_.map(_.withFilter(_.status == 200).map { x =>
+        val json = JSON.parse(x.responseText)
+        println("JSON: " + json)
+        f(json)
+      }))
 
   def getUser(username: String) =
     doRequest(s"users/$username")(_.asInstanceOf[GhUser])
@@ -68,9 +75,6 @@ object GithubAvatar extends Example {
       <p>Homepage: <a href={repo.homepage}>{repo.homepage}</a></p>
       <p><pre>git clone {repo.clone_url}</pre></p>
     </div>
-
-  def repo(repo: GhRepo): Node =
-    <li>{repo.name}: {repo.stargazers_count}</li>
 
   def repos(username: String): Rx[Node] = {
     getRepos(username).map {
@@ -103,14 +107,5 @@ object GithubAvatar extends Example {
         {repos(username)}
       </div>
     }
-  }
-
-  def app: Node = {
-    val rxUsername = Var("")
-    val onkeyup = Utils.inputEvent(input => rxUsername.update(_ => input.value))
-    <div>
-      <input type="text" oninput={debounce(300)(onkeyup)}/>
-      {rxUsername.map(profile)}
-    </div>
   }
 }

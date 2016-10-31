@@ -6,72 +6,85 @@
     <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/highlight.min.js"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/languages/scala.min.js"></script>
     <link rel="stylesheet" type="text/css"
-          href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
-    <link rel="stylesheet" type="text/css"
           href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/styles/default.min.css"/>
 </head>
 <body>
 <style>
-    .chosen-searchbar {
-        width: inherit;
-        box-shadow: inset 0px -3px 0px rgba(0, 0, 0, 0.23);
-        -moz-box-shadow: inset 0px -3px 0px rgba(0, 0, 0, 0.23);
-        -webkit-box-shadow: inset 0px -3px 0px rgba(0, 0, 0, 0.23);
-        padding: 10px 12px;
-        height: auto;
-        padding-bottom: 13px;
-        border-bottom: 0px;
+    /* select list item that is chosen  */
+    .chosen-highlight {
+        text-decoration: underline;
     }
 
-    .chosen-searchbar:focus, .chosen-highlight {
-        box-shadow: inset 0px -1px 0px rgba(0, 0, 0, 0.3);
-        -moz-box-shadow: inset 0px -1px 0px rgba(0, 0, 0, 0.3);
-        -webkit-box-shadow: inset 0px -1px 0px rgba(0, 0, 0, 0.3);
+    body {
+        margin: 40px auto;
+        max-width: 800px;
+        line-height: 1.6;
+        font-size: 18px;
+        color: #444;
+        padding: 0 10px;
+        font-family: "Bookman Old Style", /* Windows, MacOS */ "Serifa BT", /* Windows XP. Not the same font, but the overall look is close enough. */ "URW Bookman L", /* Unix+X+FontConfig */ "itc bookman", /* Unix+X */ /* Fallback options */ times, /* Unix+X, MacOS */ serif;
     }
 
-    .chosen-wrapper {
-        position: relative;
+    a {
+        color: cadetblue;
     }
 
-    .chosen-options {
-        z-index: 99;
-        position: absolute;
-        background-color: #fff;
-        border: 1px solid #f1f1f1;
-        box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-        margin-top: -2px;
-    }
-
-    .chosen-options ul {
-        margin: 0px;
-        padding: 0px;
-        list-style: none;
-    }
-
-    .chosen-options ul li {
-        border-bottom: 1px solid #f1f1f1;
-    }
-
-    .chosen-options ul li:last-child {
-        border-bottom: none;
-    }
-
-    .chosen-options ul li a {
-        padding: 5px 20px;
-        color: #222;
-        display: block;
-    }
-
-    .chosen-options ul li a:hover {
-        background-color: #fafafa;
+    a:focus , a:hover {
+        text-decoration: underline;
         cursor: pointer;
-        color: #428bca;
     }
 
-    .chosen-options ul li.active a {
-        background-color: #428bca;
-        color: #fff;
+    h1, h2, h3 {
+        line-height: 1.2;
     }
+
+    code {
+        padding: 2px 4px;
+        font-size: 90%;
+        color: #c7254e;
+        background-color: #f9f2f4;
+        border-radius: 4px;
+    }
+
+    pre code {
+        padding: 0;
+        font-size: inherit;
+        color: inherit;
+        background-color: transparent;
+        border-radius: 0;
+    }
+
+    pre {
+        overflow: auto;
+        word-wrap: normal;
+        white-space: pre;
+        display: block;
+        padding: 9.5px;
+        margin: 0 0 10px;
+        font-size: 13px;
+        line-height: 1.42857143;
+        color: #333;
+        background-color: #f5f5f5;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    footer, header {
+        clear: both;
+        font-size: 90%;
+        text-align: center;
+    }
+
+    footer {
+        padding-top: 30px;
+    }
+
+    .demo {
+        padding: 10px;
+        border-radius: 2px;
+        background-color: #effffe;
+    }
+
 </style>
 <script type="text/javascript"
         src="target/scala-2.11/monadic-examples-fastopt.js"></script>

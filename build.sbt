@@ -6,7 +6,15 @@ val cats       = "0.7.2"
 scalaVersion  in ThisBuild := "2.11.8"
 
 lazy val root = project.in(file("."))
-  .aggregate(`monadic-examples`, `monadic-html`, `monadic-rxJS`, `monadic-rxJVM`, `monadic-rx-catsJS`, `monadic-rx-catsJVM`, tests)
+  .aggregate(
+    `monadic-examples`,
+    `monadic-html`,
+    `monadic-rxJS`,
+    `monadic-rxJVM`,
+    `monadic-rx-catsJS`,
+    `monadic-rx-catsJVM`,
+    tests
+  )
   .settings(noPublishSettings: _*)
 
 lazy val `monadic-examples` = project
