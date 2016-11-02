@@ -20,12 +20,12 @@ trait Example {
   private def githubUrl =
     s"https://github.com/" +
       s"$organization/monadic-html/" +
-      s"blob/examples/monadic-examples/src/main/scala/mhtml/examples/" +
+      s"blob/master/examples/src/main/scala/mhtml/examples/" +
       s"$name.scala"
   private def rawUrl =
     s"https://raw.githubusercontent.com/" +
       s"$organization/monadic-html/" +
-      s"examples/monadic-examples/src/main/scala/mhtml/examples/" +
+      s"master/examples/src/main/scala/mhtml/examples/" +
       s"$name.scala"
 
   lazy val sourceCode: Rx[String] = {

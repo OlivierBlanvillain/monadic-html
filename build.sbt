@@ -50,8 +50,9 @@ lazy val `tests` = project
     jsEnv        in Test := PhantomJSEnv().value)
 
 lazy val `examples` = project
-  .dependsOn(`monadic-html`)
   .enablePlugins(ScalaJSPlugin)
+  .dependsOn(`monadic-html`)
+  .settings(noPublishSettings: _*)
   .settings(
     emitSourceMaps := true,
     artifactPath in (Compile, fastOptJS) :=
