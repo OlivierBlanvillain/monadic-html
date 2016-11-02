@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>mthml examples</title>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/highlight.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/languages/scala.min.js"></script>
+    <link rel="stylesheet" type="text/css"
+          href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.7.0/styles/default.min.css"/>
+</head>
+<body>
+<style>
+    /* select list item that is chosen  */
+    .chosen-highlight {
+        text-decoration: underline;
+    }
+
+    body {
+        margin: 40px auto;
+        max-width: 800px;
+        line-height: 1.6;
+        font-size: 18px;
+        color: #444;
+        padding: 0 10px;
+        font-family: "Bookman Old Style", /* Windows, MacOS */ "Serifa BT", /* Windows XP. Not the same font, but the overall look is close enough. */ "URW Bookman L", /* Unix+X+FontConfig */ "itc bookman", /* Unix+X */ /* Fallback options */ times, /* Unix+X, MacOS */ serif;
+    }
+
+    a {
+        color: cadetblue;
+    }
+
+    a:focus , a:hover {
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    h1, h2, h3 {
+        line-height: 1.2;
+    }
+
+    code {
+        padding: 2px 4px;
+        font-size: 90%;
+        color: #c7254e;
+        background-color: #f9f2f4;
+        border-radius: 4px;
+    }
+
+    pre code {
+        padding: 0;
+        font-size: inherit;
+        color: inherit;
+        background-color: transparent;
+        border-radius: 0;
+    }
+
+    pre {
+        overflow: auto;
+        word-wrap: normal;
+        white-space: pre;
+        display: block;
+        padding: 9.5px;
+        margin: 0 0 10px;
+        font-size: 13px;
+        line-height: 1.42857143;
+        color: #333;
+        background-color: #f5f5f5;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    footer, header {
+        clear: both;
+        font-size: 90%;
+        text-align: center;
+    }
+
+    footer {
+        padding-top: 30px;
+    }
+
+    .demo {
+        padding: 10px;
+        border-radius: 2px;
+        background-color: #effffe;
+    }
+
+</style>
+<script type="text/javascript"
+        src="../examples/target/scala-2.11/examples-opt.js"></script>
+<script type="text/javascript">
+    mhtml.examples.Main().main();
+</script>
+</body>
+</html>

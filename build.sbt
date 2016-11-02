@@ -6,7 +6,15 @@ val cats       = "0.7.2"
 scalaVersion  in ThisBuild := "2.11.8"
 
 lazy val root = project.in(file("."))
-  .aggregate(`monadic-html`, `monadic-rxJS`, `monadic-rxJVM`, `monadic-rx-catsJS`, `monadic-rx-catsJVM`, tests)
+  .aggregate(
+    `monadic-html`,
+    `monadic-rxJS`,
+    `monadic-rxJVM`,
+    `monadic-rx-catsJS`,
+    `monadic-rx-catsJVM`,
+    `examples`,
+    `tests`
+  )
   .settings(noPublishSettings: _*)
 
 lazy val `monadic-html` = project
@@ -31,7 +39,7 @@ lazy val `monadic-rx-cats`    = crossProject
   .dependsOn(`monadic-rx`)
   .settings(libraryDependencies += "org.typelevel" %%% "cats" % cats)
 
-lazy val tests = project
+lazy val `tests` = project
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(`monadic-html`)
   .settings(noPublishSettings: _*)
@@ -40,6 +48,15 @@ lazy val tests = project
     testOptions  in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"),
     scalaJSStage in Test := FastOptStage,
     jsEnv        in Test := PhantomJSEnv().value)
+
+lazy val `examples` = project
+  .dependsOn(`monadic-html`)
+  .enablePlugins(ScalaJSPlugin)
+  .settings(
+    emitSourceMaps := true,
+    artifactPath in (Compile, fastOptJS) :=
+      ((crossTarget in (Compile, fastOptJS)).value /
+        ((moduleName in fastOptJS).value + "-opt.js")))
 
 scalacOptions in ThisBuild := Seq(
   "-deprecation",
@@ -51,7 +68,6 @@ scalacOptions in ThisBuild := Seq(
   "-Xlint",
   "-Yinline-warnings",
   "-Yno-adapted-args",
-  "-Ywarn-dead-code",
   "-Ywarn-numeric-widen",
   "-Ywarn-unused-import",
   "-Ywarn-value-discard")
