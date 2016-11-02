@@ -44,7 +44,7 @@ val div = dom.document.createElement("div")
 mount(div, component)
 ```
 
-More examples are available in the reference [TodoMVC implementation](https://github.com/olafurpg/mhtml-todo/) and in the [test suite](tests/src/test/scala/mhtml/tests.scala).
+More examples are available on in [examples](example/src/main/scala/mhtml), [tests](tests/src/test/scala/mhtml/tests.scala), and we also have a [TodoMVC implementation](https://github.com/olafurpg/mhtml-todo/).
 
 ## Design
 

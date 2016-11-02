@@ -16,7 +16,7 @@ trait Example {
   def cancel(): Unit = ()
   val name = this.getClass.getSimpleName
   val url = "#/" + name
-  private val organization = "olafurpg"
+  private val organization = "OlivierBlanvillain"
   private def githubUrl =
     s"https://github.com/" +
       s"$organization/monadic-html/" +
