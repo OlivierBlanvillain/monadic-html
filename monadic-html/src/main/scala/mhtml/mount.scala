@@ -49,6 +49,10 @@ object mount {
         parent.mountHere(dom.document.createTextNode(string), startPoint)
         Cancelable.empty
 
+      case a: Atom[_] if a.data.isInstanceOf[UnsafeRawHTML] =>
+        parent.asInstanceOf[dom.html.Html].innerHTML = a.data.toString
+        Cancelable.empty
+
       case a: Atom[_]    =>
         val content = a.data.toString
         if (!content.isEmpty)
@@ -133,4 +137,8 @@ object mount {
       }
     }
   }
+}
+
+private[mhtml] class UnsafeRawHTML(rawHtml: String) {
+  override def toString = rawHtml
 }

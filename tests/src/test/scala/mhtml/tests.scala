@@ -328,4 +328,14 @@ class Tests extends FunSuite {
     b := 4
     assert((104, 105) == result)
   }
+
+  test("unsafeRawHTML") {
+    val va: Var[String] = Var("")
+    val ra = va.map(a => <div>{ unsafeRawHTML(a) }</div>)
+    val div = dom.document.createElement("div")
+    mount(div, ra)
+    assert(div.innerHTML == "<div></div>")
+    va := "<h1>yolo<br>"
+    assert(div.innerHTML == "<div><h1>yolo<br></h1></div>")
+  }
 }
