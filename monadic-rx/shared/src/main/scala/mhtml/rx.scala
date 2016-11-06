@@ -51,16 +51,16 @@ object Rx {
 
 final class Var[A] private[mhtml] (initialValue: Opt[A], register: Var[A] => Cancelable) extends Rx[A] {
   // Last computed value, retained to be sent to new subscribers as they come in.
-  private[this] var cacheElem: Opt[A] = initialValue
+  private[mhtml] var cacheElem: Opt[A] = initialValue
   // Current registration to the feeding `Rx`, canceled whenever nobody's listening.
-  private[this] var registration: Cancelable = Cancelable.empty
+  private[mhtml] var registration: Cancelable = Cancelable.empty
   // Mutable set of all currently subscribed functions, implementing with an `Array`.
-  private[this] val subscribers = buffer.empty[A => Unit]
+  private[mhtml] val subscribers = buffer.empty[A => Unit]
 
   override def foreach(s: A => Unit): Cancelable = {
     if (subscribers.isEmpty) registration = register(this)
     cacheElem match {
-      case Non    =>
+      case Non    => ()
       case Som(v) => s(v)
     }
     subscribers += s
@@ -87,6 +87,10 @@ object Var {
   /** Create a [[Var]] from an initial value. */
   def apply[A](initialValue: A): Var[A] =
     new Var(Som(initialValue), _ => Cancelable.empty)
+
+  /** Create an empty [[Var]]. */
+  def empty[A](): Var[A] =
+    new Var(Non, _ => Cancelable.empty)
 
   // Create a `Var` from a cancelable registration function. A registration will
   // append as soon as there is any one subscribed, and be canceled when nobody
