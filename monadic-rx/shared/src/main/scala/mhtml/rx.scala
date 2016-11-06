@@ -36,6 +36,11 @@ sealed trait Rx[+A] {
       }
     })
   }
+
+  /** Returns a view of this [[Rx]] where value propagation appends `after` it
+    * is complete on this [[Rx]]. Useful to finalize interaction imperative
+    * systems, such as taking actions after mounting an element to the DOM. */
+  def after(): Rx[A]
 }
 
 object Rx {
@@ -46,6 +51,8 @@ object Rx {
         f(value)
         Cancelable.empty
       }
+
+      def after(): Rx[A] = this
     }
 }
 
@@ -56,6 +63,18 @@ final class Var[A] private[mhtml] (initialValue: Opt[A], register: Var[A] => Can
   private[mhtml] var registration: Cancelable = Cancelable.empty
   // Mutable set of all currently subscribed functions, implementing with an `Array`.
   private[mhtml] val subscribers = buffer.empty[A => Unit]
+  // Lazy view returned by `.after()`, at Non until first used.
+  private[mhtml] var afterRx: Opt[Var[A]] = Non
+
+  override def after(): Rx[A] =
+    afterRx match {
+      case Non =>
+        val a = Var.empty[A]
+        foreach(a.:=).cancel()
+        afterRx = Som(a)
+        a
+      case Som(a) => a
+    }
 
   override def foreach(s: A => Unit): Cancelable = {
     if (subscribers.isEmpty) registration = register(this)
@@ -75,6 +94,10 @@ final class Var[A] private[mhtml] (initialValue: Opt[A], register: Var[A] => Can
   def :=(newValue: A): Unit = {
     cacheElem = Som(newValue)
     subscribers.foreach(_(newValue))
+    afterRx match {
+      case Non    => ()
+      case Som(a) => a := newValue
+    }
   }
 
   /** Updates the value of this [[Var]] with a mutation function.

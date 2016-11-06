@@ -328,4 +328,52 @@ class Tests extends FunSuite {
     b := 4
     assert((104, 105) == result)
   }
+
+  test("after rx") {
+    var ok = true
+    var obs: List[Int] = Nil
+    def check(): Unit = if (obs.sorted.reverse != obs) ok = false
+
+    val a: Var[Int] = Var.empty()
+
+    a.foreach { x => check(); obs = x + 0 :: obs; check() }
+
+    val b: Rx[Int] = a.after()
+
+    b.foreach { x => check(); obs = x + 1 :: obs; check() }
+    a.foreach { x => check(); obs = x + 0 :: obs; check() }
+    a.foreach { x => check(); obs = x + 0 :: obs; check() }
+    b.foreach { x => check(); obs = x + 1 :: obs; check() }
+
+    a := 2
+
+    b.foreach { x => check(); obs = x + 1 :: obs; check() }
+
+    a := 4
+    a := 6
+
+    assert(ok)
+  }
+
+  test("after mount") {
+    var ok = true
+    var count = 0
+
+    val a: Var[Int] = Var(42)
+    a.after().foreach(_ => count = count + 1)
+
+    val el =
+      a.map { x =>
+        if (count == 2) ok = false
+        <p>{x}</p>
+      }
+
+    val div = dom.document.createElement("div")
+    mount(div, el)
+
+    a := 43
+
+    assert(ok && count == 2)
+  }
+
 }
