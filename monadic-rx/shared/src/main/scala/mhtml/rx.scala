@@ -36,6 +36,11 @@ sealed trait Rx[+A] {
       }
     })
   }
+
+  /** Returns a view of this [[Rx]] where value propagation appends `after` it
+    * is complete on this [[Rx]]. Useful to finalize interaction imperative
+    * systems, such as taking actions after mounting an element to the DOM. */
+  def after(): Rx[A]
 }
 
 object Rx {
@@ -46,21 +51,35 @@ object Rx {
         f(value)
         Cancelable.empty
       }
+
+      def after(): Rx[A] = this
     }
 }
 
 final class Var[A] private[mhtml] (initialValue: Opt[A], register: Var[A] => Cancelable) extends Rx[A] {
   // Last computed value, retained to be sent to new subscribers as they come in.
-  private[this] var cacheElem: Opt[A] = initialValue
+  private[mhtml] var cacheElem: Opt[A] = initialValue
   // Current registration to the feeding `Rx`, canceled whenever nobody's listening.
-  private[this] var registration: Cancelable = Cancelable.empty
+  private[mhtml] var registration: Cancelable = Cancelable.empty
   // Mutable set of all currently subscribed functions, implementing with an `Array`.
-  private[this] val subscribers = buffer.empty[A => Unit]
+  private[mhtml] val subscribers = buffer.empty[A => Unit]
+  // Lazy view returned by `.after()`, at Non until first used.
+  private[mhtml] var afterRx: Opt[Var[A]] = Non
+
+  override def after(): Rx[A] =
+    afterRx match {
+      case Non =>
+        val a = Var.empty[A]
+        foreach(a.:=).cancel()
+        afterRx = Som(a)
+        a
+      case Som(a) => a
+    }
 
   override def foreach(s: A => Unit): Cancelable = {
     if (subscribers.isEmpty) registration = register(this)
     cacheElem match {
-      case Non    =>
+      case Non    => ()
       case Som(v) => s(v)
     }
     subscribers += s
@@ -75,6 +94,10 @@ final class Var[A] private[mhtml] (initialValue: Opt[A], register: Var[A] => Can
   def :=(newValue: A): Unit = {
     cacheElem = Som(newValue)
     subscribers.foreach(_(newValue))
+    afterRx match {
+      case Non    => ()
+      case Som(a) => a := newValue
+    }
   }
 
   /** Updates the value of this [[Var]] with a mutation function.
@@ -87,6 +110,10 @@ object Var {
   /** Create a [[Var]] from an initial value. */
   def apply[A](initialValue: A): Var[A] =
     new Var(Som(initialValue), _ => Cancelable.empty)
+
+  /** Create an empty [[Var]]. */
+  def empty[A](): Var[A] =
+    new Var(Non, _ => Cancelable.empty)
 
   // Create a `Var` from a cancelable registration function. A registration will
   // append as soon as there is any one subscribed, and be canceled when nobody
