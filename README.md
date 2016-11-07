@@ -10,7 +10,7 @@ Main Objectives: friendly syntax for frontend developers (XHTML) and fast compil
 "in.nvilla" %%% "monadic-html" % "latest.integration"
 ```
 
-The core value propagation library is also available separately for both platforms as `monadic-rx`. Integration with [cats](https://github.com/typelevel/cats) is optionaly available as `monadic-rx-cats`.
+The core value propagation library is also available separately for both platforms as `monadic-rx`. Integration with [cats](https://github.com/typelevel/cats) is optionally available as `monadic-rx-cats`.
 
 This library is inspired by [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala) and [Scala.rx](https://github.com/lihaoyi/scala.rx) which both relies on macros to obtain type-safety and hide monadic context from users.
 
@@ -75,12 +75,22 @@ The central idea is to write HTML views in term of these`Rx`s and `Var`s, such t
 
 **Does the compiler catch HTML typos?**
 
-No, it only rejects invalid XML literals. I've tried to explain to front-end developers the benefits of type-safety, testability and IDE support (auto-completion, inline documentation, inline error reporting) when writing frontend applications in Scala.js. This is pretty much the answer I always get:
+No, only invalid XML literals will be rejected at compile time. However, we do provide [configurable settings](src/main/scala/mhtml/settings.scala) to emit runtime warnings about unknown elements, attributes, entity references and event handlers. For example, the following piece of XML compiles fine:
 
-> I make a living writing HTML & CSS. I value fast iteration speeds and using standard HTML over slow compilers and complicated IDE setups.
+```scala
+<captain yolo="true" onClick={ () => println("Oh yeah!") }>{None}</captain>
+```
 
-Hard to argue against that.
+But mounting it to the DOM will print warnings in the console:
 
+```
+[mhtml] Warning: Implicitly converted class scala.None$ to it's string representation: "None". Call toString explicitly to remove this warning.
+[mhtml] Warning: Unknown event onClick. Did you mean onclick instead?
+[mhtml] Warning: Unknown attribute yolo. Did you mean cols instead?
+[mhtml] Warning: Unknown element captain. Did you mean caption instead?
+```
+
+`MountSettings.default` emit warnings only when compiled to with `fastOptJS`, and becomes silent (and faster) whe compiled with `fullOptJS`.
 
 **Global mutable state, Booo! Booo!!!**
 
@@ -104,6 +114,7 @@ def dogs(readOnly: Rx[Int]): Rx[xml.Node] =
   </div>
 ```
 
+In an ideal world, you would use exactly one `Rx` per signal coming from the outside world, which means using a single `:=` per `Rx`. Doing so leads to a very nice functional reactive programming style code, analogous to what you would write in [Elm](http://elm-lang.org/).
 
 **How can I turn a `List[Rx[A]]` into a `Rx[List[A]]`?**
 
