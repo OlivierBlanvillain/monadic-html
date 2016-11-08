@@ -54,6 +54,7 @@ object Main extends JSApp {
   val examples = Seq[Example](
     HelloWorld,
     HelloWorldInteractive,
+    Doge,
     Timer,
     FocusElement,
     Counter,

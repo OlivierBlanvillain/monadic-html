@@ -226,36 +226,33 @@ class Tests extends FunSuite {
     import scala.xml.Node
     import org.scalajs.dom
 
-    val count: Var[Int] = Var[Int](0)
+    val count: Var[Int] = Var(0)
 
-    val dogs: Rx[Seq[Node]] =
-      count.map(i => Seq.fill(i)(<img src="doge.png"></img>))
+    val doge: Node =
+      <img style="width: 100px;" src="http://doge2048.com/meta/doge-600.png"/>
+
+    val rxDoges: Rx[Seq[Node]] =
+      count.map(i => Seq.fill(i)(doge))
 
     val component = // ← look, you can even use fancy names!
-      <div style="background-color: blue;">
+      <div>
         <button onclick={ () => count.update(_ + 1) }>Click Me!</button>
-        <p>WOW!!!</p>
-        <p>MUCH REACTIVE!!!</p>
-        <p>SUCH BINDING!!!</p>
-        {dogs}
+        {count.filter(_ > 0).map(_ => <h2>WOW!!!</h2>)}
+        {count.filter(_ > 2).map(_ => <h2>MUCH REACTIVE!!!</h2>)}
+        {count.filter(_ > 5).map(_ => <h2>SUCH BINDING!!!</h2>)}
+        {rxDoges}
       </div>
 
     val div = dom.document.createElement("div")
     mount(div, component)
+    val start = """<div><button>ClickMe!</button>"""
 
-    val start =
-   """<div style="background-color: blue;">
-        <button>Click Me!</button>
-        <p>WOW!!!</p>
-        <p>MUCH REACTIVE!!!</p>
-        <p>SUCH BINDING!!!</p>"""
-
-    assert(div.innerHTML == start + "\n        \n      </div>")
+    assert(div.innerHTML.filterNot(_.isWhitespace) == start + "</div>")
     assert(div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
-    assert(div.innerHTML == start + "\n        <img src=\"doge.png\">\n      </div>")
+    assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
-    assert(div.innerHTML == start + "\n        <img src=\"doge.png\"><img src=\"doge.png\">\n      </div>")
+    assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
   }
 
   test("Scala.Rx README router") {
