@@ -73,12 +73,12 @@ scalacOptions in ThisBuild := Seq(
   "-Ywarn-unused-import",
   "-Ywarn-value-discard")
 
+organization in ThisBuild := "in.nvilla"
+
 lazy val publishSettings = Seq(
   releasePublishArtifactsAction := PgpKeys.publishSigned.value,
-  releaseProcess += ReleaseStep(action = Command.process("sonatypeReleaseAll", _)),
   publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
-  organization := "in.nvilla",
   licenses := Seq(("MIT", url("http://opensource.org/licenses/MIT"))),
   homepage := Some(url("https://github.com/OlivierBlanvillain/monadic-html")),
   publishMavenStyle := true,
