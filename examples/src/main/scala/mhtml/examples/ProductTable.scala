@@ -26,7 +26,7 @@ object ProductTable extends Example {
     val color = if (product.stocked) "" else "color: red"
     <tr>
       <td><span style={color}>{product.name}</span></td>
-      <td>{product.price}</td>
+      <td>{product.price.toString}</td>
     </tr>
   }
 

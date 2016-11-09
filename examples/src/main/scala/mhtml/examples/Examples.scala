@@ -1,8 +1,6 @@
 package mhtml.examples
 
-import scala.scalajs.js
 import scala.scalajs.js.JSApp
-import scala.scalajs.js.annotation.JSGlobalScope
 import scala.util.Success
 import scala.xml.Node
 
@@ -16,6 +14,7 @@ trait Example {
   def cancel(): Unit = ()
   val name = this.getClass.getSimpleName
   val url = "#/" + name
+
   private val organization = "OlivierBlanvillain"
   private def githubUrl =
     s"https://github.com/" +
@@ -45,9 +44,9 @@ trait Example {
       </div>
       <h2>Source code</h2>
       <p><a href={githubUrl}>{githubUrl}</a></p>
-      <pre class="highlight"><code class="scala">{sourceCode}</code></pre>
+      script
+      <pre><code>{sourceCode}</code></pre>
     </div>
-
 }
 
 object Main extends JSApp {
@@ -69,28 +68,13 @@ object Main extends JSApp {
 
   val activeExample: Var[Example] = Var(getActiveApp)
 
-  val runCodeHighlighter = activeExample.foreach { _ =>
-    // We don't know when the source code has loaded onto the dom, so we guess it
-    // happens after 300ms, worst case the code example is not syntax highlighted.
-    js.timers.setTimeout(300) {
-      try {
-        DOMGlobalScope.hljs.highlightBlock(
-          dom.document.getElementsByTagName("code")(0))
-      } catch {
-        case e: Throwable =>
-          e.printStackTrace()
-      }
-    }
-    ()
-  }
-
-
   dom.window.onhashchange = { _: Event =>
     activeExample.update { old =>
       old.cancel()
       getActiveApp
     }
   }
+
   val navigation =
     <ul>
       {examples.map(x => <li><a href={x.url}>{x.name}</a></li>)}
@@ -102,17 +86,7 @@ object Main extends JSApp {
       {activeExample.map(_.demo)}
     </div>
 
-  def main(): Unit = {
+  def main(): Unit =
     mount(dom.document.body, mainApp)
-  }
 }
 
-@js.native
-@JSGlobalScope
-object DOMGlobalScope extends js.Object {
-  val hljs: HighlightJS = js.native
-}
-@js.native
-trait HighlightJS extends js.Object {
-  def highlightBlock(block: dom.Node): Unit = js.native
-}

@@ -93,6 +93,10 @@ object Var {
   // is listening. This is one the core mechanism to prevent memory leak.
   private[mhtml] def create[A](register: Var[A] => Cancelable): Var[A] =
     new Var(Non, register)
+
+  /** Create an empty [[Var]]. */
+  def empty[A](): Var[A] =
+    new Var(Non, _ => Cancelable.empty)
 }
 
 /** Action that can be used to cancel `foreach` subscription. */
