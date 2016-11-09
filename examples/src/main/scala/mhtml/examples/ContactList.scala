@@ -26,7 +26,7 @@ object ContactList extends Example {
           Add a contact
         </button>
       </div>
-      <table border="1" cellPadding="5">
+      <table>
         <thead>
           <tr>
             <th>Name</th>
