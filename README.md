@@ -139,3 +139,14 @@ implicit class SequencingListFFS[A](self: List[Rx[A]]) {
 ```scala
 import cats.implicits._, mhtml.cats._
 ```
+
+## Further reading
+
+[*Unidirectional User Interface Architectures*](http://staltz.com/unidirectional-user-interface-architectures.html) by André Staltz
+
+This blog post presents several existing solution to handle mutable state in user interfaces. It explains the core ideas behind Flux, Redux, Elm & others, and presents a new approach, *nested dialogues*, which is similar to what you would write in `monadic-html`.
+
+[*Controlling Time and Space: understanding the many formulations of FRP*](https://www.youtube.com/watch?v=Agu6jipKfYw) by Evan Czaplicki
+
+This presentation gives an overview of various formulations of FRP. The talked is focused on how different systems deal with the `flatMap` operator. When combined with a `fold` operator, `flatMap` is problematic: it either leaks memory or break referential transparency. Elm solution is to simply avoid the `flatMap` operator altogether (programs can exclusively be written using the "applicative style"). `monadic-html` takes the opposite approach of not exposing a `fold`.
+
