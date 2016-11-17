@@ -5,8 +5,6 @@ val cats       = "0.8.1"
 
 scalaVersion  in ThisBuild := "2.11.8"
 
-crossScalaVersions := Seq("2.12.0")
-
 lazy val root = project.in(file("."))
   .aggregate(
     `monadic-html`,
@@ -25,7 +23,7 @@ lazy val `monadic-html` = project
   .settings(publishSettings: _*)
   .settings(libraryDependencies ++= Seq(
     "org.scala-js" %%% "scalajs-dom" % scalajsdom,
-    "in.nvilla" % "scala-xml_sjs0.6_2.11"   % scalaxml)) // Awaiting https://github.com/scala/scala-xml/pull/109
+    "in.nvilla"    %%% "scala-xml"   % scalaxml)) // Awaiting https://github.com/scala/scala-xml/pull/109
 
 lazy val `monadic-rxJS`  = `monadic-rx`.js
 lazy val `monadic-rxJVM` = `monadic-rx`.jvm
@@ -69,6 +67,7 @@ scalacOptions in ThisBuild := Seq(
   "-Xfatal-warnings",
   "-Xfuture",
   "-Xlint",
+  "-Yinline-warnings",
   "-Yno-adapted-args",
   "-Ywarn-numeric-widen",
   "-Ywarn-unused-import",
