@@ -1,7 +1,7 @@
 val scalajsdom = "0.9.1"
 val scalaxml   = "1.0.6"
 val scalatest  = "3.0.0"
-val cats       = "0.7.2"
+val cats       = "0.8.1"
 
 scalaVersion  in ThisBuild := "2.11.8"
 

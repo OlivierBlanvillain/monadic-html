@@ -12,7 +12,10 @@ object cats {
         fa.flatMap(f)
 
       def tailRecM[A, B](a: A)(f: A => Rx[Either[A, B]]): Rx[B] =
-        defaultTailRecM(a)(f)
+        flatMap(f(a)) {
+          case Right(b) => pure(b)
+          case Left(nextA) => tailRecM(nextA)(f)
+        }
 
       def empty[A]: Rx[A] =
         new Var[A](Non, _ => Cancelable.empty)
