@@ -72,7 +72,32 @@ class Var[A](initialValue: A) extends Rx[A] {
 }
 ```
 
-The central idea is to write HTML views in term of these`Rx`s and `Var`s, such that update are automatically propagated from the source `Var`s the way to the actual DOM.
+The central idea is to write HTML views in term of these`Rx`s and `Var`s, such that update are automatically propagated from the source `Var`s the way to the DOM.
+
+This approach, cleverly called *precise data-binding* in [Binding.scala](https://github.com/ThoughtWorksInc/Binding.scala), has the same goal than the virtual-DOM technique employed in React: minimize the amount of DOM updates. Thanks to the separation between definition and mounting, `monadic-html` is able to propagate `Var` updates to the DOM without doing any complex computations (no diff!), while still restricting DOM updates to the parts of the page affected by the update.
+
+Let's look at a concrete example:
+
+```scala
+val a = Var("id1")
+val b = Var("foo")
+val c = Var("bar")
+
+val view =
+  <div id={a}>
+    Variable 1: {b}; variable 2: {c}.
+  </div>
+```
+
+When mounting this view, [the implementation](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-html/src/main/scala/mhtml/mount.scala) will attach callbacks to each `Rx` such that changing `a`, `b` or `c` results in precise DOM updates:
+
+- Changing `a` will update the `div` attribute (reusing the same `div` node)
+- Changing `b` will delete the text node between `Variable 1: ` and `; variable 2: `, and insert a new replacement between these two nodes.
+- Changing `c` will do the same, except between `; variable 2: ` and `.`.
+
+These updates correspond to what React would compute using virtual-DOM diffing.
+
+When working with large immutable data structures, this approach is less performant than virtual-DOM diffing. Indeed, creating a large view out of a `Rx[List[_]]` implies that any changes to the `List` triggers a re-rendering of the entirety of the view. We plan to address this point in [#13](https://github.com/OlivierBlanvillain/monadic-html/issues/13) by combining the current approach with targeted virtual-DOM.
 
 ## FAQ
 
@@ -149,4 +174,3 @@ This blog post presents several existing solution to handle mutable state in use
 [*Controlling Time and Space: understanding the many formulations of FRP*](https://www.youtube.com/watch?v=Agu6jipKfYw) by Evan Czaplicki
 
 This presentation gives an overview of various formulations of FRP. The talked is focused on how different systems deal with the `flatMap` operator. When combined with a `fold` operator, `flatMap` is problematic: it either leaks memory or break referential transparency. Elm solution is to simply avoid the `flatMap` operator altogether (programs can exclusively be written using the "applicative style"). `monadic-html` takes the opposite approach of not exposing a `fold`.
-
