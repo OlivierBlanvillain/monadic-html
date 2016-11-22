@@ -89,7 +89,7 @@ val view =
   </div>
 ```
 
-When mounting this view, [the implementation](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-html/src/main/scala/mhtml/mount.scala) with attach callbacks to each `Rx` such that changing `a`, `b` or `c` results in very precise DOM updates:
+When mounting this view, [the implementation](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-html/src/main/scala/mhtml/mount.scala) will attach callbacks to each `Rx` such that changing `a`, `b` or `c` results in precise DOM updates:
 
 - Changing `a` will update the `div` attribute (reusing the same `div` node)
 - Changing `b` will delete the text node between `Variable 1: ` and `; variable 2: `, and insert a new replacement between these two nodes.
@@ -97,7 +97,7 @@ When mounting this view, [the implementation](https://github.com/OlivierBlanvill
 
 These updates correspond to what React would compute using virtual-DOM diffing.
 
-When working with large immutable data structures, this approach is less performant that virtual-DOM diffing. Indeed, creating a large view out of a `Rx[List[_]]` implies that any changes to the `List` triggers a re-rendering of the entirety of the view. We plan to address this point in [#13](https://github.com/OlivierBlanvillain/monadic-html/issues/13) by combining the current approach with targeted virtual-DOM.
+When working with large immutable data structures, this approach is less performant than virtual-DOM diffing. Indeed, creating a large view out of a `Rx[List[_]]` implies that any changes to the `List` triggers a re-rendering of the entirety of the view. We plan to address this point in [#13](https://github.com/OlivierBlanvillain/monadic-html/issues/13) by combining the current approach with targeted virtual-DOM.
 
 ## FAQ
 
