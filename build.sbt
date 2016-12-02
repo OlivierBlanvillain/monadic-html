@@ -1,9 +1,8 @@
 val scalajsdom = "0.9.1"
-val scalaxml   = "1.0.6"
 val scalatest  = "3.0.0"
 val cats       = "0.8.1"
 
-scalaVersion  in ThisBuild := "2.11.8"
+scalaVersion in ThisBuild := "2.11.8"
 
 lazy val root = project.in(file("."))
   .aggregate(
@@ -12,6 +11,8 @@ lazy val root = project.in(file("."))
     `monadic-rxJVM`,
     `monadic-rx-catsJS`,
     `monadic-rx-catsJVM`,
+    `scala-xml-lightJS`,
+    `scala-xml-lightJVM`,
     `examples`,
     `tests`
   )
@@ -19,11 +20,9 @@ lazy val root = project.in(file("."))
 
 lazy val `monadic-html` = project
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(`monadic-rxJS`)
+  .dependsOn(`monadic-rxJS`, `scala-xml-lightJS`)
   .settings(publishSettings: _*)
-  .settings(libraryDependencies ++= Seq(
-    "org.scala-js" %%% "scalajs-dom" % scalajsdom,
-    "in.nvilla"    %%% "scala-xml"   % scalaxml)) // Awaiting https://github.com/scala/scala-xml/pull/109
+  .settings(libraryDependencies += "org.scala-js" %%% "scalajs-dom" % scalajsdom)
 
 lazy val `monadic-rxJS`  = `monadic-rx`.js
 lazy val `monadic-rxJVM` = `monadic-rx`.jvm
@@ -38,6 +37,12 @@ lazy val `monadic-rx-cats`    = crossProject
   .settings(publishSettings: _*)
   .dependsOn(`monadic-rx`)
   .settings(libraryDependencies += "org.typelevel" %%% "cats" % cats)
+
+lazy val `scala-xml-lightJS`  = `scala-xml-light`.js
+lazy val `scala-xml-lightJVM` = `scala-xml-light`.jvm
+lazy val `scala-xml-light`    = crossProject
+  .crossType(CrossType.Pure)
+  .settings(publishSettings: _*)
 
 lazy val `tests` = project
   .enablePlugins(ScalaJSPlugin)
@@ -67,7 +72,6 @@ scalacOptions in ThisBuild := Seq(
   "-Xfatal-warnings",
   "-Xfuture",
   "-Xlint",
-  "-Yinline-warnings",
   "-Yno-adapted-args",
   "-Ywarn-numeric-widen",
   "-Ywarn-unused-import",
