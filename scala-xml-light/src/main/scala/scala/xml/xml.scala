@@ -76,27 +76,31 @@ final case class PrefixedAttribute(
     this(pre, key, Text(value), next)
 }
 
-final case class UnprefixedAttribute(
+final case class UnprefixedAttribute[T](
   key: String,
-  value: Node,
+  e: T,
   next: MetaData
-) extends MetaData {
-  def this(key: String, value: String, next: MetaData) =
-    this(key, Text(value), next)
+)(implicit ev: XmlAttributeEmbeddable[T]) extends MetaData {
+  override val value: Node = ev.toNode(e)
+}
+
+/** Evidence that T can be embedded in xml attribute position. */
+trait XmlAttributeEmbeddable[T] { def toNode(e: T): Node }
+object XmlAttributeEmbeddable{
+  @inline def instance[T](f: T => Node): XmlAttributeEmbeddable[T] =
+    new XmlAttributeEmbeddable[T] { override def toNode(e: T): Node = f(e) }
+  @inline def atom[T]: XmlAttributeEmbeddable[T] = instance[T](new Atom(_))
+}
+
+/** Evidence that T can be embedded in xml element position. */
+trait XmlElementEmbeddable[T] { def toNode(e: T): Node }
+object XmlElementEmbeddable {
+  @inline def instance[T](f: T => Node): XmlElementEmbeddable[T] =
+    new XmlElementEmbeddable[T] { override def toNode(e: T): Node = f(e) }
+  @inline def atom[T]: XmlElementEmbeddable[T] = instance[T](new Atom(_))
 }
 
 // Internal structure used by scalac to create literals -----------------------
-
 class NodeBuffer extends scala.collection.mutable.ArrayBuffer[Node] {
-  def &+(o: Any): NodeBuffer = {
-    o match {
-      case _: Unit | Text("") => // ignore
-      case it: Iterator[_]    => it foreach &+
-      case n: Node            => super.+=(n)
-      case ns: Iterable[_]    => this &+ ns.iterator
-      case ns: Array[_]       => this &+ ns.iterator
-      case d                  => super.+=(new Atom(d))
-    }
-    this
-  }
+  def &+[A](e: A)(implicit ev: XmlElementEmbeddable[A]): NodeBuffer = { super.+=(ev.toNode(e)); this }
 }

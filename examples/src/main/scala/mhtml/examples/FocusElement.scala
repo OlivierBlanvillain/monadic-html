@@ -1,7 +1,6 @@
 package mhtml.examples
 
 import mhtml._
-
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLInputElement
 

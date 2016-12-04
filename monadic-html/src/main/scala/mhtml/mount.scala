@@ -52,7 +52,7 @@ object mount {
         Cancelable.empty
 
       case a: Atom[_]    =>
-        val content = config.transformAtom(a.data)
+        val content = a.data.toString
         if (!content.isEmpty)
           parent.mountHere(dom.document.createTextNode(content), startPoint)
         Cancelable.empty

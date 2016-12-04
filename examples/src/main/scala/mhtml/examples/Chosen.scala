@@ -83,12 +83,12 @@ object Chosen {
         }
       val itemsBefore: Node =
         if (toDrop == 0) <span></span>
-        else <li>{toDrop} more items...</li>
+        else <li>{toDrop.toString} more items...</li>
       val itemsAfter: Node = {
         val remaining =
           Math.max(0, candidates.length - (toDrop + maxCandidates))
         if (remaining == 0) <span></span>
-        else <li>{remaining} more items...</li>
+        else <li>{remaining.toString} more items...</li>
       }
       val style = rxFocused.map { focused =>
         val display = if (focused) "" else "display: none"
@@ -98,7 +98,7 @@ object Chosen {
         <div class="chosen-options">
             <ul style={style}>
               {itemsBefore}
-              {listItems.toList}
+              {listItems}
               {itemsAfter}
             </ul>
           </div>
