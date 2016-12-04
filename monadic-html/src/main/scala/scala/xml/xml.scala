@@ -85,19 +85,67 @@ final case class UnprefixedAttribute[T](
 }
 
 /** Evidence that T can be embedded in xml attribute position. */
+@scala.annotation.implicitNotFound(msg =
+    """Cannot embed value of type ${T} in xml attribute, implicit XmlAttributeEmbeddable not found.
+The following types are supported:
+- String, Boolean
+- xml.Text
+- Option[String]
+- () => Unit, T => Unit event handler. Note. The return type needs to be Unit!
+- mhtml.Var[T], mhtml.Rx[T] where T can be embedded in
+""")
 trait XmlAttributeEmbeddable[T] { def toNode(e: T): Node }
 object XmlAttributeEmbeddable{
+  import language.higherKinds
+
   @inline def instance[T](f: T => Node): XmlAttributeEmbeddable[T] =
     new XmlAttributeEmbeddable[T] { override def toNode(e: T): Node = f(e) }
   @inline def atom[T]: XmlAttributeEmbeddable[T] = instance[T](new Atom(_))
+
+  implicit val booleanAttributeEmbeddable: XmlAttributeEmbeddable[Boolean]             = atom[Boolean]
+  implicit val optionStringAttributeEmbeddable: XmlAttributeEmbeddable[Option[String]] = atom[Option[String]]
+  implicit val stringAttributeEmbeddable: XmlAttributeEmbeddable[String]               = instance[String](Text.apply)
+  implicit val textNodeAttributeEmbeddable: XmlAttributeEmbeddable[Text]               = instance(identity)
+  implicit val function0AttributeEmbeddable: XmlAttributeEmbeddable[() => Unit]        = atom[() => Unit]
+  implicit def function1AttributeEmbeddable[T]: XmlAttributeEmbeddable[T => Unit]      = atom[T => Unit]
+  implicit def rxAttributeEmbeddable[C[_] <: mhtml.Rx[_], T: XmlAttributeEmbeddable]: XmlAttributeEmbeddable[C[T]] = atom[C[T]]
 }
 
 /** Evidence that T can be embedded in xml element position. */
+@scala.annotation.implicitNotFound(msg =
+    """Cannot embed value of type ${T} in xml element, implicit XmlElementEmbeddable not found.
+The following types are supported:
+- String, Int, Long Double, Float, Char, Boolean
+- xml.Node, Seq[xml.Node], List[xml.Node] (or any iterable container of xml.Node)
+- mhtml.Var[T], mhtml.Rx[T] where T can be embedded in xml element position.
+- Option[T] where T can be embedded in xml element position.
+""")
 trait XmlElementEmbeddable[T] { def toNode(e: T): Node }
 object XmlElementEmbeddable {
+  import language.higherKinds
+
   @inline def instance[T](f: T => Node): XmlElementEmbeddable[T] =
     new XmlElementEmbeddable[T] { override def toNode(e: T): Node = f(e) }
   @inline def atom[T]: XmlElementEmbeddable[T] = instance[T](new Atom(_))
+
+  implicit val intElementEmbeddable: XmlElementEmbeddable[Int]           = atom[Int]
+  implicit val floatElementEmbeddable: XmlElementEmbeddable[Float]       = atom[Float]
+  implicit val doubleElementEmbeddable: XmlElementEmbeddable[Double]     = atom[Double]
+  implicit val longElementEmbeddable: XmlElementEmbeddable[Long]         = atom[Long]
+  implicit val charElementEmbeddable: XmlElementEmbeddable[Char]         = instance[Char](x => Text(x.toString))
+  implicit val stringElementEmbeddable: XmlElementEmbeddable[String]     = instance[String](Text.apply)
+  implicit def nodeElementEmbeddable[T <: Node]: XmlElementEmbeddable[T] = instance[T](identity)
+  implicit def iterableElementEmbeddable[C[_], T <: Node](implicit
+      ev: XmlElementEmbeddable[T],
+      conv: C[T] => Iterable[T]
+  ): XmlElementEmbeddable[C[T]] =
+    instance[C[T]](x => Group(conv(x).map(ev.toNode).toSeq))
+  implicit def optionElementEmbeddable[T](implicit ev: XmlElementEmbeddable[T]): XmlElementEmbeddable[Option[T]] =
+    instance[Option[T]] {
+      case Some(x) => ev.toNode(x)
+      case _       => Group(Nil) // Empty node
+    }
+  implicit def rxElementEmbeddable[C[_] <: mhtml.Rx[_], T: XmlElementEmbeddable]: XmlElementEmbeddable[C[T]] = atom[C[T]]
 }
 
 // Internal structure used by scalac to create literals -----------------------

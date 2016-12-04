@@ -5,6 +5,12 @@ import org.scalatest.FunSuite
 import scala.xml.Elem
 
 class Tests extends FunSuite {
+  def render(node: xml.Node): String = {
+    val div = dom.document.createElement("div")
+    mount(div, node)
+    div.innerHTML
+  }
+
   test("Mounting Elem") {
     val div = dom.document.createElement("div")
     mount(div, <p class="cc" id="22">{"text"}</p>)
@@ -399,6 +405,46 @@ class Tests extends FunSuite {
     val d = new DevSettings {}
     assert(d.levenshtein("kitten")("sitting") == 3)
     assert(d.levenshtein("rosettacode")("raisethysword") == 8)
+  }
+
+  test("Optional Attribute") {
+    assert(render(<form disabled={Rx(true)}></form>) == """<form disabled=""></form>""")
+    assert(render(<form disabled={Rx(false)}></form>) == """<form></form>""")
+    assert(render(<form disabled={true}></form>) == """<form disabled=""></form>""")
+    assert(render(<form disabled={false}></form>) == """<form></form>""")
+    assert(render(<form disabled={Option("banana")}></form>) == """<form disabled="banana"></form>""")
+    assert(render(<form disabled={Option.empty[String]}></form>) == """<form></form>""")
+  }
+
+  test("Ill-typed Attribute") {
+    assertTypeError("<form disabled={1.2f}></form>")
+    assertTypeError("<form disabled={1}></form>")
+    assertTypeError("<form disabled={Option.empty[Int]}></form>")
+    assertTypeError("<form disabled={List.empty[String]}></form>")
+    assertTypeError("<form disabled={List.empty[Text]}></form>")
+    assertTypeError("<form disabled={Text(\"\"): xml.Node}></form>")
+    assertTypeError("<form disabled={Rx(<div></div>)}></form>")
+  }
+
+  test("ill-typed Element") {
+    assertTypeError("<div>{true}</div>")
+    assertTypeError("<div>{List.empty[String]}</div>")
+    assertTypeError("{ class A; <div>{new A}</div>}")
+  }
+
+  test("well-typed Element") {
+    assert(render(<div>{Rx(Option.empty[Int])}</div>) == "<div></div>")
+    assert(render(<div>{Option.empty[Int]}</div>) == "<div></div>")
+    assert(render(<div>{Rx(Option(1))}</div>) == "<div>1</div>")
+    assert(render(<div>{Option(1)}</div>) == "<div>1</div>")
+    assert(render(<div>{'a'}</div>) == "<div>a</div>")
+    assert(render(<div>{1}</div>) == "<div>1</div>")
+    assert(render(<div>{2L}</div>) == "<div>2</div>")
+    assert(render(<div>{1.2d}</div>) == "<div>1.2</div>")
+    assert(render(<div>{1.0f}</div>) == "<div>1</div>")
+    assert(render(<div>{"string"}</div>) == "<div>string</div>")
+    assert(render(<div>{List(scala.xml.Comment("a"))}</div>) == "<div><!--a--></div>")
+    assert(render(<div>{List(scala.xml.Comment("a"))}</div>) == "<div><!--a--></div>")
   }
 }
 

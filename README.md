@@ -106,19 +106,46 @@ When working with large immutable data structures, this approach is less perform
 No, only invalid XML literals will be rejected at compile time. However, we do provide [configurable settings](src/main/scala/mhtml/settings.scala) to emit runtime warnings about unknown elements, attributes, entity references and event handlers. For example, the following piece of XML compiles fine:
 
 ```scala
-<captain yolo="true" onClick={ () => println("Oh yeah!") }>{None}</captain>
+<captain yolo="true" onClick={ () => println("Oh yeah!") }></captain>
 ```
 
 But mounting it to the DOM will print warnings in the console:
 
 ```
-[mhtml] Warning: Implicitly converted class scala.None$ to it's string representation: "None". Call toString explicitly to remove this warning.
 [mhtml] Warning: Unknown event onClick. Did you mean onclick instead?
 [mhtml] Warning: Unknown attribute yolo. Did you mean cols instead?
 [mhtml] Warning: Unknown element captain. Did you mean caption instead?
 ```
 
 `MountSettings.default` emit warnings only when compiled to with `fastOptJS`, and becomes silent (and faster) whe compiled with `fullOptJS`.
+
+**Can I insert Any values into xml literals?**
+
+No. Monadic-html uses a fork of scala-xml that puts type constraints on
+what values are allowed in xml element or attribute position. Examples:
+
+```scala
+// element position
+<div>{true}</div>                           // Compile error
+<div>{"OK"}</div>                           // OK: renders as <div>OK</div>
+<div>{Rx("OK")}</div>                       // OK: renders as <div>OK</div>
+<div>{Option("OK")}</div>                   // OK: renders as <div>OK</div>
+<div>{Option.empty[String]}</div>           // OK: renders as <div></div>
+<div>{Option.empty[MyCustomUser]}</div>     // Compile error: use .toString if that's what you meant
+<div>{() => onSubmit()}</div>               // Compile error:event handlers are only allowed in attribute position
+<ul>{List(<li>One</li>, <li>Two</li>)}</ul> // OK: renders as <ul><li>One</li><li>Two</li></ul>
+
+// attribute position
+<form disable={false}></form>               // OK: renders as <form></form>
+<form disable={Rx(Option("true"))}></form>  // OK: renders as <form disabled="true"></form>
+<form disable={List(true)}></form>          // Compile error: doesn't make sense
+<ul>{List(<li>One</li>, <li>Two</li>)}</ul> // Compile error, List[Node] is only allowed in elemnt position
+<form disable={Rx(2)}></form>               // Compile error: use .toString
+<form onsubmit={() => onSubmit()}></form>   // OK: attaches event listener
+<form onsubmit={x: Int => x + 2}></form>    // Compile error, function must have Unit return type
+```
+
+Full up-to-date specification is in the [tests](https://github.com/OlivierBlanvillain/monadic-html/blob/master/tests/src/test/scala/mhtml/tests.scala).
 
 **Global mutable state, Booo! Booo!!!**
 

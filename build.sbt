@@ -11,8 +11,6 @@ lazy val root = project.in(file("."))
     `monadic-rxJVM`,
     `monadic-rx-catsJS`,
     `monadic-rx-catsJVM`,
-    `scala-xml-lightJS`,
-    `scala-xml-lightJVM`,
     `examples`,
     `tests`
   )
@@ -20,7 +18,7 @@ lazy val root = project.in(file("."))
 
 lazy val `monadic-html` = project
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(`monadic-rxJS`, `scala-xml-lightJS`)
+  .dependsOn(`monadic-rxJS`)
   .settings(publishSettings: _*)
   .settings(libraryDependencies += "org.scala-js" %%% "scalajs-dom" % scalajsdom)
 
@@ -37,12 +35,6 @@ lazy val `monadic-rx-cats`    = crossProject
   .settings(publishSettings: _*)
   .dependsOn(`monadic-rx`)
   .settings(libraryDependencies += "org.typelevel" %%% "cats" % cats)
-
-lazy val `scala-xml-lightJS`  = `scala-xml-light`.js
-lazy val `scala-xml-lightJVM` = `scala-xml-light`.jvm
-lazy val `scala-xml-light`    = crossProject
-  .crossType(CrossType.Pure)
-  .settings(publishSettings: _*)
 
 lazy val `tests` = project
   .enablePlugins(ScalaJSPlugin)

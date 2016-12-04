@@ -52,7 +52,11 @@ object mount {
         Cancelable.empty
 
       case a: Atom[_]    =>
-        val content = a.data.toString
+        val content = a.data match {
+          case Some(x) => x.toString
+          case None    => ""
+          case x       => x.toString
+        }
         if (!content.isEmpty)
           parent.mountHere(dom.document.createTextNode(content), startPoint)
         Cancelable.empty
@@ -94,15 +98,18 @@ object mount {
 
     def setMetadata(m: MetaData, v: Any, config: MountSettings): Unit = {
       val htmlNode = node.asInstanceOf[dom.html.Html]
-      def set(key: String): Unit =
-        if (v == null) htmlNode.removeAttribute(key)
-        else {
+      def set(key: String): Unit = v match {
+        case null | None | false => htmlNode.removeAttribute(key)
+        case _ =>
           config.inspectAttributeKey(key)
-          // This should be a `config.transformAttributeValue`, but scala-xml does not compile non String attribues...
-          val value = v.toString
+          val value = v match {
+            case Some(x) => x.toString
+            case true    => ""
+            case _       => v.toString
+          }
           if (key == "style") htmlNode.style.cssText = value
           else htmlNode.setAttribute(key, value)
-        }
+      }
       m match {
         case m: PrefixedAttribute => set(s"${m.pre}:${m.key}")
         case _ => set(m.key)
