@@ -71,7 +71,7 @@ object GithubAvatar extends Example {
   def detailedRepo(repo: GhRepo): Node =
     <div>
       <h2>{repo.name}</h2>
-      <p>Stars: {repo.stargazers_count}</p>
+      <p>Stars: {repo.stargazers_count.toString}</p>
       <p>Homepage: <a href={repo.homepage}>{repo.homepage}</a></p>
       <p><pre>git clone {repo.clone_url}</pre></p>
     </div>
@@ -87,7 +87,7 @@ object GithubAvatar extends Example {
           {searchList}
           {active.map(_.map(detailedRepo).getOrElse(<div></div>))}
         </div>
-      case Some(Failure(error)) => <div style="background: red">{error}</div>
+      case Some(Failure(error)) => <div style="background: red">{error.getMessage}</div>
     }
   }
 
@@ -96,7 +96,7 @@ object GithubAvatar extends Example {
     case Some(Success(json)) =>
       <img style="height: 11em" src={json.avatar_url.toString }/>
     case Some(Failure(error)) =>
-      <div style="background: red">{error}</div>
+      <div style="background: red">{error.getMessage}</div>
   }
 
   def profile(username: String): Node = {
