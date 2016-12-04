@@ -76,27 +76,55 @@ final case class PrefixedAttribute(
     this(pre, key, Text(value), next)
 }
 
-final case class UnprefixedAttribute(
+final case class UnprefixedAttribute[T] private (
   key: String,
   value: Node,
   next: MetaData
 ) extends MetaData {
-  def this(key: String, value: String, next: MetaData) =
-    this(key, Text(value), next)
+  def this(key: String, e: T, next: MetaData)(implicit ev: XmlSerializable[T]) =
+    this(
+      key,
+      e match {
+        case s: String => Text(s) // convenient for: attr={"computed string"}
+        case n: Node => n
+        // Iterable[Node] does not make sense in UnprefixedAttribute.
+        case _ => new Atom(e)
+      },
+      next
+    )
+}
+
+@scala.annotation.implicitNotFound(msg =
+  """Cannot embed value of type '${T}' into an xml literal. Allowed types are:
+Base types:
+  - String (tip: you can use ${T}.toString)
+  - Int
+  - xml.Node
+  - List[xml.Node], Seq[xml.Node] and other Iterable containers.
+Event handlers:
+  - () => Unit
+  - T => Unit, where T can be any type.
+Monadic-html:
+  - mhtml.Rx[T] or mhtml.Var[T], where T is a type that can be embedded into an xml literal. For example, a String or Seq[xml.Node].
+""")
+sealed trait XmlSerializable[T]
+object XmlSerializable{
+  import language.higherKinds
+  // base types
+  implicit val intSerializable: XmlSerializable[Int] = new XmlSerializable[Int] {}
+  implicit val stringSerializable: XmlSerializable[String] = new XmlSerializable[String] {}
+  implicit def nodeSerializable[T <: Node]: XmlSerializable[T] = new XmlSerializable[T] {}
+  implicit def iterableSerializable[C[_], T <: Node](implicit conv: C[T] => Iterable[T]) = new XmlSerializable[C[T]] {}
+  // event handlers
+  implicit val function0Serializable: XmlSerializable[() => Unit] = new XmlSerializable[() => Unit] {}
+  implicit def function1Serializable[T]: XmlSerializable[(T) => Unit] = new XmlSerializable[T => Unit] {}
+  // mhtml
+  implicit def rxSerializable[C[_] <: mhtml.Rx[_], T: XmlSerializable]: XmlSerializable[C[T]] = new XmlSerializable[C[T]] {}
 }
 
 // Internal structure used by scalac to create literals -----------------------
-
 class NodeBuffer extends scala.collection.mutable.ArrayBuffer[Node] {
-  def &+(o: Any): NodeBuffer = {
-    o match {
-      case _: Unit | Text("") => // ignore
-      case it: Iterator[_]    => it foreach &+
-      case n: Node            => super.+=(n)
-      case ns: Iterable[_]    => this &+ ns.iterator
-      case ns: Array[_]       => this &+ ns.iterator
-      case d                  => super.+=(new Atom(d))
-    }
-    this
-  }
+  def &+(e: Iterable[Node]): NodeBuffer = { e foreach &+; this }
+  def &+(e: Node): NodeBuffer = { super.+=(e); this }
+  def &+[A:XmlSerializable](e: A): NodeBuffer = { super.+=(new Atom(e)); this }
 }
