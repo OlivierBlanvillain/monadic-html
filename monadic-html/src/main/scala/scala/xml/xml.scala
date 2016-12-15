@@ -116,7 +116,7 @@ object XmlAttributeEmbeddable{
     """Cannot embed value of type ${T} in xml element, implicit XmlElementEmbeddable[${T}] not found.
 The following types are supported:
 - String, Int, Long, Double, Float, Char, Boolean
-- xml.Node, Seq[xml.Node], List[xml.Node] (or any iterable container of xml.Node)
+- xml.Node, Seq[xml.Node]
 - mhtml.Var[T], mhtml.Rx[T] where T can be embedded in xml element position.
 - Option[T] where T can be embedded in xml element position.
 """)
@@ -136,11 +136,10 @@ object XmlElementEmbeddable {
   implicit val stringElementEmbeddable: XmlElementEmbeddable[String]     = instance[String](Text.apply)
   implicit def nodeElementEmbeddable[T <: Node]: XmlElementEmbeddable[T] = instance[T](identity)
   implicit def optionElementEmbeddable[T: XmlElementEmbeddable]: XmlElementEmbeddable[Option[T]] = atom[Option[T]]
-  implicit def iterableElementEmbeddable[C[_], T <: Node](implicit
-      ev: XmlElementEmbeddable[T],
-      conv: C[T] => Iterable[T]
-  ): XmlElementEmbeddable[C[T]] =
-    instance[C[T]](x => Group(conv(x).map(ev.toNode).toSeq))
+  implicit def seqElementEmbeddable[C[_] <: Seq[_], T <: Node]: XmlElementEmbeddable[C[T]] = instance[C[T]](
+    // For some odd reason, we get a type error without the cast.
+    lst => Group(lst.asInstanceOf[Seq[Node]])
+  )
   implicit def rxElementEmbeddable[C[_] <: mhtml.Rx[_], T: XmlElementEmbeddable]: XmlElementEmbeddable[C[T]] = atom[C[T]]
 }
 
