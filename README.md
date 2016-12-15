@@ -122,30 +122,29 @@ But mounting it to the DOM will print warnings in the console:
 **Can I insert Any values into xml literals?**
 
 No. Monadic-html uses a fork of scala-xml that puts type constraints on
-what values are allowed in xml element or attribute position. Examples:
+what values are allowed in xml element or attribute position.
+Here is a summary of what types are allowed to be embedded in attribute or
+element position.
 
-```scala
-// element position
-<div>{true}</div>                           // Compile error
-<div>{"OK"}</div>                           // OK: renders as <div>OK</div>
-<div>{Rx("OK")}</div>                       // OK: renders as <div>OK</div>
-<div>{Option("OK")}</div>                   // OK: renders as <div>OK</div>
-<div>{Option.empty[String]}</div>           // OK: renders as <div></div>
-<div>{Option.empty[MyCustomUser]}</div>     // Compile error: use .toString if that's what you meant
-<div>{() => onSubmit()}</div>               // Compile error:event handlers are only allowed in attribute position
-<ul>{List(<li>One</li>, <li>Two</li>)}</ul> // OK: renders as <ul><li>One</li><li>Two</li></ul>
+#### Both attributes and elements:
 
-// attribute position
-<form disable={false}></form>               // OK: renders as <form></form>
-<form disable={Rx(Option("true"))}></form>  // OK: renders as <form disabled="true"></form>
-<form disable={List(true)}></form>          // Compile error: doesn't make sense
-<ul>{List(<li>One</li>, <li>Two</li>)}</ul> // Compile error, List[Node] is only allowed in elemnt position
-<form disable={Rx(2)}></form>               // Compile error: use .toString
-<form onsubmit={() => onSubmit()}></form>   // OK: attaches event listener
-<form onsubmit={x: Int => x + 2}></form>    // Compile error, function must have Unit return type
-```
+- `String`
+- `mhtml.Var[T], mhtml.Rx[T] where T is itself embeddable`
+- `Option[T] where T can itself be embedded (None → remove from the DOM)`
 
-Full up-to-date specification is in the [tests](https://github.com/OlivierBlanvillain/monadic-html/blob/master/tests/src/test/scala/mhtml/tests.scala).
+#### Attributes
+
+- `Boolean (false → remove from the DOM)`
+- `() => Unit, T => Unit event handler`
+
+#### Elements
+
+- `Int, Long, Double, Float, Char (silently converted with .toString)`
+- `xml.Node`
+- `Seq[xml.Node]`
+
+For examples of how each type is rendered into dom nodes, take a look at the
+[tests](https://github.com/OlivierBlanvillain/monadic-html/blob/master/tests/src/test/scala/mhtml/RenderTests.scala).
 
 **Global mutable state, Booo! Booo!!!**
 
