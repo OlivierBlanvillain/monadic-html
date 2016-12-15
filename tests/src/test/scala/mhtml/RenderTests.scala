@@ -33,5 +33,6 @@ class RenderTests extends FunSuite {
   check(<form disabled={false}>2</form>                , """<form>2</form>""")
   check(<form disabled={Option("banana")}>3</form>     , """<form disabled="banana">3</form>""")
   check(<form disabled={Option.empty[String]}>3</form> , """<form>3</form>""")
+  check(<form disabled={Option(Rx(true))}>4</form>     , """<form disabled="">4</form>""")
 
 }

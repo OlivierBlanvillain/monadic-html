@@ -71,6 +71,8 @@ object mount {
     }
 
   private def mountMetadata(parent: DomNode, m: MetaData, v: Any, config: MountSettings): Cancelable = v match {
+    case Some(x: Any) =>
+      mountMetadata(parent, m, x, config)
     case r: Rx[_] =>
       val rx: Rx[_] = r
       var cancelable = Cancelable.empty

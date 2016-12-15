@@ -102,12 +102,12 @@ object XmlAttributeEmbeddable{
     new XmlAttributeEmbeddable[T] { override def toNode(e: T): Node = f(e) }
   @inline def atom[T]: XmlAttributeEmbeddable[T] = instance[T](new Atom(_))
 
-  implicit val booleanAttributeEmbeddable: XmlAttributeEmbeddable[Boolean]             = atom[Boolean]
-  implicit val optionStringAttributeEmbeddable: XmlAttributeEmbeddable[Option[String]] = atom[Option[String]]
-  implicit val stringAttributeEmbeddable: XmlAttributeEmbeddable[String]               = instance[String](Text.apply)
-  implicit val textNodeAttributeEmbeddable: XmlAttributeEmbeddable[Text]               = instance(identity)
-  implicit val function0AttributeEmbeddable: XmlAttributeEmbeddable[() => Unit]        = atom[() => Unit]
-  implicit def function1AttributeEmbeddable[T]: XmlAttributeEmbeddable[T => Unit]      = atom[T => Unit]
+  implicit val booleanAttributeEmbeddable: XmlAttributeEmbeddable[Boolean]        = atom[Boolean]
+  implicit val stringAttributeEmbeddable: XmlAttributeEmbeddable[String]          = instance[String](Text.apply)
+  implicit val textNodeAttributeEmbeddable: XmlAttributeEmbeddable[Text]          = instance(identity)
+  implicit val function0AttributeEmbeddable: XmlAttributeEmbeddable[() => Unit]   = atom[() => Unit]
+  implicit def function1AttributeEmbeddable[T]: XmlAttributeEmbeddable[T => Unit] = atom[T => Unit]
+  implicit def optionStringAttributeEmbeddable[T:XmlAttributeEmbeddable]: XmlAttributeEmbeddable[Option[T]]        = atom[Option[T]]
   implicit def rxAttributeEmbeddable[C[_] <: mhtml.Rx[_], T: XmlAttributeEmbeddable]: XmlAttributeEmbeddable[C[T]] = atom[C[T]]
 }
 
