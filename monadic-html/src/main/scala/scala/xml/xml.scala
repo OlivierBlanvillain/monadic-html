@@ -135,11 +135,8 @@ object XmlElementEmbeddable {
   implicit val charElementEmbeddable: XmlElementEmbeddable[Char]         = instance[Char](x => Text(x.toString))
   implicit val stringElementEmbeddable: XmlElementEmbeddable[String]     = instance[String](Text.apply)
   implicit def nodeElementEmbeddable[T <: Node]: XmlElementEmbeddable[T] = instance[T](identity)
-  implicit def optionElementEmbeddable[T: XmlElementEmbeddable]: XmlElementEmbeddable[Option[T]] = atom[Option[T]]
-  implicit def seqElementEmbeddable[C[_] <: Seq[_], T <: Node]: XmlElementEmbeddable[C[T]] = instance[C[T]](
-    // For some odd reason, we get a type error without the cast.
-    lst => Group(lst.asInstanceOf[Seq[Node]])
-  )
+  implicit def optionElementEmbeddable[T: XmlElementEmbeddable]: XmlElementEmbeddable[Option[T]]             = atom[Option[T]]
+  implicit def seqElementEmbeddable[C[X] <: Seq[X], T <: Node]: XmlElementEmbeddable[C[T]]                   = instance[C[T]](Group.apply)
   implicit def rxElementEmbeddable[C[_] <: mhtml.Rx[_], T: XmlElementEmbeddable]: XmlElementEmbeddable[C[T]] = atom[C[T]]
 }
 
