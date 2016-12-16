@@ -88,11 +88,11 @@ final case class UnprefixedAttribute[T](
 @scala.annotation.implicitNotFound(msg =
     """Cannot embed value of type ${T} in xml attribute, implicit XmlAttributeEmbeddable[${T}] not found.
 The following types are supported:
-- String, Boolean
-- xml.Text
-- Option[String]
+- String
+- Boolean (false → remove attribute, true → empty attribute)
 - () => Unit, T => Unit event handler. Note: The return type needs to be Unit!
-- mhtml.Var[T], mhtml.Rx[T] where T can be embedded in xml attribute position.
+- mhtml.Var[T], mhtml.Rx[T] where T is XmlAttributeEmbeddable
+- Option[T] where T is XmlAttributeEmbeddable (None → remove from the DOM)
 """)
 trait XmlAttributeEmbeddable[T] { def toNode(e: T): Node }
 object XmlAttributeEmbeddable{
@@ -115,10 +115,10 @@ object XmlAttributeEmbeddable{
 @scala.annotation.implicitNotFound(msg =
     """Cannot embed value of type ${T} in xml element, implicit XmlElementEmbeddable[${T}] not found.
 The following types are supported:
-- String, Int, Long, Double, Float, Char, Boolean
+- String, Int, Long, Double, Float, Char (converted with .toString)
 - xml.Node, Seq[xml.Node]
-- mhtml.Var[T], mhtml.Rx[T] where T can be embedded in xml element position.
-- Option[T] where T can be embedded in xml element position.
+- mhtml.Var[T], mhtml.Rx[T] where T is XmlElementEmbeddable
+- Option[T] where T is XmlElementEmbeddable (None → remove from the DOM)
 """)
 trait XmlElementEmbeddable[T] { def toNode(e: T): Node }
 object XmlElementEmbeddable {
