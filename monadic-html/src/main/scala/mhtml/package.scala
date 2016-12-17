@@ -5,5 +5,5 @@ package object mhtml {
     * String is risky because it's easy to inadvertently expose your users to a
     * cross-site scripting (XSS) attack. Using [[unsafeRawHTML]] in conjunction
     * with other `Atom`s in a single `Node` has undefined behavior. */
-  def unsafeRawHTML(rawHtml: String): Node = new xml.Atom(new UnsafeRawHTML(rawHtml))
+  def unsafeRawHTML(rawHtml: String): Node = new xml.Atom(UnsafeRawHTML(rawHtml))
 }
