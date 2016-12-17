@@ -105,9 +105,8 @@ object mount {
         case _ =>
           config.inspectAttributeKey(key)
           val value = v match {
-            case Some(x) => x.toString
-            case true    => ""
-            case _       => v.toString
+            case true => ""
+            case _    => v.toString
           }
           if (key == "style") htmlNode.style.cssText = value
           else htmlNode.setAttribute(key, value)
