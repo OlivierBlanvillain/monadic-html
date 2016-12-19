@@ -1,5 +1,5 @@
 language: scala
-scala: 2.11.8
+scala: 2.12.0
 jdk: oraclejdk8
 sbt_args: "-J-Xmx2G"
 
@@ -8,8 +8,8 @@ notifications:
     false
 
 script:
-- sbt test:compile test:fastOptJS test:fullOptJS
-- sbt test
+- sbt clean +test:compile
+- sbt +test
 - sbt 'set scalaJSStage in Global := FullOptStage' test
 - sbt doc
 
