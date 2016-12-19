@@ -7,9 +7,6 @@ trait MountSettings {
   /** Used to transform EntityRef (`&lambda;`) before mounting them to the DOM. */
   def transformEntityRef(entityRef: String): String
 
-  /** Used to transform Atom to their String representation before mounting them to the DOM. */
-  def transformAtom(value: Any): String
-
   /** Used to inspect HTML element before mounting them to the DOM. */
   def inspectElement(elem: String): Unit
 
@@ -54,15 +51,6 @@ trait DevSettings extends MountSettings {
       warn(s"""Unknown EntityRef $entityRef. Did you mean ${EntityRefMap.keys.minBy(levenshtein(entityRef))} instead?""")
       entityRef
     } else EntityRefMap.values(i)
-  }
-
-  // Convert Any to String, emits a warning when .toString is called explicitly.
-  def transformAtom(value: Any): String = value match {
-    case s: String => s
-    case i: Int => i.toString
-    case any =>
-      warn(s"""Implicitly converted ${any.getClass} to it's string representation: "$any". Call toString explicitly to remove this warning.""")
-      any.toString
   }
 
   def inspectElement(elem: String): Unit     = isKnown("element", elements, elem)

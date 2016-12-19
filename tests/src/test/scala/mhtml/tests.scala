@@ -5,6 +5,7 @@ import org.scalatest.FunSuite
 import scala.xml.Elem
 
 class Tests extends FunSuite {
+
   test("Mounting Elem") {
     val div = dom.document.createElement("div")
     mount(div, <p class="cc" id="22">{"text"}</p>)
@@ -352,15 +353,6 @@ class Tests extends FunSuite {
     assert(w == List("Unknown element yolo. Did you mean col instead?"))
   }
 
-  test("Atom warn") {
-    var w: List[String] = Nil
-    def entity = <div>{1.1}</div>
-    val div = dom.document.createElement("div")
-    mount(div, entity, new DevSettings { override def warn(s: String) = w = s :: w })
-    assert(div.innerHTML == "<div>1.1</div>")
-    assert(w == List("""Implicitly converted class java.lang.Float to it's string representation: "1.1". Call toString explicitly to remove this warning."""))
-  }
-
   test("EventKey warn") {
     var w: List[String] = Nil
     def entity = <div onClick={ () => () }></div>
@@ -381,11 +373,10 @@ class Tests extends FunSuite {
 
   test("README warnings") {
     var w: List[String] = Nil
-    def entity = <captain yolo="true" onClick={ () => println("Oh yeah!") }>{None}</captain>
+    def entity = <captain yolo="true" onClick={ () => println("Oh yeah!") }>{None.toString}</captain>
     val div = dom.document.createElement("div")
     mount(div, entity, new DevSettings { override def warn(s: String) = w = s :: w })
     assert(w == List(
-      """Implicitly converted class scala.None$ to it's string representation: "None". Call toString explicitly to remove this warning.""",
       """Unknown event onClick. Did you mean onclick instead?""",
       """Unknown attribute yolo. Did you mean cols instead?""",
       """Unknown element captain. Did you mean caption instead?"""
@@ -410,4 +401,23 @@ class Tests extends FunSuite {
     assert(d.levenshtein("kitten")("sitting") == 3)
     assert(d.levenshtein("rosettacode")("raisethysword") == 8)
   }
+
+
+  test("Ill-typed Attribute") {
+    assertTypeError("<form disabled={1.2f}></form>")
+    assertTypeError("<form disabled={1}></form>")
+    assertTypeError("<form disabled={Option.empty[Int]}></form>")
+    assertTypeError("<form disabled={List.empty[String]}></form>")
+    assertTypeError("<form disabled={List.empty[Text]}></form>")
+    assertTypeError("<form disabled={Text(\"\"): xml.Node}></form>")
+    assertTypeError("<form disabled={Rx(<div></div>)}></form>")
+  }
+
+  test("ill-typed Element") {
+    assertTypeError("<div>{true}</div>")
+    assertTypeError("<div>{List.empty[String]}</div>")
+    assertTypeError("{ class A; <div>{new A}</div>}")
+  }
+
 }
+

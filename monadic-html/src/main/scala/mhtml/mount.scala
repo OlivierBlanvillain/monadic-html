@@ -14,26 +14,6 @@ object mount {
 
   private def mountNode(parent: DomNode, child: XmlNode, startPoint: Option[DomNode], config: MountSettings): Cancelable =
     child match {
-      case a: Atom[_] if a.data.isInstanceOf[Rx[_]] =>
-        val (start, end) = parent.createMountSection()
-        var cancelable = Cancelable.empty
-        a.data.asInstanceOf[Rx[_]].foreach { v =>
-          parent.cleanMountSection(start, end)
-          cancelable.cancel
-          cancelable = v match {
-            case n: XmlNode  =>
-              mountNode(parent, n, Some(start), config)
-            case seq: Seq[_] =>
-              val nodeSeq = seq.map {
-                case n: XmlNode => n
-                case a => new Atom(a)
-              }
-              mountNode(parent, new Group(nodeSeq), Some(start), config)
-            case a =>
-              mountNode(parent, new Atom(a), Some(start), config)
-          }
-        } alsoCanceling (() => cancelable)
-
       case e @ Elem(_, label, metadata, _, child @ _*) =>
         config.inspectElement(label)
         val elemNode = dom.document.createElement(label)
@@ -47,16 +27,6 @@ object mount {
         parent.mountHere(dom.document.createTextNode(er), startPoint)
         Cancelable.empty
 
-      case a: Atom[_] if a.data.isInstanceOf[UnsafeRawHTML] =>
-        parent.asInstanceOf[dom.html.Html].innerHTML = a.data.toString
-        Cancelable.empty
-
-      case a: Atom[_]    =>
-        val content = config.transformAtom(a.data)
-        if (!content.isEmpty)
-          parent.mountHere(dom.document.createTextNode(content), startPoint)
-        Cancelable.empty
-
       case Comment(text) =>
         parent.mountHere(dom.document.createComment(text), startPoint)
         Cancelable.empty
@@ -64,9 +34,48 @@ object mount {
       case Group(nodes)  =>
         val cancels = nodes.map(n => mountNode(parent, n, startPoint, config))
         Cancelable(() => cancels.foreach(_.cancel))
+
+      case a: Atom[_] => a.data match {
+        case rx: Rx[_] =>
+          val (start, end) = parent.createMountSection()
+          var cancelable = Cancelable.empty
+          rx.foreach { v =>
+            parent.cleanMountSection(start, end)
+            cancelable.cancel
+            cancelable = v match {
+              case n: XmlNode  =>
+                mountNode(parent, n, Some(start), config)
+              case seq: Seq[_] =>
+                val nodeSeq = seq.map {
+                  case n: XmlNode => n
+                  case a => new Atom(a)
+                }
+                mountNode(parent, new Group(nodeSeq), Some(start), config)
+              case a =>
+                mountNode(parent, new Atom(a), Some(start), config)
+            }
+          } alsoCanceling (() => cancelable)
+
+
+        case Some(x: XmlNode) => mountNode(parent, x, startPoint, config)
+        case Some(x)          => mountNode(parent, new Atom(x), startPoint, config)
+        case None             => Cancelable.empty
+
+        case UnsafeRawHTML(rawHtml) =>
+          parent.asInstanceOf[dom.html.Html].innerHTML = rawHtml
+          Cancelable.empty
+
+        case x =>
+          val content = x.toString
+          if (!content.isEmpty)
+            parent.mountHere(dom.document.createTextNode(content), startPoint)
+          Cancelable.empty
+      }
     }
 
   private def mountMetadata(parent: DomNode, m: MetaData, v: Any, config: MountSettings): Cancelable = v match {
+    case Some(x: Any) =>
+      mountMetadata(parent, m, x, config)
     case r: Rx[_] =>
       val rx: Rx[_] = r
       var cancelable = Cancelable.empty
@@ -94,15 +103,17 @@ object mount {
 
     def setMetadata(m: MetaData, v: Any, config: MountSettings): Unit = {
       val htmlNode = node.asInstanceOf[dom.html.Html]
-      def set(key: String): Unit =
-        if (v == null) htmlNode.removeAttribute(key)
-        else {
+      def set(key: String): Unit = v match {
+        case null | None | false => htmlNode.removeAttribute(key)
+        case _ =>
           config.inspectAttributeKey(key)
-          // This should be a `config.transformAttributeValue`, but scala-xml does not compile non String attribues...
-          val value = v.toString
+          val value = v match {
+            case true => ""
+            case _    => v.toString
+          }
           if (key == "style") htmlNode.style.cssText = value
           else htmlNode.setAttribute(key, value)
-        }
+      }
       m match {
         case m: PrefixedAttribute => set(s"${m.pre}:${m.key}")
         case _ => set(m.key)
@@ -141,6 +152,4 @@ object mount {
   }
 }
 
-private[mhtml] class UnsafeRawHTML(rawHtml: String) {
-  override def toString = rawHtml
-}
+private[mhtml] case class UnsafeRawHTML(rawHtml: String)
