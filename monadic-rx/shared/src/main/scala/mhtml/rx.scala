@@ -9,12 +9,9 @@ sealed trait Rx[+A] {
     * [[Rx]]s will leak memory. */
   def foreach(s: A => Unit): Cancelable
 
-
-  /** Applies the side effecting function `f` to each element of this [[Rx]]
-    * starting from the next update. Returns an [[Cancelable]] which can be
-    * used to cancel the subscription. Use with caution: not canceling `foreach`
-    * subscription on short lived [[Rx]]s will leak memory. */
-  def foreachNext(s: A => Unit): Cancelable
+  /** Alternative to `foreach` which is not triggered immediately,
+    * but only once the underlying value is updated. */
+  protected[mhtml] def foreachNext(s: A => Unit): Cancelable
 
   /** Returns a new [[Rx]] that maps each element of this [[Rx]] via `f`. */
   def map[B](f: A => B): Rx[B] =
@@ -38,7 +35,9 @@ sealed trait Rx[+A] {
     result
   }
 
-  /** Returns the current value of this [[Rx]]. */
+  /** Returns the current value of this [[Rx]]. Using `get` in conjonction
+    * with `:=` is an anti-pattern which can lead to infinit cycles and
+    * other surprising side effects of the value propagation order. */
   def get: A
 }
 
