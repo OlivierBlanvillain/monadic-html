@@ -36,4 +36,6 @@ class RenderTests extends FunSuite {
   check(<form disabled={Some("banana")}>3</form> , """<form disabled="banana">3</form>""")
   check(<form disabled={None}>3</form>           , """<form>3</form>""")
   check(<form disabled={Some(Rx(true))}>4</form> , """<form disabled="">4</form>""")
+
+  check(<p>{emptyHTML}</p>                       , "<p></p>")
 }

@@ -6,4 +6,7 @@ package object mhtml {
     * cross-site scripting (XSS) attack. Using [[unsafeRawHTML]] in conjunction
     * with other `Atom`s in a single `Node` has undefined behavior. */
   def unsafeRawHTML(rawHtml: String): Node = new xml.Atom(UnsafeRawHTML(rawHtml))
+
+  /** Placeholder Node to not insert any value in the DOM. */
+  def emptyHTML: Node = new xml.Atom(None)
 }
