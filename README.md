@@ -37,9 +37,9 @@ val rxDoges: Rx[Seq[Node]] =
 val component = // ← look, you can even use fancy names!
   <div>
     <button onclick={ () => count.update(_ + 1) }>Click Me!</button>
-    {count.filter(_ > 0).map(_ => <h2>WOW!!!</h2>)}
-    {count.filter(_ > 2).map(_ => <h2>MUCH REACTIVE!!!</h2>)}
-    {count.filter(_ > 5).map(_ => <h2>SUCH BINDING!!!</h2>)}
+    {count.map(i => if (i <= 0) <div></div> else <h2>WOW!!!</h2>)}
+    {count.map(i => if (i <= 2) <div></div> else <h2>MUCH REACTIVE!!!</h2>)}
+    {count.map(i => if (i <= 5) <div></div> else <h2>SUCH BINDING!!!</h2>)}
     {rxDoges}
   </div>
 

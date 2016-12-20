@@ -105,10 +105,15 @@ object Chosen {
       div -> candidates
     }
     val rxCandidates: Rx[Seq[T]] = rxCandidatesWithApp.map(_._2)
-    val highlightedCandidate: Rx[T] =
+    val highlightedCandidate: Rx[T] = {
+      val filtered = Var[T](rxCandidates.value.head)
+
       (for { index <- rxIndex; candidates <- rxCandidates } yield {
         candidates.zipWithIndex.find(_._2 == index).map(_._1)
-      }).collect { case Some(x) => x }
+      }).foreach(_.foreach(filtered.:=))
+
+      filtered
+    }
     // event handlers
     val onkeyup = { e: KeyboardEvent =>
       e.keyCode match {

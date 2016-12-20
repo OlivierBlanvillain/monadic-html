@@ -1,10 +1,10 @@
 package mhtml
 
-import _root_.cats.MonadFilter
+import _root_.cats.Monad
 
 object cats {
-  implicit val mhtmlRxMonadFilterIntstance: MonadFilter[Rx] =
-    new MonadFilter[Rx] {
+  implicit val mhtmlRxMonadIntstance: Monad[Rx] =
+    new Monad[Rx] {
       def pure[A](x: A): Rx[A] =
         Rx(x)
 
@@ -16,11 +16,5 @@ object cats {
           case Right(b) => pure(b)
           case Left(nextA) => tailRecM(nextA)(f)
         }
-
-      def empty[A]: Rx[A] =
-        new Var[A](Non, _ => Cancelable.empty)
-
-      override def filter[A](x: Rx[A])(f: A => Boolean): Rx[A] =
-        x.filter(f)
     }
 }

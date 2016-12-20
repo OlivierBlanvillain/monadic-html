@@ -238,9 +238,9 @@ class Tests extends FunSuite {
     val component = // ← look, you can even use fancy names!
       <div>
         <button onclick={ () => count.update(_ + 1) }>Click Me!</button>
-        {count.filter(_ > 0).map(_ => <h2>WOW!!!</h2>)}
-        {count.filter(_ > 2).map(_ => <h2>MUCH REACTIVE!!!</h2>)}
-        {count.filter(_ > 5).map(_ => <h2>SUCH BINDING!!!</h2>)}
+        {count.map(i => if (i <= 0) <div></div> else <h2>WOW!!!</h2>)}
+        {count.map(i => if (i <= 2) <div></div> else <h2>MUCH REACTIVE!!!</h2>)}
+        {count.map(i => if (i <= 5) <div></div> else <h2>SUCH BINDING!!!</h2>)}
         {rxDoges}
       </div>
 
@@ -248,12 +248,12 @@ class Tests extends FunSuite {
     mount(div, component)
     val start = """<div><button>ClickMe!</button>"""
 
-    assert(div.innerHTML.filterNot(_.isWhitespace) == start + "</div>")
+    assert(div.innerHTML.filterNot(_.isWhitespace) == start + "<div></div><div></div><div></div></div>")
     assert(div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
-    assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
+    assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><div></div><div></div><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
-    assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
+    assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><div></div><div></div><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
   }
 
   test("Scala.Rx README router") {
@@ -287,7 +287,7 @@ class Tests extends FunSuite {
     assert(result == "Home Page! time: 123")
 
     fakeTime = 234
-    page.foreach(_.update()).cancel()
+    page.value.update()
     assert(result == "Home Page! time: 234")
 
     fakeTime = 345
@@ -295,7 +295,7 @@ class Tests extends FunSuite {
     assert(result == "About Me, time: 345")
 
     fakeTime = 456
-    page.foreach(_.update()).cancel()
+    page.value.update()
     assert(result == "About Me, time: 456")
   }
 
