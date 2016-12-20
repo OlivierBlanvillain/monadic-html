@@ -287,7 +287,7 @@ class Tests extends FunSuite {
     assert(result == "Home Page! time: 123")
 
     fakeTime = 234
-    page.foreach(_.update()).cancel()
+    page.value.update()
     assert(result == "Home Page! time: 234")
 
     fakeTime = 345
@@ -295,7 +295,7 @@ class Tests extends FunSuite {
     assert(result == "About Me, time: 345")
 
     fakeTime = 456
-    page.foreach(_.update()).cancel()
+    page.value.update()
     assert(result == "About Me, time: 456")
   }
 

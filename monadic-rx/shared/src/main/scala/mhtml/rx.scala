@@ -15,14 +15,14 @@ sealed trait Rx[+A] {
 
   /** Returns a new [[Rx]] that maps each element of this [[Rx]] via `f`. */
   def map[B](f: A => B): Rx[B] =
-    new Var[B](f(get), self => foreachNext(self := f(_)))
+    new Var[B](f(value), self => foreachNext(self := f(_)))
 
   /** Returns a new [[Rx]] that flat-maps each element of this [[Rx]] via `f`. */
   def flatMap[B](f: A => Rx[B]): Rx[B] = {
     var cc = Cancelable.empty
-    var fb: Rx[B] = f(get)
+    var fb: Rx[B] = f(value)
 
-    val result = new Var[B](fb.get, self => foreachNext { a =>
+    val result = new Var[B](fb.value, self => foreachNext { a =>
       val newFb = f(a)
       if (fb != newFb) {
         cc.cancel()
@@ -35,17 +35,17 @@ sealed trait Rx[+A] {
     result
   }
 
-  /** Returns the current value of this [[Rx]]. Using `get` in conjonction
+  /** Returns the current value of this [[Rx]]. Using `value` in conjonction
     * with `:=` is an anti-pattern which can lead to infinit cycles and
     * other surprising side effects of the value propagation order. */
-  def get: A
+  def value: A
 }
 
 object Rx {
   /** Creates a constant [[Rx]] from a value. */
-  def apply[A](value: A): Rx[A] =
+  def apply[A](v: A): Rx[A] =
     new Rx[A] {
-      def get = value
+      def value = v
 
       def foreachNext(s: A => Unit): Cancelable = Cancelable.empty
 
@@ -65,7 +65,7 @@ final class Var[A] private[mhtml] (initialValue: A, register: Var[A] => Cancelab
   // Mutable set of all currently subscribed functions, implementing with an `Array`.
   private[this] val subscribers = buffer.empty[A => Unit]
 
-  def get: A = cacheElem
+  def value: A = cacheElem
 
   override def foreachNext(s: A => Unit): Cancelable = {
     if (subscribers.isEmpty) registration = register(this)

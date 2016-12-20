@@ -106,7 +106,7 @@ object Chosen {
     }
     val rxCandidates: Rx[Seq[T]] = rxCandidatesWithApp.map(_._2)
     val highlightedCandidate: Rx[T] = {
-      val filtered = Var[T](rxCandidates.get.head)
+      val filtered = Var[T](rxCandidates.value.head)
 
       (for { index <- rxIndex; candidates <- rxCandidates } yield {
         candidates.zipWithIndex.find(_._2 == index).map(_._1)
