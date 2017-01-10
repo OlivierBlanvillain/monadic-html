@@ -2,7 +2,7 @@ val scalajsdom = "0.9.1"
 val scalatest  = "3.0.0"
 val cats       = "0.8.1"
 
-crossScalaVersions in ThisBuild := Seq("2.11.8", "2.12.0")
+crossScalaVersions in ThisBuild := Seq("2.12.1", "2.11.8")
 scalaVersion       in ThisBuild := crossScalaVersions.value.head
 
 lazy val root = project.in(file("."))
@@ -73,7 +73,7 @@ scalacOptions in ThisBuild := Seq(
 organization in ThisBuild := "in.nvilla"
 
 lazy val publishSettings = Seq(
-  releasePublishArtifactsAction := PgpKeys.publishSigned.value,
+  publishMavenStyle := true,
   publishArtifact in Test := false,
   pomIncludeRepository := Function.const(false),
   licenses := Seq(("MIT", url("http://opensource.org/licenses/MIT"))),
