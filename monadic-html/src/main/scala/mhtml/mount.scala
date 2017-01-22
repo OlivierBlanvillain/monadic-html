@@ -115,7 +115,7 @@ object mount {
           else htmlNode.setAttribute(key, value)
       }
       m match {
-        case m: PrefixedAttribute => set(s"${m.pre}:${m.key}")
+        case m: PrefixedAttribute[_] => set(s"${m.pre}:${m.key}")
         case _ => set(m.key)
       }
     }

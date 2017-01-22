@@ -94,14 +94,13 @@ case object Null extends MetaData {
   override def iterator = Iterator.empty
 }
 
-final case class PrefixedAttribute(
+final case class PrefixedAttribute[T](
   pre: String,
   key: String,
-  value: Node,
+  e: T,
   next: MetaData
-) extends MetaData {
-  def this(pre: String, key: String, value: String, next: MetaData) =
-    this(pre, key, Text(value), next)
+)(implicit ev: XmlAttributeEmbeddable[T]) extends MetaData {
+  override val value: Node = ev.toNode(e)
 }
 
 final case class UnprefixedAttribute[T](
