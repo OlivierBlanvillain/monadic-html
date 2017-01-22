@@ -16,17 +16,24 @@ final case class Group(nodes: Seq[Node]) extends Node
 
 /** XML element. */
 final case class Elem(
-  prefix: String,
   label: String,
   attributes1: MetaData,
-  scope: TopScope.type,
   child: Node*
 ) extends Node {
-  def this(p: String, l: String, a: MetaData, s: TopScope.type, m: Boolean, c: Node*) =
-    this(p, l, a, s, c: _*) // m, former minimizeEmpty, is now thrown away.
+  // m, former minimizeEmpty, and p former prefix are now thrown away.
+  def this(p: String, l: String, a: MetaData, s: Scope, m: Boolean, c: Node*) =
+    this(l, {
+      // Merges attributes stored in as scope with other metadata
+      def merge(acc: MetaData, s: Scope): MetaData = s match {
+        case NamespaceBinding(null, url, next) =>
+          merge(UnprefixedAttribute("xmlns", url, acc), next)
+        case NamespaceBinding(key, url, next) =>
+          merge(PrefixedAttribute("xmlns", key, Text(url), acc), next)
+        case _ => acc
+      }
+      merge(a, s)
+    }, c: _*)
 }
-
-case object TopScope
 
 /** XML leaf for comments. */
 final case class Comment(commentText: String) extends Node
@@ -39,6 +46,25 @@ final case class Text(text: String) extends Atom[String](text)
 
 /** XML leaf container for any data of type `A`. */
 class Atom[+A](val data: A) extends Node
+
+// Scopes ---------------------------------------------------------------------
+
+sealed trait Scope
+
+// Used by scalac for xmlns prefixed attributes
+class NamespaceBinding(key: String, url: String, next: Scope) extends Scope {
+  def isEmpty = false
+  def get     = this
+  def _1      = key
+  def _2      = url
+  def _3      = next
+}
+
+object NamespaceBinding {
+  def unapply(s: NamespaceBinding): NamespaceBinding = s
+}
+
+final case object TopScope extends NamespaceBinding(null, null, null)
 
 // XML Metadata ---------------------------------------------------------------
 

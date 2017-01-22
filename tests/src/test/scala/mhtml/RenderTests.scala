@@ -38,4 +38,18 @@ class RenderTests extends FunSuite {
   check(<form disabled={Some(Rx(true))}>4</form> , """<form disabled="">4</form>""")
 
   check(<p>{emptyHTML}</p>                       , "<p></p>")
+
+  check(<svg xmlns="http://hello.com"></svg>,
+     """<svg xmlns="http://hello.com"></svg>""")
+
+  check(<svg xmlns:hello="http://hello.com" xmlns:world="http://world.com"></svg>,
+     """<svg xmlns:hello="http://hello.com" xmlns:world="http://world.com"></svg>""")
+
+  // No way to get that XXX out, it's apparently thrown away by scalac parser
+  check(<svg xmlnsXXX="http://hola.com"></svg>,
+     """<svg xmlns="http://hola.com"></svg>""")
+
+  // Position of xmlns among other attributes is also lost forever in the parser
+  check(<svg id="I" xmlns="http://hello.com" class="C"></svg>,
+     """<svg xmlns="http://hello.com" id="I" class="C"></svg>""")
 }
