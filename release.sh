@@ -3,7 +3,7 @@
 set -eux
 
 # Check that the working directory is a git repository and the repository has no outstanding changes.
-# git diff-index --quiet HEAD
+git diff-index --quiet HEAD
 
 # Prints the hash of the last commit to the console.
 git rev-parse HEAD
@@ -29,7 +29,7 @@ echo "version in ThisBuild := \"$releaseVersion\"" > version.sbt
 git commit -am "Setting version to $releaseVersion"
 
 # Tag the previous commit with v$version (eg. v1.2, v1.2.3).
-git tag "$releaseVersion"
+git tag "v$releaseVersion"
 
 # Run publish.
 sbt +publish-signed
@@ -45,5 +45,6 @@ sbt sonatypeReleaseAll
 
 # Push changes to the remote git repository
 git push
+git push --tags
 
 exit 0
