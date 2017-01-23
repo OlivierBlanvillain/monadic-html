@@ -14,7 +14,7 @@ object mount {
 
   private def mountNode(parent: DomNode, child: XmlNode, startPoint: Option[DomNode], config: MountSettings): Cancelable =
     child match {
-      case e @ Elem(_, label, metadata, _, child @ _*) =>
+      case e @ Elem(label, metadata, child @ _*) =>
         config.inspectElement(label)
         val elemNode = dom.document.createElement(label)
         val cancelMetadata = metadata.map { m => mountMetadata(elemNode, m, m.value.asInstanceOf[Atom[_]].data, config) }
@@ -115,7 +115,7 @@ object mount {
           else htmlNode.setAttribute(key, value)
       }
       m match {
-        case m: PrefixedAttribute => set(s"${m.pre}:${m.key}")
+        case m: PrefixedAttribute[_] => set(s"${m.pre}:${m.key}")
         case _ => set(m.key)
       }
     }
