@@ -18,6 +18,7 @@ final case class Group(nodes: Seq[Node]) extends Node
 final case class Elem(
   label: String,
   attributes1: MetaData,
+  namespace: Option[String],
   child: Node*
 ) extends Node {
   // m, former minimizeEmpty, and p former prefix are now thrown away.
@@ -32,6 +33,11 @@ final case class Elem(
         case _ => acc
       }
       merge(a, s)
+    }, s match {
+      case TopScope => None
+      case NamespaceBinding(null, url, next) => Some(url)
+      case NamespaceBinding(key, url, next) => Some(url)
+      case _ => None
     }, c: _*)
 }
 
