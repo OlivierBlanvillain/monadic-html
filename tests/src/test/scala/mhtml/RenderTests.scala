@@ -56,7 +56,15 @@ class RenderTests extends FunSuite {
      """<svg xmlns="http://hello.com" id="I" class="C"></svg>""")
 
   test("created element has namespace if defined") {
-    val svgNode = mountNode(<svg xmlns="http://hello.com"></svg>).getElementsByTagName("svg")(0)
+    val svgNode = firstByTagName(mountNode(<svg xmlns="http://hello.com"></svg>), "svg")
     assert(svgNode.namespaceURI == "http://hello.com")
   }
+
+  test("created element has default namespace if no namespace defined") {
+    val divNode = firstByTagName(mountNode(<div></div>), "div")
+    assert(divNode.namespaceURI == "http://www.w3.org/1999/xhtml")
+  }
+
+  def firstByTagName(parent: dom.raw.Element, tagName: String): dom.raw.Node =
+    parent.getElementsByTagName(tagName)(0)
 }
