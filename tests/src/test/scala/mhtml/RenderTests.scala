@@ -4,10 +4,12 @@ import org.scalajs.dom
 import org.scalatest.FunSuite
 
 class RenderTests extends FunSuite {
-  def render(node: xml.Node): String = {
+  def render(node: xml.Node): String = mountNode(node).innerHTML
+
+  def mountNode(node: xml.Node): dom.raw.Element = {
     val div = dom.document.createElement("div")
     mount(div, node)
-    div.innerHTML
+    div
   }
 
   def check(node: xml.Node, expected: String): Unit =
@@ -52,4 +54,9 @@ class RenderTests extends FunSuite {
   // Position of xmlns among other attributes is also lost forever in the parser
   check(<svg id="I" xmlns="http://hello.com" class="C"></svg>,
      """<svg xmlns="http://hello.com" id="I" class="C"></svg>""")
+
+  test("created element has namespace if defined") {
+    val svgNode = mountNode(<svg xmlns="http://hello.com"></svg>).getElementsByTagName("svg")(0)
+    assert(svgNode.namespaceURI == "http://hello.com")
+  }
 }
