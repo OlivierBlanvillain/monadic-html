@@ -1,6 +1,7 @@
 package mhtml
 
 import org.scalajs.dom
+import org.scalajs.dom.raw.SVGAElement
 import org.scalatest.FunSuite
 
 class RenderTests extends FunSuite {
@@ -60,11 +61,27 @@ class RenderTests extends FunSuite {
     assert(svgNode.namespaceURI == "http://hello.com")
   }
 
+  test("attributes with prefix are set with namespace") {
+    val svg =
+      <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+        <a xlink:href="test.html">
+          <rect x="10" y="10" ry="5" width="40" height="40" />
+        </a>
+      </svg>
+
+    val linkNode = firstByTagName(mountNode(svg), "a").asInstanceOf[SVGAElement]
+
+    assert(linkNode.namespaceURI == "http://www.w3.org/2000/svg")
+    assert(linkNode.getAttributeNS("http://www.w3.org/1999/xlink", "href") == "test.html")
+    assert(linkNode.getAttribute("href") == null)
+    assert(linkNode.getAttribute("xlink:href") == "test.html")
+  }
+
   test("created element has default namespace if no namespace defined") {
     val divNode = firstByTagName(mountNode(<div></div>), "div")
     assert(divNode.namespaceURI == "http://www.w3.org/1999/xhtml")
   }
 
-  def firstByTagName(parent: dom.raw.Element, tagName: String): dom.raw.Node =
-    parent.getElementsByTagName(tagName)(0)
+  def firstByTagName(parent: dom.raw.Element, tagName: String): dom.Element =
+    parent.getElementsByTagName(tagName)(0).asInstanceOf[dom.Element]
 }
