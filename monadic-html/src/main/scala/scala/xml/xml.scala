@@ -12,8 +12,7 @@ import language.higherKinds
 sealed trait Node {
   def scope: Option[Scope] = None
   def prefix: Option[String] = None
-  def namespace: Option[String] = if (prefix.isDefined) prefix.flatMap(namespaceURI) else scope.flatMap(_.namespaceURI(null))
-  def namespaceURI(prefix: String): Option[String] = scope.flatMap(_.namespaceURI(prefix))
+  def namespace: Option[String] = scope.flatMap(_.namespaceURI(prefix.orNull))
 }
 
 /** A hack to group XML nodes in one node. */
@@ -99,8 +98,6 @@ sealed trait MetaData extends Iterable[MetaData] {
 
   def iterator: Iterator[MetaData] =
     Iterator.single(this) ++ next.iterator
-
-  def namespace: Option[String] = value.namespace
 }
 
 case object Null extends MetaData {
@@ -117,8 +114,6 @@ final case class PrefixedAttribute[T](
   next: MetaData
 )(implicit ev: XmlAttributeEmbeddable[T]) extends MetaData {
   override val value: Node = ev.toNode(e)
-
-  override def namespace: Option[String] = value.namespaceURI(pre)
 }
 
 final case class UnprefixedAttribute[T](
