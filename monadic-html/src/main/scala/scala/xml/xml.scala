@@ -9,20 +9,26 @@ import language.higherKinds
 // directly in scalac paser). `NoteSeq` disappeared, `Node <:!< Seq[Node]`...
 
 /** Trait representing XML tree. */
-sealed trait Node
+sealed trait Node {
+  def scope: Option[Scope] = None
+  def prefix: Option[String] = None
+  def namespace: Option[String] = scope.flatMap(_.namespaceURI(prefix.orNull))
+}
 
 /** A hack to group XML nodes in one node. */
 final case class Group(nodes: Seq[Node]) extends Node
 
 /** XML element. */
 final case class Elem(
+  override val prefix: Option[String],
   label: String,
   attributes1: MetaData,
+  override val scope: Option[Scope],
   child: Node*
 ) extends Node {
-  // m, former minimizeEmpty, and p former prefix are now thrown away.
+  // m, former minimizeEmpty, is now thrown away.
   def this(p: String, l: String, a: MetaData, s: Scope, m: Boolean, c: Node*) =
-    this(l, {
+    this(Option(p), l, {
       // Merges attributes stored in as scope with other metadata
       def merge(acc: MetaData, s: Scope): MetaData = s match {
         case NamespaceBinding(null, url, next) =>
@@ -32,7 +38,7 @@ final case class Elem(
         case _ => acc
       }
       merge(a, s)
-    }, c: _*)
+    }, Some(s), c: _*)
 }
 
 /** XML leaf for comments. */
@@ -49,22 +55,29 @@ class Atom[+A](val data: A) extends Node
 
 // Scopes ---------------------------------------------------------------------
 
-sealed trait Scope
+sealed trait Scope {
+  def namespaceURI(prefix: String) : Option[String]
+}
 
 // Used by scalac for xmlns prefixed attributes
-class NamespaceBinding(key: String, url: String, next: Scope) extends Scope {
+class NamespaceBinding(key: String, url: String, next: NamespaceBinding) extends Scope {
   def isEmpty = false
   def get     = this
   def _1      = key
   def _2      = url
   def _3      = next
+
+  def namespaceURI(prefix: String) : Option[String] =
+    if (prefix == key) Some(url) else next namespaceURI prefix
 }
 
 object NamespaceBinding {
   def unapply(s: NamespaceBinding): NamespaceBinding = s
 }
 
-final case object TopScope extends NamespaceBinding(null, null, null)
+final case object TopScope extends NamespaceBinding(null, null, null) {
+  override def namespaceURI(prefix: String): Option[String] = None
+}
 
 // XML Metadata ---------------------------------------------------------------
 
@@ -76,7 +89,7 @@ final case object TopScope extends NamespaceBinding(null, null, null)
   *  attributes. Every instance of this class is either
   *  - an instance of `UnprefixedAttribute key,value` or
   *  - an instance of `PrefixedAttribute namespace_prefix,key,value` or
-  *  - `Null, the empty attribute list. */
+  *  - `Null`, the empty attribute list. */
 sealed trait MetaData extends Iterable[MetaData] {
   def hasNext = (Null != next)
   def key: String

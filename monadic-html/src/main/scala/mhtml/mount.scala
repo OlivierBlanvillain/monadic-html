@@ -14,10 +14,10 @@ object mount {
 
   private def mountNode(parent: DomNode, child: XmlNode, startPoint: Option[DomNode], config: MountSettings): Cancelable =
     child match {
-      case e @ Elem(label, metadata, child @ _*) =>
+      case e @ Elem(_, label, metadata, scope, child @ _*) =>
         config.inspectElement(label)
-        val elemNode = dom.document.createElement(label)
-        val cancelMetadata = metadata.map { m => mountMetadata(elemNode, m, m.value.asInstanceOf[Atom[_]].data, config) }
+        val elemNode = e.namespace.map(dom.document.createElementNS(_, label)).getOrElse(dom.document.createElement(label))
+        val cancelMetadata = metadata.map { m => mountMetadata(elemNode, scope, m, m.value.asInstanceOf[Atom[_]].data, config) }
         val cancelChild = child.map(c => mountNode(elemNode, c, None, config))
         parent.mountHere(elemNode, startPoint)
         Cancelable { () => cancelMetadata.foreach(_.cancel()); cancelChild.foreach(_.cancel()) }
@@ -73,15 +73,15 @@ object mount {
       }
     }
 
-  private def mountMetadata(parent: DomNode, m: MetaData, v: Any, config: MountSettings): Cancelable = v match {
+  private def mountMetadata(parent: DomNode, scope: Option[Scope], m: MetaData, v: Any, config: MountSettings): Cancelable = v match {
     case Some(x: Any) =>
-      mountMetadata(parent, m, x, config)
+      mountMetadata(parent, scope, m, x, config)
     case r: Rx[_] =>
       val rx: Rx[_] = r
       var cancelable = Cancelable.empty
       rx.foreach { value =>
         cancelable.cancel
-        cancelable = mountMetadata(parent, m, value, config)
+        cancelable = mountMetadata(parent, scope, m, value, config)
       } alsoCanceling (() => cancelable)
     case f: Function0[Unit @ unchecked] =>
       config.inspectEvent(m.key)
@@ -90,7 +90,7 @@ object mount {
       config.inspectEvent(m.key)
       parent.setEventListener(m.key, f)
     case _ =>
-      parent.setMetadata(m, v, config)
+      parent.setMetadata(scope, m, v, config)
       Cancelable.empty
   }
 
@@ -101,9 +101,9 @@ object mount {
       Cancelable(() => dyn.updateDynamic(key)(null))
     }
 
-    def setMetadata(m: MetaData, v: Any, config: MountSettings): Unit = {
+    def setMetadata(scope: Option[Scope], m: MetaData, v: Any, config: MountSettings): Unit = {
       val htmlNode = node.asInstanceOf[dom.html.Html]
-      def set(key: String): Unit = v match {
+      def set(key: String, prefix: Option[String]): Unit = v match {
         case null | None | false => htmlNode.removeAttribute(key)
         case _ =>
           config.inspectAttributeKey(key)
@@ -112,11 +112,15 @@ object mount {
             case _    => v.toString
           }
           if (key == "style") htmlNode.style.cssText = value
-          else htmlNode.setAttribute(key, value)
+          else prefix.flatMap(prefix => scope.flatMap(_.namespaceURI(prefix))).fold {
+            htmlNode.setAttribute(key, value)
+          } { ns =>
+            htmlNode setAttributeNS(ns, key, value)
+          }
       }
       m match {
-        case m: PrefixedAttribute[_] => set(s"${m.pre}:${m.key}")
-        case _ => set(m.key)
+        case m: PrefixedAttribute[_] => set(s"${m.pre}:${m.key}", Some(m.pre))
+        case _ => set(m.key, None)
       }
     }
 
