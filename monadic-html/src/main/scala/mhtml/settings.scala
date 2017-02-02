@@ -128,7 +128,7 @@ trait DevSettings extends MountSettings {
     "span"            , "spellcheck"      , "src"             , "srcdoc"          , "srclang"         ,
     "start"           , "step"            , "style"           , "tabindex"        , "target"          ,
     "title"           , "translate"       , "type"            , "usemap"          , "value"           ,
-    "width"           , "wrap"
+    "width"           , "wrap"            , "srcset"
   )
 
   /** Valid events, sorted according to `Ordering[String]` to be binary searchable.
