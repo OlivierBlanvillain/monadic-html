@@ -325,9 +325,8 @@ class Tests extends FunSuite {
     assert((104, 105) == result)
   }
 
-  test("Use mhtml-onmount to set .innerHTML") {
+  test("setUnsafeRawHTML") {
     val va: Var[String] = Var("")
-    def setUnsafeRawHTML(a: String)(n: dom.html.Element): Unit = n.innerHTML = a
     val ra = va.map(a => <div mhtml-onmount={ setUnsafeRawHTML(a) _ }></div>)
     val div = dom.document.createElement("div")
     mount(div, ra)
