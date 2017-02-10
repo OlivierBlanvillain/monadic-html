@@ -36,7 +36,7 @@ object mount {
 
       case Group(nodes)  =>
         val cancels = nodes.map(n => mountNode(parent, n, startPoint, config))
-        Cancelable(() => cancels.foreach(_.cancel))
+        Cancelable(() => cancels.foreach(_.cancel()))
 
       case a: Atom[_] => a.data match {
         case rx: Rx[_] =>
@@ -44,7 +44,7 @@ object mount {
           var cancelable = Cancelable.empty
           rx.foreach { v =>
             parent.cleanMountSection(start, end)
-            cancelable.cancel
+            cancelable.cancel()
             cancelable = v match {
               case n: XmlNode  =>
                 mountNode(parent, n, Some(start), config)
@@ -57,8 +57,7 @@ object mount {
               case a =>
                 mountNode(parent, new Atom(a), Some(start), config)
             }
-          } alsoCanceling (() => cancelable)
-
+          } alsoCanceling (cancelable)
 
         case Some(x: XmlNode) => mountNode(parent, x, startPoint, config)
         case Some(x)          => mountNode(parent, new Atom(x), startPoint, config)
@@ -78,9 +77,9 @@ object mount {
       val rx: Rx[_] = r
       var cancelable = Cancelable.empty
       rx.foreach { value =>
-        cancelable.cancel
+        cancelable.cancel()
         cancelable = mountMetadata(parent, scope, m, value, config)
-      } alsoCanceling (() => cancelable)
+      } alsoCanceling (cancelable)
     case f: Function0[Unit @ unchecked] if (m.key == onMountAtt) =>
       f()
       Cancelable.empty
