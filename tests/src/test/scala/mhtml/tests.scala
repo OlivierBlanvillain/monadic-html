@@ -403,7 +403,6 @@ class Tests extends FunSuite {
     assert(d.levenshtein("rosettacode")("raisethysword") == 8)
   }
 
-
   test("Ill-typed Attribute") {
     assertTypeError("<form disabled={1.2f}></form>")
     assertTypeError("<form disabled={1}></form>")
@@ -420,5 +419,51 @@ class Tests extends FunSuite {
     assertTypeError("{ class A; <div>{new A}</div>}")
   }
 
-}
+  test("mhtml-{onmount,onunmount} with Function0") {
+    val div = dom.document.createElement("div")
+    val rx: Var[Option[xml.Node]] = Var(None)
+    var mounted = 0
+    var unmounted = 0
+    val node =
+      <div
+        mhtml-onmount={ () => mounted += 1 }
+        mhtml-onunmount={ () => unmounted += 1 }
+      ></div>
+    def entity = <div>{rx}</div>
+    assert(mounted == 0 && unmounted == 0)
+    mount(div, entity)
+    assert(mounted == 0 && unmounted == 0)
+    rx := Some(node)
+    assert(mounted == 1 && unmounted == 0)
+    rx := None
+    assert(mounted == 1 && unmounted == 1)
+    rx := Some(node)
+    assert(mounted == 2 && unmounted == 1)
+    rx := None
+    assert(mounted == 2 && unmounted == 2)
+  }
 
+  test("mhtml-{onmount,onunmount} with Function1") {
+    val div = dom.document.createElement("div")
+    val rx: Var[Option[xml.Node]] = Var(None)
+    var mounted = 0
+    var unmounted = 0
+    val node =
+      <div
+        mhtml-onmount={ (e: dom.html.Element) => mounted += 1 }
+        mhtml-onunmount={ (e: dom.html.Element) => unmounted += 1 }
+      ></div>
+    def entity = <div>{rx}</div>
+    assert(mounted == 0 && unmounted == 0)
+    mount(div, entity)
+    assert(mounted == 0 && unmounted == 0)
+    rx := Some(node)
+    assert(mounted == 1 && unmounted == 0)
+    rx := None
+    assert(mounted == 1 && unmounted == 1)
+    rx := Some(node)
+    assert(mounted == 2 && unmounted == 1)
+    rx := None
+    assert(mounted == 2 && unmounted == 2)
+  }
+}
