@@ -466,4 +466,15 @@ class Tests extends FunSuite {
     rx := None
     assert(mounted == 2 && unmounted == 2)
   }
+
+  test("Manually mutate the DOM via mhtml-onmount") {
+    val mutateMe = dom.document.createElement("h1")
+    mutateMe.innerHTML = "foobar"
+    val entity = <div mhtml-onmount={ (e: dom.html.Element) => e.appendChild(mutateMe); () }></div>
+    val div = dom.document.createElement("div")
+    mount(div, entity)
+    assert(div.innerHTML == "<div><h1>foobar</h1></div>")
+    mutateMe.appendChild(dom.document.createElement("h2"))
+    assert(div.innerHTML == "<div><h1>foobar<h2></h2></h1></div>")
+  }
 }
