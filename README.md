@@ -99,9 +99,54 @@ These updates correspond to what React would compute using virtual-DOM diffing.
 
 When working with large immutable data structures, this approach is less performant than virtual-DOM diffing. Indeed, creating a large view out of a `Rx[List[_]]` implies that any changes to the `List` triggers a re-rendering of the entirety of the view. We plan to address this point in [#13](https://github.com/OlivierBlanvillain/monadic-html/issues/13) by combining the current approach with targeted virtual-DOM.
 
+## Interacting with js events
+
+Interactions with the imperative world of js events in done by attaching even handlers directly to xml nodes:
+
+```scala
+<button onclick={ () => println("clicked!") }>Click Me!</button>
+```
+
+Even handlers can also take one argument, in which case they will be called with raw event objects coming directly from the js world:
+
+```scala
+<div onkeydown={ (e: js.Dynamic) => () }></div>
+```
+
+The function argument can be anything here, so if you're in a type safe mood feel free to use [scala-js-dom](http://scala-js.github.io/scala-js-dom/):
+
+```scala
+<div onkeydown={ (e: dom.KeyboardEvent) => println(e.keyCode) }></div>
+```
+
+Note that the idiomatic way to handle events is to isolate side effects by opting into the `Rx` world as soon as possible. For example:
+
+```scala
+def button(text: String): (xml.Node, Rx[Unit]) = {
+  val clicked: Var[Unit] = Var(())
+  val button = <button onclick={ () => clicked := (()) }>{text}</button>
+  (button, clicked)
+}
+```
+
+## Interacting with the DOM
+
+In order to obtain references to the underlying DOM nodes, `monadic-html` implements lifecycle hooks using custom events:
+
+- `mhtml-onmount`: called when adding a node to the DOM
+- `mhtml-onunmount`: called when removing a node from the DOM
+
+In both cases, a reference to the underlying element is passed to the event hander, which can be usefull for interoperability with js libraries:
+
+```scala
+def crazyCanvasStuff(e: dom.html.Canvas): Unit = ...
+
+<canvas mhtml-onmount={ crazyCanvasStuff _ }></canvas>
+```
+
 ## FAQ
 
-**Does the compiler catch HTML typos?**
+#### Does the compiler catch HTML typos?
 
 No, only invalid XML literals will be rejected at compile time. However, we do provide [configurable settings](src/main/scala/mhtml/settings.scala) to emit runtime warnings about unknown elements, attributes, entity references and event handlers. For example, the following piece of XML compiles fine:
 
@@ -119,25 +164,25 @@ But mounting it to the DOM will print warnings in the console:
 
 `MountSettings.default` emit warnings only when compiled to with `fastOptJS`, and becomes silent (and faster) whe compiled with `fullOptJS`.
 
-**Can I insert Any values into xml literals?**
+#### Can I insert Any values into xml literals?
 
 No. Monadic-html uses a fork of scala-xml that puts type constraints on
 what values are allowed in xml element or attribute position.
 Here is a summary of what types are allowed to be embedded in attribute or
 element position.
 
-#### Both attributes and elements:
+Both attributes and elements:
 
 - `String`
 - `mhtml.Var[T], mhtml.Rx[T] where T is itself embeddable`
 - `Option[T] where T can itself be embedded (None → remove from the DOM)`
 
-#### Attributes
+Attributes:
 
 - `Boolean (false → remove from the DOM)`
 - `() => Unit, T => Unit event handler`
 
-#### Elements
+Elements:
 
 - `Int, Long, Double, Float, Char (silently converted with .toString)`
 - `xml.Node`
@@ -146,7 +191,7 @@ element position.
 For examples of how each type is rendered into dom nodes, take a look at the
 [tests](https://github.com/OlivierBlanvillain/monadic-html/blob/master/tests/src/test/scala/mhtml/RenderTests.scala).
 
-**Global mutable state, Booo! Booo!!!**
+#### Global mutable state, Booo! Booo!!!
 
 `Var`s don't have to be globally exposed, you can instantiate them locally:
 
@@ -170,7 +215,7 @@ def dogs(readOnly: Rx[Int]): Rx[xml.Node] =
 
 In an ideal world, you would use exactly one `Rx` per signal coming from the outside world, which means using a single `:=` per `Rx`. Doing so leads to a very nice functional reactive programming style code, analogous to what you would write in [Elm](http://elm-lang.org/).
 
-**How can I turn a `List[Rx[A]]` into a `Rx[List[A]]`?**
+#### How can I turn a `List[Rx[A]]` into a `Rx[List[A]]`?
 
 Short answer:
 
