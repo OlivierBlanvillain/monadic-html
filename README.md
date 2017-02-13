@@ -141,7 +141,7 @@ In both cases, a reference to the underlying element is passed to the event hand
 ```scala
 def crazyCanvasStuff(e: dom.html.Canvas): Unit = ...
 
-<canvas mhtml-onmount={ crazyCanvasStuff _ }></canvas>
+<canvas mhtml-onmount={ e => crazyCanvasStuff(e) }></canvas>
 ```
 
 ## FAQ
