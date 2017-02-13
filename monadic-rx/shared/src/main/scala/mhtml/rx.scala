@@ -2,7 +2,7 @@ package mhtml
 
 /** Reactive value of type `A`.
   * Automatically recalculation when one of it's dependencies is updated. */
-sealed trait Rx[+A] {
+trait Rx[+A] {
   /** Applies the side effecting function `f` to each element of this [[Rx]].
     * Returns an [[Cancelable]] which can be used to cancel the subscription.
     * Use with caution: not canceling `foreach` subscription on short lived
@@ -57,13 +57,13 @@ object Rx {
     }
 }
 
-final class Var[A] private[mhtml] (initialValue: A, register: Var[A] => Cancelable) extends Rx[A] {
+class Var[A] (initialValue: A, register: Var[A] => Cancelable) extends Rx[A] {
   // Last computed value, retained to be sent to new subscribers as they come in.
-  private[this] var cacheElem: A = initialValue
+  protected var cacheElem: A = initialValue
   // Current registration to the feeding `Rx`, canceled whenever nobody's listening.
-  private[this] var registration: Cancelable = Cancelable.empty
+  protected var registration: Cancelable = Cancelable.empty
   // Mutable set of all currently subscribed functions, implementing with an `Array`.
-  private[this] val subscribers = buffer.empty[A => Unit]
+  protected val subscribers = buffer.empty[A => Unit]
 
   def value: A = cacheElem
 
