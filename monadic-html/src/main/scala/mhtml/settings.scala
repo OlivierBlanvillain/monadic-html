@@ -80,8 +80,10 @@ trait DevSettings extends MountSettings {
     dist(s2.length)(s1.length)
   }
 
-  /** Valid HTML elements, sorted according to `Ordering[String]` to be binary searchable.
-    * Source: https://developer.mozilla.org/en-US/docs/Web/HTML. */
+  /**
+   * Valid HTML elements, sorted according to `Ordering[String]` to be binary searchable.
+   * Source: https://developer.mozilla.org/en-US/docs/Web/HTML.
+   */
   lazy val elements: Array[String] = Array(
     "a"          , "abbr"       , "acronym"    , "address"    , "applet"     , "area"       , "article"    ,
     "aside"      , "audio"      , "b"          , "base"       , "basefont"   , "bdi"        , "bdo"        ,
@@ -106,8 +108,10 @@ trait DevSettings extends MountSettings {
     "var"        , "video"      , "wbr"        , "xmp"
   )
 
-  /** Valid HTML attributes, sorted according to `Ordering[String]` to be binary searchable.
-    " Source: http://www.w3schools.com/tags/ref_attributes.asp. */
+  /**
+   * Valid HTML attributes, sorted according to `Ordering[String]` to be binary searchable.
+   * Source: http://www.w3schools.com/tags/ref_attributes.asp.
+   */
   lazy val attributes: Array[String] = Array(
     "accept"          , "accept-charset"  , "accesskey"       , "action"          , "alt"             ,
     "async"           , "autocomplete"    , "autofocus"       , "autoplay"        , "challenge"       ,
@@ -131,8 +135,10 @@ trait DevSettings extends MountSettings {
     "width"           , "wrap"
   )
 
-  /** Valid events, sorted according to `Ordering[String]` to be binary searchable.
-    " Source: http://w3c.github.io/html/dom.html. */
+  /**
+   * Valid events, sorted according to `Ordering[String]` to be binary searchable.
+   * Source: http://w3c.github.io/html/dom.html.
+   */
   lazy val events: Array[String] = Array(
     "onabort"          , "onblur"           , "oncancel"         , "oncanplay"        , "oncanplaythrough" ,
     "onchange"         , "onclick"          , "onclose"          , "oncontextmenu"    , "oncopy"           ,
@@ -150,8 +156,10 @@ trait DevSettings extends MountSettings {
   )
 }
 
-/** EntityRef Map. Keys sorted according to `Ordering[String]` to be binary searchable.
-  * Source: org.apache.commons.lang3.text.translate.EntityArrays. */
+/**
+ * EntityRef Map. Keys sorted according to `Ordering[String]` to be binary searchable.
+ * Source: org.apache.commons.lang3.text.translate.EntityArrays.
+ */
 object EntityRefMap {
   lazy val keys: Array[String] = Array(
     "AElig"  , "Aacute" , "Acirc"  , "Agrave" , "Alpha"  , "Aring"   , "Atilde", "Auml"   ,

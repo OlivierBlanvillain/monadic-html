@@ -85,11 +85,13 @@ final case object TopScope extends NamespaceBinding(null, null, null) {
 // Unprefixed}Attribute was removed. Iterable[MetaData] <: Metadata still holds,
 // but this should never be user facing.
 
-/** This class represents an attribute and at the same time a linked list of
-  *  attributes. Every instance of this class is either
-  *  - an instance of `UnprefixedAttribute key,value` or
-  *  - an instance of `PrefixedAttribute namespace_prefix,key,value` or
-  *  - `Null`, the empty attribute list. */
+/**
+ * This class represents an attribute and at the same time a linked list of
+ *  attributes. Every instance of this class is either
+ *  - an instance of `UnprefixedAttribute key,value` or
+ *  - an instance of `PrefixedAttribute namespace_prefix,key,value` or
+ *  - `Null`, the empty attribute list.
+ */
 sealed trait MetaData extends Iterable[MetaData] {
   def hasNext = (Null != next)
   def key: String
