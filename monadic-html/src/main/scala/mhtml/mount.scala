@@ -7,6 +7,9 @@ import scala.xml.{Node => XmlNode, _}
 
 /** Side-effectly mounts an `xml.Node` to a `org.scalajs.dom.raw.Node`. */
 object mount {
+  private val onMountAtt   = "mhtml-onmount"
+  private val onUnmountAtt = "mhtml-onunmount"
+
   def apply(parent: DomNode, child: XmlNode, config: MountSettings): Unit = { mountNode(parent, child, None, config); () }
   def apply(parent: DomNode, obs: Rx[XmlNode], config: MountSettings): Unit = { mountNode(parent, new Atom(obs), None, config); () }
   def apply(parent: DomNode, child: XmlNode): Unit = { mountNode(parent, child, None, MountSettings.default); () }
@@ -33,7 +36,7 @@ object mount {
 
       case Group(nodes)  =>
         val cancels = nodes.map(n => mountNode(parent, n, startPoint, config))
-        Cancelable(() => cancels.foreach(_.cancel))
+        Cancelable(() => cancels.foreach(_.cancel()))
 
       case a: Atom[_] => a.data match {
         case rx: Rx[_] =>
@@ -41,7 +44,7 @@ object mount {
           var cancelable = Cancelable.empty
           rx.foreach { v =>
             parent.cleanMountSection(start, end)
-            cancelable.cancel
+            cancelable.cancel()
             cancelable = v match {
               case n: XmlNode  =>
                 mountNode(parent, n, Some(start), config)
@@ -54,17 +57,11 @@ object mount {
               case a =>
                 mountNode(parent, new Atom(a), Some(start), config)
             }
-          } alsoCanceling (() => cancelable)
-
+          } alsoCanceling (cancelable)
 
         case Some(x: XmlNode) => mountNode(parent, x, startPoint, config)
         case Some(x)          => mountNode(parent, new Atom(x), startPoint, config)
         case None             => Cancelable.empty
-
-        case UnsafeRawHTML(rawHtml) =>
-          parent.asInstanceOf[dom.html.Html].innerHTML = rawHtml
-          Cancelable.empty
-
         case x =>
           val content = x.toString
           if (!content.isEmpty)
@@ -80,9 +77,19 @@ object mount {
       val rx: Rx[_] = r
       var cancelable = Cancelable.empty
       rx.foreach { value =>
-        cancelable.cancel
+        cancelable.cancel()
         cancelable = mountMetadata(parent, scope, m, value, config)
-      } alsoCanceling (() => cancelable)
+      } alsoCanceling (cancelable)
+    case f: Function0[Unit @ unchecked] if (m.key == onMountAtt) =>
+      f()
+      Cancelable.empty
+    case f: Function0[Unit @ unchecked] if (m.key == onUnmountAtt) =>
+      Cancelable(f)
+    case f: Function1[DomNode @ unchecked, Unit @ unchecked] if (m.key == onMountAtt) =>
+      f(parent)
+      Cancelable.empty
+    case f: Function1[DomNode @ unchecked, Unit @ unchecked] if (m.key == onUnmountAtt) =>
+      Cancelable(() => f(parent))
     case f: Function0[Unit @ unchecked] =>
       config.inspectEvent(m.key)
       parent.setEventListener(m.key, (_: dom.Event) => f())
@@ -155,5 +162,3 @@ object mount {
     }
   }
 }
-
-private[mhtml] case class UnsafeRawHTML(rawHtml: String)

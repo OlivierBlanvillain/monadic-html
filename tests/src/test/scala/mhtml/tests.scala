@@ -325,9 +325,9 @@ class Tests extends FunSuite {
     assert((104, 105) == result)
   }
 
-  test("unsafeRawHTML") {
+  test("setUnsafeRawHTML") {
     val va: Var[String] = Var("")
-    val ra = va.map(a => <div>{ unsafeRawHTML(a) }</div>)
+    val ra = va.map(a => <div mhtml-onmount={ setUnsafeRawHTML(a) _ }></div>)
     val div = dom.document.createElement("div")
     mount(div, ra)
     assert(div.innerHTML == "<div></div>")
@@ -402,7 +402,6 @@ class Tests extends FunSuite {
     assert(d.levenshtein("rosettacode")("raisethysword") == 8)
   }
 
-
   test("Ill-typed Attribute") {
     assertTypeError("<form disabled={1.2f}></form>")
     assertTypeError("<form disabled={1}></form>")
@@ -419,5 +418,62 @@ class Tests extends FunSuite {
     assertTypeError("{ class A; <div>{new A}</div>}")
   }
 
-}
+  test("mhtml-{onmount,onunmount} with Function0") {
+    val div = dom.document.createElement("div")
+    val rx: Var[Option[xml.Node]] = Var(None)
+    var mounted = 0
+    var unmounted = 0
+    val node =
+      <div
+        mhtml-onmount={ () => mounted += 1 }
+        mhtml-onunmount={ () => unmounted += 1 }
+      ></div>
+    def entity = <div>{rx}</div>
+    assert(mounted == 0 && unmounted == 0)
+    mount(div, entity)
+    assert(mounted == 0 && unmounted == 0)
+    rx := Some(node)
+    assert(mounted == 1 && unmounted == 0)
+    rx := None
+    assert(mounted == 1 && unmounted == 1)
+    rx := Some(node)
+    assert(mounted == 2 && unmounted == 1)
+    rx := None
+    assert(mounted == 2 && unmounted == 2)
+  }
 
+  test("mhtml-{onmount,onunmount} with Function1") {
+    val div = dom.document.createElement("div")
+    val rx: Var[Option[xml.Node]] = Var(None)
+    var mounted = 0
+    var unmounted = 0
+    val node =
+      <div
+        mhtml-onmount={ (e: dom.html.Element) => mounted += 1 }
+        mhtml-onunmount={ (e: dom.html.Element) => unmounted += 1 }
+      ></div>
+    def entity = <div>{rx}</div>
+    assert(mounted == 0 && unmounted == 0)
+    mount(div, entity)
+    assert(mounted == 0 && unmounted == 0)
+    rx := Some(node)
+    assert(mounted == 1 && unmounted == 0)
+    rx := None
+    assert(mounted == 1 && unmounted == 1)
+    rx := Some(node)
+    assert(mounted == 2 && unmounted == 1)
+    rx := None
+    assert(mounted == 2 && unmounted == 2)
+  }
+
+  test("Manually mutate the DOM via mhtml-onmount") {
+    val mutateMe = dom.document.createElement("h1")
+    mutateMe.innerHTML = "foobar"
+    val entity = <div mhtml-onmount={ (e: dom.html.Element) => e.appendChild(mutateMe); () }></div>
+    val div = dom.document.createElement("div")
+    mount(div, entity)
+    assert(div.innerHTML == "<div><h1>foobar</h1></div>")
+    mutateMe.appendChild(dom.document.createElement("h2"))
+    assert(div.innerHTML == "<div><h1>foobar<h2></h2></h1></div>")
+  }
+}
