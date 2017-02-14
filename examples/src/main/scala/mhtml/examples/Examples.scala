@@ -60,7 +60,8 @@ object Main extends JSApp {
     ContactList,
     GithubAvatar,
     SelectList,
-    ProductTable
+    ProductTable,
+    Mario
   )
 
   def getActiveApp =

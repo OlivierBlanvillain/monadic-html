@@ -49,7 +49,7 @@ lazy val `tests` = project
 
 lazy val `examples` = project
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(`monadic-html`)
+  .dependsOn(`monadic-html`, `monadic-rx-catsJS`)
   .settings(noPublishSettings: _*)
   .settings(
     emitSourceMaps := true,
