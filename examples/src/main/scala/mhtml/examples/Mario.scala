@@ -6,9 +6,9 @@ import org.scalajs.dom.KeyboardEvent
 import org.scalajs.dom.ext.KeyCode
 import scala.xml.Node
 import Function.tupled
-import cats.implicits._
-import mhtml.cats._
 import mhtml._
+import mhtml.implicits.cats._
+import cats.implicits._
 
 /** mhtml port of http://elm-lang.org:1234/examples/mario */
 object Mario extends Example {

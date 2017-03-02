@@ -1,9 +1,9 @@
 package examples
 
 import scala.xml.Node
-import cats.implicits._
-import mhtml.cats._
 import mhtml._
+import mhtml.implicits.cats._
+import cats.implicits._
 import org.scalajs.dom.KeyboardEvent
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.HTMLInputElement

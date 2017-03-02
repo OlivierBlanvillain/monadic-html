@@ -1,6 +1,7 @@
 package mhtml
+package implicits
 
-import cats.{Monad, Semigroup}
+import _root_.cats.{Monad, Semigroup}
 import scala.language.implicitConversions
 
 object cats {
@@ -203,8 +204,8 @@ object cats {
    *
    * Both sides are equivalent. Q.E.D.
    */
-  implicit val mhtmlRxMonadIntstance: M =
-    new M {
+  implicit val mhtmlRxMonadIntstance: Monad[Rx] =
+    new Monad[Rx] {
       def pure[A](x: A): Rx[A] =
         Rx(x)
 
@@ -291,7 +292,9 @@ object cats {
    * Both sides are equivalent. Q.E.D.
    */
   implicit def mhtmlRxSemigroupIntstance[A]: Semigroup[Rx[A]] =
-    mhtmlRxSemigroupKIntstance.algebra[A]
+    new Semigroup[Rx[A]] {
+      def combine(x: Rx[A], y: Rx[A]): Rx[A] = x.merge(y)
+    }
 
   // Custom syntax instances for Vars. Without these, users would have to
   // manually upcast their `Var`s as `Rx`s to be able to use `|@|` and `|+|`.

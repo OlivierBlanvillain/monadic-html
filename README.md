@@ -233,7 +233,7 @@ implicit class SequencingListFFS[A](self: List[Rx[A]]) {
 ```
 
 ```scala
-import cats.implicits._, mhtml.cats._
+import cats.implicits._, mhtml.implicits.cats._
 ```
 
 ## Further reading
