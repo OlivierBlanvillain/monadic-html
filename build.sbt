@@ -62,7 +62,7 @@ scalacOptions in ThisBuild := Seq(
   "-encoding", "UTF-8",
   "-feature",
   "-unchecked",
-  "-Xfatal-warnings",
+  // "-Xfatal-warnings", see Cancelable#cancel
   "-Xfuture",
   "-Xlint",
   "-Yno-adapted-args",

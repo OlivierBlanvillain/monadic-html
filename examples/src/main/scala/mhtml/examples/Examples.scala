@@ -11,7 +11,7 @@ import org.scalajs.dom.ext.Ajax
 
 trait Example {
   def app: Node
-  def cancel(): Unit = ()
+  def cancel: Unit = ()
   val name = this.getClass.getSimpleName
   val url = "#/" + name
 
@@ -71,7 +71,7 @@ object Main extends JSApp {
 
   dom.window.onhashchange = { _: Event =>
     activeExample.update { old =>
-      old.cancel()
+      old.cancel
       getActiveApp
     }
   }

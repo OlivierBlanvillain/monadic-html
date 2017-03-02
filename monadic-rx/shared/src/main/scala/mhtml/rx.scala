@@ -141,7 +141,7 @@ sealed trait Rx[+A] { self =>
     /** The current value of this `Rx`. */
     def value: A = {
       var v: Option[A] = None
-      foreach(a => v = Some(a)).cancel()
+      foreach(a => v = Some(a)).cancel
       // This can never happen if using the default Rx/Var constructors and
       // methods. The proof is a simple case analysis showing that every method
       // preserves non emptiness. Var created with unsafeCreate Messing up with
@@ -167,13 +167,13 @@ object Rx {
 
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
     case Map(self, f) =>
-      run(self)(effect compose f)
+      run(self)(x => effect(f(x)))
 
     case FlatMap(self, f) =>
       var c1 = Cancelable.empty
       val c2 = run(self) { b =>
-        c1.cancel
         val fa = f(b)
+        c1.cancel
         c1 = run(fa)(effect)
       }
       Cancelable { () => c1.cancel; c2.cancel }
@@ -186,7 +186,7 @@ object Rx {
       val c2 = run(other) { b => v2 = b; if(go) effect((v1, v2)) }
       go = true
       effect((v1, v2))
-      c1.alsoCanceling(c2)
+      Cancelable { () => c1.cancel; c2.cancel }
 
     case DropRep(self) =>
       var previous: Option[A] = None
@@ -200,7 +200,7 @@ object Rx {
     case Merge(self, other) =>
       val c1 = run(self)(effect)
       val c2 = run(other)(effect)
-      c1.alsoCanceling(c2)
+      Cancelable { () => c1.cancel; c2.cancel }
 
     case Foldp(self, seed, step) =>
       var b = seed
@@ -253,7 +253,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
     subscribers += s
     Cancelable { () =>
       subscribers -= s
-      if (subscribers.isEmpty) registration.cancel()
+      if (subscribers.isEmpty) registration.cancel
     }
   }
 
@@ -273,7 +273,10 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
 
   /** Updates the value of this `Var`. Triggers recalculation of depending `Rx`s. */
   def update(f: A => A): Unit =
-    foreach(a => :=(f(a))).cancel()
+    foreach(a => :=(f(a))).cancel
+
+  override def toString: String =
+    super.toString + s"[$cacheElem]"
 }
 
 object Var {
@@ -296,7 +299,14 @@ object Var {
 }
 
 /** Action used to cancel `foreach` subscription. */
-final case class Cancelable(cancel: () => Unit) extends AnyVal {
-  def alsoCanceling(c: Cancelable): Cancelable = Cancelable { () => cancel(); c.cancel() }
+final class Cancelable(val cancelFunction: () => Unit) extends AnyVal {
+  // scalac: side-effecting nullary methods are discouraged: suggest defining
+  // as `def cancel()` instead. Until we get systematic warnings for forgotten
+  // parenthesis, this will stay a side-effecting nullary method...
+  def cancel: Unit = cancelFunction()
 }
-object Cancelable { val empty = Cancelable(() => ()) }
+
+object Cancelable {
+  def apply(cancelFunction: () => Unit) = new Cancelable(cancelFunction)
+  val empty = Cancelable(() => ())
+}

@@ -26,7 +26,7 @@ object mount {
         val cancelMetadata = metadata.map { m => mountMetadata(elemNode, scope, m, m.value, config) }
         val cancelChild = child.map(c => mountNode(elemNode, c, None, config))
         parent.mountHere(elemNode, startPoint)
-        Cancelable { () => cancelMetadata.foreach(_.cancel()); cancelChild.foreach(_.cancel()) }
+        Cancelable { () => cancelMetadata.foreach(_.cancel); cancelChild.foreach(_.cancel) }
 
       case e: EntityRef  =>
         val er = config.transformEntityRef(e.entityName)
@@ -39,18 +39,19 @@ object mount {
 
       case Group(nodes)  =>
         val cancels = nodes.map(n => mountNode(parent, n, startPoint, config))
-        Cancelable(() => cancels.foreach(_.cancel()))
+        Cancelable(() => cancels.foreach(_.cancel))
 
       case a: Atom[_] => a.data match {
         case n: XmlNode  => mountNode(parent, n, startPoint, config)
         case rx: Rx[_]   =>
           val (start, end) = parent.createMountSection()
-          var cancelable = Cancelable.empty
-          rx.impure.foreach { v =>
+          var c1 = Cancelable.empty
+          val c2 = rx.impure.foreach { v =>
             parent.cleanMountSection(start, end)
-            cancelable.cancel()
-            cancelable = mountNode(parent, new Atom(v), Some(start), config)
-          } alsoCanceling (cancelable)
+            c1.cancel
+            c1 = mountNode(parent, new Atom(v), Some(start), config)
+          }
+          Cancelable { () => c1.cancel; c2.cancel }
         case Some(x)     => mountNode(parent, new Atom(x), startPoint, config)
         case None        => Cancelable.empty
         case seq: Seq[_] => mountNode(parent, new Group(seq.map(new Atom(_))), startPoint, config)
@@ -71,11 +72,12 @@ object mount {
 
     case r: Rx[_] =>
       val rx: Rx[_] = r
-      var cancelable = Cancelable.empty
-      rx.impure.foreach { value =>
-        cancelable.cancel()
-        cancelable = mountMetadata(parent, scope, m, value, config)
-      } alsoCanceling (cancelable)
+      var c1 = Cancelable.empty
+      val c2 = rx.impure.foreach { value =>
+        c1.cancel
+        c1 = mountMetadata(parent, scope, m, value, config)
+      }
+      Cancelable { () => c1.cancel; c2.cancel }
 
     case f: Function0[Unit @ unchecked] =>
       if (m.key == onMountAtt) {
