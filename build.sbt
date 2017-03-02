@@ -39,7 +39,7 @@ lazy val `monadic-rx-cats`    = crossProject
 
 lazy val `tests` = project
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(`monadic-html`)
+  .dependsOn(`monadic-html`, `monadic-rx-catsJS`)
   .settings(noPublishSettings: _*)
   .settings(
     libraryDependencies += "org.scalatest" %%% "scalatest" % scalatest % "test",

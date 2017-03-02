@@ -42,12 +42,15 @@ object SelectList extends Example {
       case Some(Success(response)) =>
         options := response.responseText.lines.collect {
           case country(code, name) => Country(name, code)
-        }.toSeq
+        }.toList
       case Some(Failure(e)) =>
-        e.printStackTrace()
+        // e.printStackTrace()
+        // For offline hacking:
+        options := (0 to 20).map(i => Country(util.Random.nextString(5), i.toString)).toList
       case _ =>
     }
-    val (app, selected) = Chosen.singleSelect(_ => options)
+
+    val (app, selected) = Chosen.singleSelect(options, placeholder = "")
     val message: Rx[Node] = selected.map {
       case Some(x) => <div>
         <p>You selected: '{x.name}'</p>
