@@ -1,4 +1,4 @@
-package mhtml.examples
+package examples
 
 import scala.scalajs.js.JSApp
 import scala.util.Success
@@ -29,7 +29,7 @@ trait Example {
 
   lazy val sourceCode: Rx[String] = {
     val init = Var("Loading...")
-    Utils.fromFuture(Ajax.get(rawUrl)).foreach {
+    Utils.fromFuture(Ajax.get(rawUrl)).impure.foreach {
       case Some(Success(x)) =>
         init := x.responseText
       case _ =>

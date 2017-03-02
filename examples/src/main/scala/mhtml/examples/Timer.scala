@@ -1,4 +1,4 @@
-package mhtml.examples
+package examples
 
 import mhtml._
 import scala.scalajs.js

@@ -1,4 +1,4 @@
-package mhtml.examples
+package examples
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON

@@ -1,11 +1,11 @@
-package mhtml.examples
+package examples
 
 import scala.scalajs.js
 import org.scalajs.dom
 import org.scalajs.dom.KeyboardEvent
 import org.scalajs.dom.ext.KeyCode
 import scala.xml.Node
-import Function.{tupled, uncurried}
+import Function.tupled
 import cats.implicits._
 import mhtml.cats._
 import mhtml._
@@ -70,7 +70,7 @@ object Mario extends Example {
   val inputs: Rx[(Double, Keys)] = (deltas |@| keys).tupled.sampleOn(deltas)
 
   val mari0 = Model(x = 0, y = 0, vx = 0, vy = 0, dir = Right)
-  val step0 = uncurried(tupled(step _))
+  def step0(m: Model, i: (Double, Keys)): Model = tupled(step _)(i)(m)
   def app = display(inputs.foldp(mari0)(step0))
 }
 
