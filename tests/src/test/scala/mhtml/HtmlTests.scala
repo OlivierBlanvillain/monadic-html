@@ -222,7 +222,7 @@ class HtmlTests extends FunSuite {
     assert(div.innerHTML == """<button class="c" id="1">Click Me!</button>""")
   }
 
-  test("README example") {
+  test("README examples") {
     import mhtml._
     import scala.xml.Node
     import org.scalajs.dom
@@ -238,10 +238,10 @@ class HtmlTests extends FunSuite {
     val component = // ← look, you can even use fancy names!
       <div>
         <button onclick={ () => count.update(_ + 1) }>Click Me!</button>
-        {count.map(i => if (i <= 0) <div></div> else <h2>WOW!!!</h2>)}
-        {count.map(i => if (i <= 2) <div></div> else <h2>MUCH REACTIVE!!!</h2>)}
-        {count.map(i => if (i <= 5) <div></div> else <h2>SUCH BINDING!!!</h2>)}
-        {rxDoges}
+        { count.map(i => if (i <= 0) <div></div> else <h2>WOW!!!</h2>) }
+        { count.map(i => if (i <= 2) <div></div> else <h2>MUCH REACTIVE!!!</h2>) }
+        { count.map(i => if (i <= 5) <div></div> else <h2>SUCH BINDING!!!</h2>) }
+        { rxDoges }
       </div>
 
     val div = dom.document.createElement("div")
@@ -254,6 +254,16 @@ class HtmlTests extends FunSuite {
     assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><div></div><div></div><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
     assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><div></div><div></div><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
+
+    def myCounter(): (xml.Node, Rx[Int]) = {
+      val fugitive: Var[Int] = Var[Int](0) // It won't escape it's scope!
+      val node: xml.Node =
+        <div>
+          <h1>So far, you clicked { fugitive } times.</h1>
+          <button onclick={ () => fugitive.update(1.+) }></button>
+        </div>
+      (node, fugitive)
+    }
   }
 
   test("setUnsafeRawHTML") {
