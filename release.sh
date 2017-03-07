@@ -10,7 +10,11 @@ git rev-parse HEAD
 
 # If there are any snapshot dependencies, ask the user whether to continue or not (default: no).
 releaseVersion=$(cat version.sbt | grep -Po 'version in ThisBuild := "\K.*?(?=")' | sed -e "s/-SNAPSHOT$//")
-nextVersion=$(echo "$releaseVersion" | perl -pe 's/^((\d+\.)*)(\d+)(.*)$/$1.($3+1).$4/e')-SNAPSHOT
+if [ $# -eq 0 ]; then
+  nextVersion=$(echo "$releaseVersion" | perl -pe 's/^((\d+\.)*)(\d+)(.*)$/$1.($3+1).$4/e')-SNAPSHOT
+else
+  nextVersion="$@"
+fi
 
 # Ask the user for the release version and the next development version. Sensible defaults are provided.
 read -r -p "Publish $releaseVersion and set next version to $nextVersion? [y/N] " response
