@@ -1,11 +1,9 @@
-package mhtml.examples
+package examples
 
-import scala.scalajs.js
 import scala.xml.Node
-
 import mhtml._
-import org.scalajs.dom
-import org.scalajs.dom.Event
+import mhtml.implicits.cats._
+import cats.implicits._
 import org.scalajs.dom.KeyboardEvent
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.HTMLInputElement
@@ -13,11 +11,10 @@ import org.scalajs.dom.raw.HTMLInputElement
 /** Typeclass for [[Chosen]] select lists */
 trait Searcheable[T] {
   def show(t: T): String
-  def isCandidate(query: String)(t: T): Boolean =
-    show(t).toLowerCase().contains(query)
 }
 
 object Searcheable {
+  def apply[T](implicit ev: Searcheable[T]): Searcheable[T] = ev
   def instance[T](f: T => String): Searcheable[T] = new Searcheable[T] {
     override def show(t: T): String = f(t)
   }
@@ -29,124 +26,117 @@ object Searcheable {
 object Chosen {
   def underline(toUnderline: String, query: String): Node = {
     val index = toUnderline.toLowerCase.indexOf(query)
-    if (index == -1) <span>{toUnderline}</span>
+    if (index == -1) <span>{ toUnderline }</span>
     else {
-      val before = toUnderline.substring(0, index)
-      val after = toUnderline.substring(index + query.length)
+      val before  = toUnderline.substring(0, index)
+      val after   = toUnderline.substring(index + query.length)
       val matched = toUnderline.substring(index, index + query.length)
-      <span>{before}<u>{matched}</u>{after}</span>
+      <span>{ before }<u>{ matched }</u>{ after }</span>
     }
   }
 
-  def singleSelect[T](getCandidates: String => Rx[Seq[T]],
-                      placeholder: String = "",
-                      maxCandidates: Int = 10)(
-      implicit ev: Searcheable[T]): (Node, Rx[Option[T]]) = {
-    val id = "chosen-" + Math.random().toInt // to reference input dom
-    val rxFocused = Var(false)
-    val rxIndex = Var(0)
-    val rxQuery = Var("")
-    val rxSelected = Var(Option.empty[T])
-    def setQuery(value: String): Unit = {
-      rxQuery := value
-      rxIndex := 0
-      rxFocused := true
-    }
-    def setCandidate(candidate: T): Unit = {
-      rxSelected := Some(candidate)
-      rxFocused := false
-      dom.document.getElementById(id) match {
-        case input: HTMLInputElement => input.value = ev.show(candidate)
-        case _ =>
+  def singleSelect[T: Searcheable](candidates: Rx[List[T]], placeholder: String): (Node, Rx[Option[T]]) = {
+    // These are the 5 streams of events involved in into this component.
+    // By events, we mean that these are actually binded exactly once to
+    // external sources (via :=). Given that scalac prohibits forward
+    // references, and everything is composed functionally, this code is
+    // guaranteed to have no infinite loops or race conditions.
+
+    val focusEvents: Var[Unit] = Var(())
+    val queryEvents: Var[String] = Var("")
+    val arrowPressedEvents: Var[Int] = Var(-1) // -1 → up; +1 → down
+    val enterPressedEvents: Var[Unit] = Var(())
+    val clickSelectionEvents: Var[Option[T]] = Var(None)
+
+    val maxCandidates: Int = 10
+    val rxFilteredCandidates =
+      (queryEvents |@| candidates).map { case (query, allCandidates) =>
+        allCandidates.filter(Searcheable[T].show(_).toLowerCase.contains(query.toLowerCase))
       }
-    }
-    val rxCandidatesWithApp: Rx[(Node, Seq[T])] = for {
-      query <- rxQuery
-      index <- rxIndex
-      allCandidates <- getCandidates(query)
-      queryLower = query.toLowerCase
-    } yield {
-      val candidates =
-        allCandidates.filter(ev.show(_).toLowerCase.contains(queryLower))
-      val toDrop = Math.max(0, index - 3)
-      val listItems =
-        candidates.zipWithIndex.slice(toDrop, toDrop + maxCandidates).map {
-          case (candidate, i) =>
-            val cssClass =
-              if (i == index) "chosen-highlight"
-              else ""
-            <li class={cssClass}>
-              <a onclick={() => setCandidate(candidate)}>
-                {underline(ev.show(candidate), queryLower)}
-              </a>
-            </li>
-        }
-      val itemsBefore: Node =
-        if (toDrop == 0) <span></span>
-        else <li>{toDrop.toString} more items...</li>
-      val itemsAfter: Node = {
-        val remaining =
-          Math.max(0, candidates.length - (toDrop + maxCandidates))
-        if (remaining == 0) <span></span>
-        else <li>{remaining.toString} more items...</li>
+
+    val rxIndex: Rx[Int] = (
+        arrowPressedEvents.map(Option(_)) |+|
+        focusEvents.map(_ => None)        |@|
+        rxFilteredCandidates
+      ).map { case (event, filteredCandidates) =>
+        (event, filteredCandidates.size - 1)
+      }.foldp(0) {
+        case (last, (Some(delta), limit)) =>
+          0 max (last + delta) min limit
+        case _ => 0 // This reset corresponds to an acquisition of focus.
       }
-      val style = rxFocused.map { focused =>
-        val display = if (focused) "" else "display: none"
-        s"$display"
-      }
-      val div =
-        <div class="chosen-options">
-            <ul style={style}>
-              {itemsBefore}
-              {listItems}
-              {itemsAfter}
+
+    val rxFocused: Rx[Boolean] = // LOL scalafmt
+               focusEvents.map(_ => true ) |+|
+               queryEvents.map(_ => true ) |+|
+        arrowPressedEvents.map(_ => true ) |+|
+        enterPressedEvents.map(_ => false) |+|
+      clickSelectionEvents.map(_ => false)
+
+    val rxHighlightedCandidate: Rx[Option[T]] =
+      (rxFilteredCandidates |@| rxIndex).map { case (cands, index) =>
+        cands.zipWithIndex.find(_._2 == index).map(_._1)
+      }.keepIf(_.nonEmpty)(None)
+
+    val rxSelected: Rx[Option[T]] =
+      rxHighlightedCandidate.sampleOn(enterPressedEvents) |+| clickSelectionEvents
+
+    val rxChosenOptions: Rx[Node] =
+      (rxIndex |@| rxFocused |@| queryEvents |@| rxFilteredCandidates).map {
+        case(index, focus, query, fcand) =>
+          def bounds(i: Int): Int = if (fcand.size > maxCandidates) i max 0 else 0
+          val toDrop = bounds(index - 3)
+          val remain = bounds(fcand.size - (toDrop + maxCandidates))
+          val style  = if (focus)  None else Some("display: none")
+          val itemsBefore = if (toDrop == 0) None else Some(<li>{ toDrop } more items...</li>)
+          val itemsAfter  = if (remain == 0) None else Some(<li>{ remain } more items...</li>)
+          val listItems   =
+            fcand.zipWithIndex.slice(toDrop, toDrop + maxCandidates).map { case (candidate, i) =>
+              <li class={ if (i == index) "chosen-highlight" else "" }>
+                <a onclick={ () => clickSelectionEvents := Some(candidate) }>
+                  { underline(Searcheable[T].show(candidate), query.toLowerCase) }
+                </a>
+              </li>
+            }
+          <div class="chosen-options">
+            <ul style={ style }>
+              { itemsBefore }
+              { listItems }
+              { itemsAfter }
             </ul>
           </div>
-      div -> candidates
-    }
-    val rxCandidates: Rx[Seq[T]] = rxCandidatesWithApp.map(_._2)
-    val highlightedCandidate: Rx[T] = {
-      val filtered = Var[T](rxCandidates.value.head)
-
-      (for { index <- rxIndex; candidates <- rxCandidates } yield {
-        candidates.zipWithIndex.find(_._2 == index).map(_._1)
-      }).foreach(_.foreach(filtered.:=))
-
-      filtered
-    }
-    // event handlers
-    val onkeyup = { e: KeyboardEvent =>
-      e.keyCode match {
-        case KeyCode.Up =>
-          rxIndex.update(x => Math.max(x - 1, 0))
-          rxFocused := true
-        case KeyCode.Down =>
-          rxCandidates.foreach { candidates =>
-            rxIndex.update(x => Math.min(x + 1, candidates.length - 1))
-          }.cancel()
-          rxFocused := true
-        case KeyCode.Enter =>
-          highlightedCandidate.foreach(setCandidate).cancel()
-        case _ =>
       }
-      ()
-    }
-    val onblur = { _: Event =>
-      js.timers.setTimeout(300)(rxFocused := false)
-      ()
-    }
+
+    var cancelableSelectionHandler = Cancelable.empty
+    def selectionHandler(node: HTMLInputElement): Unit =
+      cancelableSelectionHandler =
+        rxSelected.impure.foreach(c => node.value = c.map(Searcheable[T].show).getOrElse(""))
+
+    def onkeydown(e: KeyboardEvent): Unit =
+      e.keyCode match {
+        case KeyCode.Up    => arrowPressedEvents := -1
+        case KeyCode.Down  => arrowPressedEvents := +1
+        case KeyCode.Enter => enterPressedEvents := (())
+        case _ => ()
+      }
+
+    // @olfa: This implementation does not really makes sense as it's a tick
+    // over the absolute clock. Proper implementation should start/cancel the
+    // timeout on focus gained/lost.
+    // def onblur(): Unit = { scala.scalajs.js.timers.setTimeout(1000)(rxFocused := false); () }
+
     val app =
       <div class="chosen-wrapper">
-        <input type="text"
-               id={id}
-               placeholder={placeholder}
-               class="chosen-searchbar"
-               onblur={onblur}
-               onfocus={() => rxFocused := true}
-               onkeydown={onkeyup}
-               oninput={Utils.inputEvent(input => setQuery(input.value))}/>
-        {rxCandidatesWithApp.map(_._1)}
+        <input type="text" class="chosen-searchbar"
+          mhtml-onmount   = { selectionHandler _ }
+          mhtml-onunmount = { cancelableSelectionHandler.cancel _ }
+          placeholder     = { placeholder }
+          onfocus         = { () => focusEvents := (()) }
+          onkeydown       = { onkeydown _ }
+          oninput         = { Utils.inputEvent(e => queryEvents := e.value) }/>
+        { rxChosenOptions }
       </div>
+
     (app, rxSelected)
   }
 }

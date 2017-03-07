@@ -4,7 +4,7 @@ import org.scalajs.dom
 import org.scalatest.FunSuite
 import scala.xml.Elem
 
-class Tests extends FunSuite {
+class HtmlTests extends FunSuite {
 
   test("Mounting Elem") {
     val div = dom.document.createElement("div")
@@ -222,7 +222,7 @@ class Tests extends FunSuite {
     assert(div.innerHTML == """<button class="c" id="1">Click Me!</button>""")
   }
 
-  test("README example") {
+  test("README examples") {
     import mhtml._
     import scala.xml.Node
     import org.scalajs.dom
@@ -238,10 +238,10 @@ class Tests extends FunSuite {
     val component = // ← look, you can even use fancy names!
       <div>
         <button onclick={ () => count.update(_ + 1) }>Click Me!</button>
-        {count.map(i => if (i <= 0) <div></div> else <h2>WOW!!!</h2>)}
-        {count.map(i => if (i <= 2) <div></div> else <h2>MUCH REACTIVE!!!</h2>)}
-        {count.map(i => if (i <= 5) <div></div> else <h2>SUCH BINDING!!!</h2>)}
-        {rxDoges}
+        { count.map(i => if (i <= 0) <div></div> else <h2>WOW!!!</h2>) }
+        { count.map(i => if (i <= 2) <div></div> else <h2>MUCH REACTIVE!!!</h2>) }
+        { count.map(i => if (i <= 5) <div></div> else <h2>SUCH BINDING!!!</h2>) }
+        { rxDoges }
       </div>
 
     val div = dom.document.createElement("div")
@@ -254,75 +254,16 @@ class Tests extends FunSuite {
     assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><div></div><div></div><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
     assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><div></div><div></div><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
-  }
 
-  test("Scala.Rx README router") {
-    var fakeTime: Int = 123
-
-    trait WebPage {
-      def fTime: Int = fakeTime
-      val time: Var[Int] = Var(fTime)
-      def update(): Unit = time := fTime
-      val html: Rx[String]
+    def myCounter(): (xml.Node, Rx[Int]) = {
+      val fugitive: Var[Int] = Var[Int](0) // It won't escape it's scope!
+      val node: xml.Node =
+        <div>
+          <h1>So far, you clicked { fugitive } times.</h1>
+          <button onclick={ () => fugitive.update(1.+) }></button>
+        </div>
+      (node, fugitive)
     }
-
-    class HomePage extends WebPage {
-      val html: Rx[String] = time.map(s"Home Page! time: ".+)
-    }
-
-    class AboutPage extends WebPage {
-      val html: Rx[String] = time.map(s"About Me, time: ".+)
-    }
-
-    val url = Var("www.mysite.com/home")
-
-    val page: Rx[WebPage] =
-      url.map {
-        case "www.mysite.com/home"  => new HomePage()
-        case "www.mysite.com/about" => new AboutPage()
-      }
-
-    var result: String = ""
-    page.foreach { p => p.html.foreach(x => result = x); () }
-    assert(result == "Home Page! time: 123")
-
-    fakeTime = 234
-    page.value.update()
-    assert(result == "Home Page! time: 234")
-
-    fakeTime = 345
-    url := "www.mysite.com/about"
-    assert(result == "About Me, time: 345")
-
-    fakeTime = 456
-    page.value.update()
-    assert(result == "About Me, time: 456")
-  }
-
-  test("Scala.Rx README leak") {
-    var count: Int = 0
-    val a: Var[Int] = Var(1)
-    val b: Var[Int] = Var(2)
-    def mkRx(i: Int): Rx[Int] = b.map { v => count += 1; i + v }
-
-    val c: Rx[Int] = a.flatMap(mkRx)
-
-    var result: (Int, Int) = null
-    c.foreach { i => result = (i, count) }
-
-    assert((3, 1) == result)
-
-    a := 4
-    assert((6, 2) == result)
-
-    b := 3
-    assert((7, 3) == result)
-
-    Range.inclusive(0, 100).foreach { i => a := i }
-    assert((103, 104) == result)
-
-    b := 4
-    assert((104, 105) == result)
   }
 
   test("setUnsafeRawHTML") {
@@ -412,7 +353,7 @@ class Tests extends FunSuite {
     assertTypeError("<form disabled={Rx(<div></div>)}></form>")
   }
 
-  test("ill-typed Element") {
+  test("Ill-typed Element") {
     assertTypeError("<div>{true}</div>")
     assertTypeError("<div>{List.empty[String]}</div>")
     assertTypeError("{ class A; <div>{new A}</div>}")

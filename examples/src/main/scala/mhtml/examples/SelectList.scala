@@ -1,4 +1,4 @@
-package mhtml.examples
+package examples
 
 import scala.util.Failure
 import scala.util.Success
@@ -6,14 +6,14 @@ import scala.xml.Node
 
 import mhtml._
 import org.scalajs.dom
-
 import org.scalajs.dom.ext.Ajax
+
 case class Country(name: String, isoCode: String) {
   def svgUrl(iso: String): String =
     s"https://raw.githubusercontent.com/hjnilsson/country-flags/master/svg/${iso.toLowerCase}.svg"
   def svg: Node = {
     val id = Math.random().toString // Random id to insert loaded svg.
-    Utils.fromFuture(Ajax.get(svgUrl(isoCode))).foreach {
+    Utils.fromFuture(Ajax.get(svgUrl(isoCode))).impure.foreach {
       case Some(Success(response)) =>
         // Can't scala.xml.Xml.load to get scala.xml.Node instance, instead
         // we bypass mhtml and insert the svg directly into the dom.
@@ -37,17 +37,20 @@ object SelectList extends Example {
   val country = "([A-Z]{2})\\|(.*)".r
 
   def app: Node = {
-    val options = Var(Seq.empty[Country])
-    Utils.fromFuture(Ajax.get(countriesUrl)).foreach {
+    val options = Var(List.empty[Country])
+    Utils.fromFuture(Ajax.get(countriesUrl)).impure.foreach {
       case Some(Success(response)) =>
         options := response.responseText.lines.collect {
           case country(code, name) => Country(name, code)
-        }.toSeq
+        }.toList
       case Some(Failure(e)) =>
-        e.printStackTrace()
+        // e.printStackTrace()
+        // For offline hacking:
+        options := (0 to 20).map(i => Country(util.Random.nextString(5), i.toString)).toList
       case _ =>
     }
-    val (app, selected) = Chosen.singleSelect(_ => options)
+
+    val (app, selected) = Chosen.singleSelect(options, placeholder = "")
     val message: Rx[Node] = selected.map {
       case Some(x) => <div>
         <p>You selected: '{x.name}'</p>

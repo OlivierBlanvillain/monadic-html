@@ -1,4 +1,4 @@
-package mhtml.examples
+package examples
 
 import scala.scalajs.js
 import scala.scalajs.js.JSON
@@ -81,8 +81,7 @@ object GithubAvatar extends Example {
       case None => <div>Loading repos...</div>
       case Some(Success(repos)) =>
         val (searchList, active) =
-          Chosen.singleSelect[GhRepo](_ => Var(repos),
-                                      placeholder = "Search for repo...")
+          Chosen.singleSelect[GhRepo](Var(repos), placeholder = "Search for repo...")
         <div>
           {searchList}
           {active.map(_.map(detailedRepo).getOrElse(<div></div>))}

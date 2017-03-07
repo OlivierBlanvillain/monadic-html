@@ -39,7 +39,7 @@ lazy val `monadic-rx-cats`    = crossProject
 
 lazy val `tests` = project
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(`monadic-html`)
+  .dependsOn(`monadic-html`, `monadic-rx-catsJS`)
   .settings(noPublishSettings: _*)
   .settings(
     libraryDependencies += "org.scalatest" %%% "scalatest" % scalatest % "test",
@@ -49,7 +49,7 @@ lazy val `tests` = project
 
 lazy val `examples` = project
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(`monadic-html`)
+  .dependsOn(`monadic-html`, `monadic-rx-catsJS`)
   .settings(noPublishSettings: _*)
   .settings(
     emitSourceMaps := true,
@@ -62,7 +62,7 @@ scalacOptions in ThisBuild := Seq(
   "-encoding", "UTF-8",
   "-feature",
   "-unchecked",
-  "-Xfatal-warnings",
+  // "-Xfatal-warnings", see Cancelable#cancel
   "-Xfuture",
   "-Xlint",
   "-Yno-adapted-args",

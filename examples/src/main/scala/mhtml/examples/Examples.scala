@@ -1,4 +1,4 @@
-package mhtml.examples
+package examples
 
 import scala.scalajs.js.JSApp
 import scala.util.Success
@@ -11,7 +11,7 @@ import org.scalajs.dom.ext.Ajax
 
 trait Example {
   def app: Node
-  def cancel(): Unit = ()
+  def cancel: Unit = ()
   val name = this.getClass.getSimpleName
   val url = "#/" + name
 
@@ -29,7 +29,7 @@ trait Example {
 
   lazy val sourceCode: Rx[String] = {
     val init = Var("Loading...")
-    Utils.fromFuture(Ajax.get(rawUrl)).foreach {
+    Utils.fromFuture(Ajax.get(rawUrl)).impure.foreach {
       case Some(Success(x)) =>
         init := x.responseText
       case _ =>
@@ -60,7 +60,8 @@ object Main extends JSApp {
     ContactList,
     GithubAvatar,
     SelectList,
-    ProductTable
+    ProductTable,
+    Mario
   )
 
   def getActiveApp =
@@ -70,7 +71,7 @@ object Main extends JSApp {
 
   dom.window.onhashchange = { _: Event =>
     activeExample.update { old =>
-      old.cancel()
+      old.cancel
       getActiveApp
     }
   }

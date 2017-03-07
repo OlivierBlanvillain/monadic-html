@@ -1,4 +1,4 @@
-package mhtml.examples
+package examples
 
 import mhtml._
 import scala.scalajs.js
@@ -10,7 +10,7 @@ object Timer extends Example {
     interval = js.timers.setInterval(1000)(counter.update(_ + 1))
     <p>Seconds elapsed: {counter}</p>
   }
-  override def cancel() = {
+  override def cancel = {
     interval foreach js.timers.clearInterval
     interval = js.undefined
   }

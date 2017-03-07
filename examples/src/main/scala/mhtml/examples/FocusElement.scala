@@ -1,4 +1,4 @@
-package mhtml.examples
+package examples
 
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLInputElement
