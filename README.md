@@ -142,19 +142,7 @@ def crazyCanvasStuff(e: dom.html.Canvas): Unit = ...
 
 ## FRP-ish APIs
 
-This section presents the `Rx` API in its entirety. Let's starts with the methods you shouldn't use the impure ones:
-
-```scala
-trait Rx[+A] {
-  ...
-  object impure {
-    def foreach(effect: A => Unit): Cancelable
-    def value: A
-  }
-}
-```
-
-The `foreach` is particularly dangerous since omitting to cancel subscriptions opens the door to memory leaks. But I have good news, you don't have to use these! You should be able to do everything you need from the functional, referentially transparent API that follows.
+This section presents the `Rx` API in its entirety. Let's start with the referentially transparent methods:
 
 -  `def map[B](f: A => B): Rx[B]`
 
@@ -254,6 +242,20 @@ The `foreach` is particularly dangerous since omitting to cancel subscriptions o
      // r2 => 1   2 3     4   ...
      // sp =>   1   3   3   4 ...
      ```
+
+In order to observe content of `Rx` value, we expose two methods in an `impure` object:
+
+```scala
+trait Rx[+A] {
+  ...
+  object impure {
+    def foreach(effect: A => Unit): Cancelable
+    def value: A
+  }
+}
+```
+
+These methods can be usefull for testing and debuging, but should ideally be avoided in application code. The `foreach` is particularly dangerous since omitting to cancel subscriptions opens the door to memory leaks. But I have good news, you don't have to use these! You should be able to do everything you need using the functional, referentially transparent APIs.
 
 ## FAQ
 
