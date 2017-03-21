@@ -159,7 +159,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
 
     Dynamically switch between different `Rx`s according to the given
     function, applied on each element of this `Rx`. Each switch will cancel
-    the subscriptions for the previous outgoing `Rx`, and launch subscriptions
+    the subscriptions for the previous outgoing `Rx`, and launch the same subscriptions
     on the next `Rx`.
 
     Together with `Rx#map` and `Rx.apply`, flatMap, `Rx` is a `Monad`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
