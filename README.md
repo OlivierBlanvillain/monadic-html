@@ -159,7 +159,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
 
     Dynamically switch between different `Rx`s according to the given
     function, applied on each element of this `Rx`. Each switch will cancel
-    the subscriptions for the previous outgoing `Rx`, and lunch a subscriptions
+    the subscriptions for the previous outgoing `Rx`, and launch the same subscriptions
     on the next `Rx`.
 
     Together with `Rx#map` and `Rx.apply`, flatMap, `Rx` is a `Monad`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
@@ -191,6 +191,11 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
     ```
 
     With this operation, `Rx` is a `Semigroup`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+    
+        
+- `def product[B](other: Rx[B]): Rx[(A, B)]`
+
+    Create the Cartesian product of two `Rx`; in other words, create an `Rx` of the tuple of the values in the source `Rx` (type `A`) and other `Rx` (type `B`). You can combine multiple `Rx` more succinctly using `|@|` syntactic sugar [as in Cats](https://github.com/typelevel/cats/blob/master/docs/src/main/tut/typeclasses/applicative.md).
 
 -  `def foldp[B](seed: B)(step: (B, A) => B): Rx[B]`
 
