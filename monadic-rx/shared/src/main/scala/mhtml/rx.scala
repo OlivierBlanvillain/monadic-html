@@ -130,26 +130,21 @@ sealed trait Rx[+A] { self =>
    */
   def sampleOn[B](other: Rx[B]): Rx[A] = SampleOn[A, B](this, other)
 
-  object impure {
-    /**
-     * Applies the side effecting function `f` to each element of this `Rx`.
-     * Returns an `Cancelable` which can be used to cancel the subscription.
-     * Omitting to canceling subscription can lead to memory leaks.
-     */
-    def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
+  /**
+   * Applies the side effecting function `f` to each element of this `Rx`.
+   * Returns an `Cancelable` which can be used to cancel the subscription.
+   * Omitting to canceling subscription can lead to memory leaks.
+   */
+  val impure: RxImpureOps[A] = RxImpureOps[A](this)
+}
 
-    /** The current value of this `Rx`. */
-    def value: A = {
-      var v: Option[A] = None
-      foreach(a => v = Some(a)).cancel
-      // This can never happen if using the default Rx/Var constructors and
-      // methods. The proof is a simple case analysis showing that every method
-      // preserves non emptiness. Var created with unsafeCreate Messing up with
-      // Var unsafe constructor or internal could lead to this exception.
-      def error = new NoSuchElementException("Requesting value of an empty Rx.")
-      v.getOrElse(throw error)
-    }
-  }
+case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
+  /**
+   * Applies the side effecting function `f` to each element of this `Rx`.
+   * Returns an `Cancelable` which can be used to cancel the subscription.
+   * Omitting to canceling subscription can lead to memory leaks.
+   */
+  def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
 }
 
 object Rx {
