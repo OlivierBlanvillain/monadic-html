@@ -1,6 +1,7 @@
 package examples
 
 import mhtml._
+import scala.scalajs.js
 
 object ProductTable extends Example {
   case class Product(name: String,
@@ -39,15 +40,17 @@ object ProductTable extends Example {
     } yield {
       allProducts.filter(productFilter(query, onlyStockedItems)).map(row)
     }
-    val onkeyup =
-      Utils.inputEvent(input => rxQuery := input.value)
-    val onclick =
-      Utils.inputEvent(input => rxShowOnlyStockedItems := input.checked)
+
+    def onkeyup(event: js.Dynamic): Unit =
+      rxQuery := event.target.value.asInstanceOf[String]
+    def onclick(event: js.Dynamic): Unit =
+      rxShowOnlyStockedItems := event.target.checked.asInstanceOf[Boolean]
+
     <div>
       <form>
-        <input type="text" placeholder="Search bar..." onkeyup={onkeyup}/>
+        <input type="text" placeholder="Search bar..." onkeyup={ onkeyup _ }/>
         <p>
-          <input type="checkbox" onclick={onclick}/>
+          <input type="checkbox" onclick={ onclick _ }/>
           Only show products in stock
         </p>
       </form>
@@ -58,7 +61,7 @@ object ProductTable extends Example {
           </tr>
         </thead>
         <tbody>
-          {filteredProducts}
+          { filteredProducts }
         </tbody>
       </table>
     </div>

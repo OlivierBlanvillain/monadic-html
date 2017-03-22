@@ -7,6 +7,7 @@ import scala.util.Failure
 import scala.util.Success
 import scala.util.Try
 import scala.xml.Node
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import mhtml._
 import org.scalajs.dom.ext.Ajax
@@ -33,8 +34,8 @@ object GithubAvatar extends Example {
 
   def app: Node = {
     val rxUsername = Var("")
-    val onkeyup =
-      Utils.inputEvent(input => rxUsername.update(_ => input.value))
+    def onkeyup(event: js.Dynamic): Unit =
+      rxUsername.update(_ => event.target.value.asInstanceOf[String])
     <div>
       <input type="text" oninput={debounce(300)(onkeyup)}/>
       {rxUsername.map(profile)}

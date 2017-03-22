@@ -3,6 +3,7 @@ package examples
 import scala.scalajs.js.JSApp
 import scala.util.Success
 import scala.xml.Node
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import mhtml._
 import org.scalajs.dom

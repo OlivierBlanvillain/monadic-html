@@ -1,6 +1,7 @@
 package examples
 
 import scala.xml.Node
+import scala.scalajs.js
 import mhtml._
 import mhtml.implicits.cats._
 import cats.implicits._
@@ -120,6 +121,9 @@ object Chosen {
         case _ => ()
       }
 
+    def oninput(event: js.Dynamic): Unit =
+      queryEvents := event.target.value.asInstanceOf[String]
+
     // @olfa: This implementation does not really makes sense as it's a tick
     // over the absolute clock. Proper implementation should start/cancel the
     // timeout on focus gained/lost.
@@ -133,7 +137,7 @@ object Chosen {
           placeholder     = { placeholder }
           onfocus         = { () => focusEvents := (()) }
           onkeydown       = { onkeydown _ }
-          oninput         = { Utils.inputEvent(e => queryEvents := e.value) }/>
+          oninput         = { oninput _ }/>
         { rxChosenOptions }
       </div>
 
