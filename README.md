@@ -159,10 +159,26 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
 
     Dynamically switch between different `Rx`s according to the given
     function, applied on each element of this `Rx`. Each switch will cancel
-    the subscriptions for the previous outgoing `Rx`, and lunch a subscriptions
-    on the next `Rx`.
+    the subscriptions for the previous outgoing `Rx` and start a new
+    subscription on the next `Rx`.
 
-    Together with `Rx#map` and `Rx.apply`, flatMap, `Rx` is a `Monad`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+    Together with `Rx#map` and `Rx.apply`, flatMap forms a `Monad`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+
+-  `def product[B](other: Rx[B]): Rx[(A, B)]`
+
+    Create the Cartesian product of two `Rx`. The output tuple contains the
+    latest values from each input `Rx`, which updates whenever the value from
+    either input `Rx` update. This method is faster than combining `Rx`s using
+    `for { a <- ra; b <- rb } yield (a, b)`.
+
+    ```
+    // r1      => 0     8                       9     ...
+    // r2      => 1           4     5     6           ...
+    // product => (0,1) (8,1) (8,4) (8,5) (8,6) (9,6) ...
+    ```
+
+    This method, together with `Rx.apply`, forms am `Applicative`.
+    `|@|` syntax is available via the `monadic-rx-cats` package.
 
 -  `def dropRepeats: Rx[A]`
 
@@ -190,7 +206,8 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
     // merged => 0 8 4 3 3 ...
     ```
 
-    With this operation, `Rx` is a `Semigroup`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+    With this operation, `Rx` forms a `Semigroup`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+    `|+|` syntax is available via the `monadic-rx-cats` package.
 
 -  `def foldp[B](seed: B)(step: (B, A) => B): Rx[B]`
 

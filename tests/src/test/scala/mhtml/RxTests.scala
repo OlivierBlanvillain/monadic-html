@@ -294,4 +294,28 @@ class RxTests extends FunSuite {
       assert(rx1.subscribers.isEmpty && rx2.subscribers.isEmpty)
     }
   }
+
+  test("product") {
+    val rx1: Var[Int] = Var(0)
+    val rx2: Var[Int] = Var(1)
+    val product: Rx[(Int, Int)] = rx1.product(rx2)
+    var rx1List: List[Int] = Nil
+    var rx2List: List[Int] = Nil
+    var productList: List[(Int, Int)] = Nil
+    val cc1 = rx1.impure.foreach(n => rx1List = rx1List :+ n)
+    val cc2 = rx2.impure.foreach(n => rx2List = rx2List :+ n)
+    val ccm = product.impure.foreach(n => productList = productList :+ n)
+    rx1 := 8
+    rx2 := 4
+    rx2 := 5
+    rx2 := 6
+    rx1 := 9
+    assert(rx1List == List(0, 8, 9))
+    assert(rx2List == List(1, 4, 5, 6))
+    assert(productList == List((0, 1), (8, 1), (8, 4), (8, 5), (8, 6), (9, 6)))
+    cc1.cancel
+    cc2.cancel
+    ccm.cancel
+    assert(rx1.subscribers.isEmpty && rx2.subscribers.isEmpty)
+  }
 }
