@@ -19,19 +19,27 @@ sealed trait Rx[+A] { self =>
   /**
    * Dynamically switch between different `Rx`s according to the given
    * function, applied on each element of this `Rx`. Each switch will cancel
-   * the subscriptions for the previous outgoing `Rx`, and lunch a subscriptions
-   * on the next `Rx`.
+   * the subscriptions for the previous outgoing `Rx` and start a new
+   * subscription on the next `Rx`.
    *
    * Together with `Rx#map` and `Rx.apply`, flatMap forms a `Monad`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
    */
   def flatMap[B](f: A => Rx[B]): Rx[B] = FlatMap[A, B](this, f)
 
   /**
-   * Product of two `Rx`. A fast alternative to
+   * Create the Cartesian product of two `Rx`. The output tuple contains the
+   * latest values from each input `Rx`, which updates whenever the value from
+   * either input `Rx` update. This method is faster than combining `Rx`s using
+   * `for { a <- ra; b <- rb } yield (a, b)`.
    *
    * ```
-   * for { a <- ra; b <- rb } yield (a, b)
+   * // r1      => 0     8                       9     ...
+   * // r2      => 1           4     5     6           ...
+   * // product => (0,1) (8,1) (8,4) (8,5) (8,6) (9,6) ...
    * ```
+   *
+   * This method, together with `Rx.apply`, forms am `Applicative`.
+   * `|@|` syntax is available via the `monadic-rx-cats` package.
    */
   def product[B](other: Rx[B]): Rx[(A, B)] = Product[A, B](this, other)
 
@@ -63,7 +71,8 @@ sealed trait Rx[+A] { self =>
    * // merged => 0 8 4 3 3 ...
    * ```
    *
-   * With this operation, `Rx` is a `Semigroup`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+   * With this operation, `Rx` forms a `Semigroup`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+   * `|+|` syntax is available via the `monadic-rx-cats` package.
    */
   def merge[B >: A](other: Rx[B]): Rx[B] = Merge[A, B](this, other)
 
@@ -130,26 +139,21 @@ sealed trait Rx[+A] { self =>
    */
   def sampleOn[B](other: Rx[B]): Rx[A] = SampleOn[A, B](this, other)
 
-  object impure {
-    /**
-     * Applies the side effecting function `f` to each element of this `Rx`.
-     * Returns an `Cancelable` which can be used to cancel the subscription.
-     * Omitting to canceling subscription can lead to memory leaks.
-     */
-    def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
+  /**
+   * Applies the side effecting function `f` to each element of this `Rx`.
+   * Returns an `Cancelable` which can be used to cancel the subscription.
+   * Omitting to canceling subscription can lead to memory leaks.
+   */
+  val impure: RxImpureOps[A] = RxImpureOps[A](this)
+}
 
-    /** The current value of this `Rx`. */
-    def value: A = {
-      var v: Option[A] = None
-      foreach(a => v = Some(a)).cancel
-      // This can never happen if using the default Rx/Var constructors and
-      // methods. The proof is a simple case analysis showing that every method
-      // preserves non emptiness. Var created with unsafeCreate Messing up with
-      // Var unsafe constructor or internal could lead to this exception.
-      def error = new NoSuchElementException("Requesting value of an empty Rx.")
-      v.getOrElse(throw error)
-    }
-  }
+case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
+  /**
+   * Applies the side effecting function `f` to each element of this `Rx`.
+   * Returns an `Cancelable` which can be used to cancel the subscription.
+   * Omitting to canceling subscription can lead to memory leaks.
+   */
+  def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
 }
 
 object Rx {
