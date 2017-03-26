@@ -343,9 +343,8 @@ There are a couple of ways. The first is to inject it directly into a node. To g
 `<span>&npsp;&npsp;</span>`. More generally, you will need `scala.xml.EntityRef` to reference an entity directly in Scala:
 
 ```scala
-def space(nn: Int): Node = Group((0 until nn).map{_ => EntityRef("nbsp")})
+def space(nn: Int): Node = Group(Seq.fill(nn)(EntityRef("nbsp")))
 <span>{space(2)}</span> // results in  <span>"&npsp;""&npsp;"</span>
-
 ```
 
 #### Global mutable state, Booo! Booo!!!
