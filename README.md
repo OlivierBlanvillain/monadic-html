@@ -319,6 +319,34 @@ Elements:
 For examples of how each type is rendered into dom nodes, take a look at the
 [tests](https://github.com/OlivierBlanvillain/monadic-html/blob/master/tests/src/test/scala/mhtml/RenderTests.scala).
 
+#### Can I `mount` a `Seq[Node]`?
+
+Yes. It can be wrapped in a `scala.xml.Group`. One place where you might encounter this is altering the contents of the `<head>` element. This can be used to dynamically load (or unload) CSS files:
+
+```scala
+val cssUrls = Seq(
+  "./target/bootstrap.min.css",
+  "./target/bootstrap-theme.min.css"
+)
+dom.document.getElementsByTagName("head").headOption match {
+  case Some(head) =>
+    val linkRelCss =
+      Group(cssUrls.map(cssUrl => <link rel="stylesheet" href={cssUrl}/>))
+    mount(head, linkRelCss)
+  case None => println("WARNING: no <head> element in enclosing document!")
+}
+```
+
+#### How do I use HTML entities?
+
+There are a couple of ways. The first is to inject it directly into a node. To get two non-breaking spaces, you might do:
+`<span>&npsp;&npsp;</span>`. More generally, you will need `scala.xml.EntityRef` to reference an entity directly in Scala:
+
+```scala
+def space(nn: Int): Node = Group(Seq.fill(nn)(EntityRef("nbsp")))
+<span>{space(2)}</span> // results in  <span>"&npsp;""&npsp;"</span>
+```
+
 #### Global mutable state, Booo! Booo!!!
 
 `Vars` shouldn't be globally accessible. Instead, they should be defined and mutated as locally as possible, and exposed to the outside world as `Rxs`. In the following example uses the fact that `Var[T] <: Rx[T]` to hide the fact that `fugitive` is mutable:

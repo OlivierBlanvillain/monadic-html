@@ -2,7 +2,8 @@ package mhtml
 
 import org.scalajs.dom
 import org.scalatest.FunSuite
-import scala.xml.Elem
+
+import scala.xml.{Elem, Group}
 
 class HtmlTests extends FunSuite {
 
@@ -10,6 +11,21 @@ class HtmlTests extends FunSuite {
     val div = dom.document.createElement("div")
     mount(div, <p class="cc" id="22">{"text"}</p>)
     assert(div.innerHTML == """<p class="cc" id="22">text</p>""")
+  }
+
+  test("Mounting Group") {
+    val cssUrls = Seq(
+      "./target/bootstrap.min.css",
+      "./target/bootstrap-theme.min.css"
+    )
+    val head = dom.document.createElement("head")
+    val linkRelCss =
+      Group(cssUrls.map(cssUrl => <link rel="stylesheet" href={cssUrl}/>))
+    mount(head, linkRelCss)
+    assert(head.innerHTML ==
+      """<link rel="stylesheet" href="./target/bootstrap.min.css">""" +
+      """<link rel="stylesheet" href="./target/bootstrap-theme.min.css">"""
+    )
   }
 
   test("Rx Elem") {
