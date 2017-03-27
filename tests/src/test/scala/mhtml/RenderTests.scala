@@ -4,6 +4,8 @@ import org.scalajs.dom
 import org.scalajs.dom.raw.SVGAElement
 import org.scalatest.FunSuite
 
+import scala.xml.EntityRef
+
 class RenderTests extends FunSuite {
   def render(node: xml.Node): String = mountNode(node).innerHTML
 
@@ -41,6 +43,13 @@ class RenderTests extends FunSuite {
   check(<form disabled={Some(Rx(true))}>4</form> , """<form disabled="">4</form>""")
 
   check(<p>{emptyHTML}</p>                       , "<p></p>")
+
+  check(
+    <div>{Seq(
+      EntityRef("amp"), EntityRef("lt"), EntityRef("copy"), EntityRef("lambda")
+    )}</div>,
+    "<div>&amp;&lt;©λ</div>"
+  )
 
   check(<svg xmlns="http://hello.com"></svg>,
      """<svg xmlns="http://hello.com"></svg>""")

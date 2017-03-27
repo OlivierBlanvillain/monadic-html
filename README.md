@@ -344,7 +344,7 @@ There are a couple of ways. The first is to inject it directly into a node. To g
 
 ```scala
 def space(nn: Int): Node = Group(Seq.fill(nn)(EntityRef("nbsp")))
-<span>{space(2)}</span> // results in  <span>"&npsp;""&npsp;"</span>
+<span>{space(2)}</span> // results in <span>&npsp;&npsp;</span>
 ```
 
 #### Global mutable state, Booo! Booo!!!
