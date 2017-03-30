@@ -1,5 +1,5 @@
 val scalajsdom = "0.9.1"
-val scalatest  = "3.0.0"
+val scalatest  = "3.0.1"
 val cats       = "0.9.0"
 
 crossScalaVersions in ThisBuild := Seq("2.12.1", "2.11.8")

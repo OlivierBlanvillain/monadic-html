@@ -3,6 +3,7 @@ package examples
 import scala.util.Failure
 import scala.util.Success
 import scala.xml.Node
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import mhtml._
 import org.scalajs.dom
