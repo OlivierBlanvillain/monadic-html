@@ -29,6 +29,9 @@ sbt +test
 # Write version in ThisBuild := "$releaseVersion" to the file version.sbt and also apply this setting to the current build state.
 echo "version in ThisBuild := \"$releaseVersion\"" > version.sbt
 
+# Update version in README.md.
+sed -i -e 's/^"\([^"]*\)" %%% "\([^"]*\)" % .*/"\1" %%% "\2" % "'$releaseVersion'"/g' README.md
+
 # Commit the changes in version.sbt.
 git commit -am "Setting version to $releaseVersion"
 
