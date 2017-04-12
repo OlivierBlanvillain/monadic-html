@@ -12,8 +12,7 @@ lazy val root = project.in(file("."))
     `monadic-rxJVM`,
     `monadic-rx-catsJS`,
     `monadic-rx-catsJVM`,
-    `examples`,
-    `tests`
+    `examples`
   )
   .settings(noPublishSettings: _*)
 
@@ -21,13 +20,18 @@ lazy val `monadic-html` = project
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(`monadic-rxJS`)
   .settings(publishSettings: _*)
-  .settings(libraryDependencies += "org.scala-js" %%% "scalajs-dom" % scalajsdom)
+  .settings(testSettings: _*)
+  .settings(libraryDependencies += "org.scala-js"  %%% "scalajs-dom" % scalajsdom)
+  .settings(libraryDependencies += "org.scalatest" %%% "scalatest" % scalatest % "test")
+  .dependsOn(`monadic-rx-catsJS` % "test->compile")
 
 lazy val `monadic-rxJS`  = `monadic-rx`.js
 lazy val `monadic-rxJVM` = `monadic-rx`.jvm
 lazy val `monadic-rx`    = crossProject
   .crossType(CrossType.Full)
   .settings(publishSettings: _*)
+  .jsSettings(testSettings: _*)
+  .settings(libraryDependencies += "org.scalatest" %%% "scalatest" % scalatest % "test")
 
 lazy val `monadic-rx-catsJS`  = `monadic-rx-cats`.js
 lazy val `monadic-rx-catsJVM` = `monadic-rx-cats`.jvm
@@ -36,16 +40,6 @@ lazy val `monadic-rx-cats`    = crossProject
   .settings(publishSettings: _*)
   .dependsOn(`monadic-rx`)
   .settings(libraryDependencies += "org.typelevel" %%% "cats" % cats)
-
-lazy val `tests` = project
-  .enablePlugins(ScalaJSPlugin)
-  .dependsOn(`monadic-html`, `monadic-rx-catsJS`)
-  .settings(noPublishSettings: _*)
-  .settings(
-    libraryDependencies += "org.scalatest" %%% "scalatest" % scalatest % "test",
-    testOptions  in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"),
-    scalaJSStage in Test := FastOptStage,
-    jsEnv        in Test := PhantomJSEnv().value)
 
 lazy val `examples` = project
   .enablePlugins(ScalaJSPlugin)
@@ -71,6 +65,11 @@ scalacOptions in ThisBuild := Seq(
   "-Ywarn-value-discard")
 
 organization in ThisBuild := "in.nvilla"
+
+lazy val testSettings = Seq(
+  testOptions  in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"),
+  scalaJSStage in Test := FastOptStage,
+  jsEnv        in Test := PhantomJSEnv().value)
 
 lazy val publishSettings = Seq(
   publishMavenStyle := true,
