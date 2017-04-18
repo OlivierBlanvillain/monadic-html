@@ -266,9 +266,10 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
     cacheElem = Some(newValue)
     var i = subscribers.size
     val copy = buffer[A => Unit](i)
-    while (i >= 0) {
+    while (i > 0) {
       i = i - 1
-      copy(i) = subscribers(i)
+      val s = subscribers(i)
+      copy(i) = s
     }
     copy.foreach { f =>
       f(newValue)
