@@ -260,19 +260,27 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
      // sp =>   1   3   3   4 ...
      ```
 
-In order to observe content of `Rx` value, we expose two methods in an `impure` object:
+In order to observe content of `Rx` value we expose a `.impure.foreach` method:
 
 ```scala
 trait Rx[+A] {
   ...
-  object impure {
-    def foreach(effect: A => Unit): Cancelable
-    def value: A
-  }
+  val impure: RxImpureOps[A] = RxImpureOps[A](this)
+}
+
+case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
+  /**
+   * Applies the side effecting function `f` to each element of this `Rx`.
+   * Returns an `Cancelable` which can be used to cancel the subscription.
+   * Omitting to canceling subscription can lead to memory leaks.
+   *
+   * If you use this in your code, you are probably doing in wrong.
+   */
+  def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
 }
 ```
 
-These methods can be useful for testing and debugging, but should ideally be avoided in application code. The `foreach` is particularly dangerous since omitting to cancel subscriptions opens the door to memory leaks. But I have good news, you don't have to use these! You should be able to do everything you need using the functional, referentially transparent APIs.
+This method can be useful for testing and debugging, but should ideally be avoided in application code. Omitting to cancel subscriptions opens the door to memory leaks. But I have good news, you don't have to use these! You should be able to do everything you need using the functional, referentially transparent APIs.
 
 ## FAQ
 
@@ -292,7 +300,7 @@ But mounting it to the DOM will print warnings in the console:
 [mhtml] Warning: Unknown element captain. Did you mean caption instead?
 ```
 
-`MountSettings.default` emit warnings only when compiled to with `fastOptJS`, and becomes silent (and faster) whe compiled with `fullOptJS`.
+`MountSettings.default` emit warnings only when compiled to with `fastOptJS`, and becomes silent (and faster) when compiled with `fullOptJS`.
 
 #### Can I insert Any values into xml literals?
 
@@ -386,6 +394,75 @@ implicit class SequencingListFFS[A](self: List[Rx[A]]) {
 import cats.implicits._, mhtml.implicits.cats._
 ```
 
+#### What's the difference between impure.foreach(effect) and map(effect)?
+
+`.impure.foreach` should really be used with care (read: don't use it). It returns a `Cancelable` that you can freely ignore to leak memory. Contrarily, `map(effect)` is always memory safe and side effect free! Calling `map` actually just piles up a `Map` node on top of a `Rx`. Side effects will only happen "at the end of the world", with the `mount` method (it uses `.impure.foreach` internally). You can observe things piling up by printing a `Rx`:
+
+```scala
+val rx1 = Var(1)
+val rx2 = Var(2)
+val rx3 =
+  rx1
+    .map(identity)
+    .merge(
+      rx2
+        .map(identity)
+        .dropIf(_ => false)(0)
+    )
+println(rx3)
+// Merge(
+//   Map(Var(1), <function1>),
+//   Collect(
+//     Map(Var(2), <function1>), <function1>, 0)
+// )
+```
+
+So nothing is happening here really, the code above is just a description of an execution graph. It's only when calling `.impure.foreach` that everything comes to life. In the implementation of `foreach` everything has been carefully assembled (and tested) to avoid any memory leak.
+
+#### How do you implement the {redux, flux, outwatch}.Store pattern?
+
+The "Store" pattern can be implemented with `foldp`, you can see this in action in the mario example. Here is a sketch of how things can be formulated using Flux vocabulary:
+
+```scala
+// Data type for the entire application state:
+sealed trait State
+...
+
+// Data type for events coming from the outside world:
+sealed trait Action
+...
+
+// A single State => Html function for the entire page:
+def view(state: Rx[State]): xml.Node =
+  ...
+
+// Probably implemented with Var, but we can look at them as Rx. Note that the
+// type can easily me made more precise by using <: Action instead:
+val action1_clicks: Rx[Action] = ...
+val action2_inputs: Rx[Action] = ...
+val action3_AJAX:   Rx[Action] = ...
+val action4_timer:  Rx[TimeAction] = ...
+
+// Let's merges all actions together:
+val allActions: Rx[Action] =
+  action1_clicks merge
+  action2_inputs merge
+  action3_AJAX   merge
+  action4_timer
+
+// Compute the new state given an action and a previous state:
+// (I'm really not convinced by the name)
+def reducer(previousState: State, action: Action): State = ...
+
+// The application State, probably initialize that from local store / DB
+// updates could also be save on every update.
+val store: Rx[State] = allActions.foldp(State.empty)(reducer)
+
+// Tie everything together:
+mount(root, view(store))
+```
+
+If you're really into *globally mutable state*™, you can also give up on purity and type safety by making allActions a `Var[Action]` and calling `:=` all around your code.
 
 ## Further reading
 
