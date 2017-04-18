@@ -317,7 +317,7 @@ Elements:
 - `Seq[xml.Node]`
 
 For examples of how each type is rendered into dom nodes, take a look at the
-[tests](https://github.com/OlivierBlanvillain/monadic-html/blob/master/tests/src/test/scala/mhtml/RenderTests.scala).
+[tests](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-html/src/test/scala/mhtml/RenderTests.scala).
 
 #### Can I `mount` a `Seq[Node]`?
 
