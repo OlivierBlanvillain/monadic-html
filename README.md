@@ -146,7 +146,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
 
 -  `def map[B](f: A => B): Rx[B]`
 
-    Apply a function to ecah elements of this `Rx`.
+    Apply a function to each elements of this `Rx`.
 
     ```scala
     val numbers: Rx[Int]
@@ -272,7 +272,7 @@ trait Rx[+A] {
 }
 ```
 
-These methods can be usefull for testing and debuging, but should ideally be avoided in application code. The `foreach` is particularly dangerous since omitting to cancel subscriptions opens the door to memory leaks. But I have good news, you don't have to use these! You should be able to do everything you need using the functional, referentially transparent APIs.
+These methods can be useful for testing and debugging, but should ideally be avoided in application code. The `foreach` is particularly dangerous since omitting to cancel subscriptions opens the door to memory leaks. But I have good news, you don't have to use these! You should be able to do everything you need using the functional, referentially transparent APIs.
 
 ## FAQ
 
