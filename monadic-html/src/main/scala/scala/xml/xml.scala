@@ -41,6 +41,13 @@ final case class Elem(
       }
       merge(a, s)
     }, Some(s), c: _*)
+
+  def copy(
+    prefix: Option[String] = this.prefix,
+    label: String = this.label,
+    attributes1: MetaData = this.attributes1,
+    scope: Option[Scope] = this.scope,
+    child: Seq[Node] = this.child.toSeq): Elem = Elem(prefix, label, attributes1, scope, child: _*)
 }
 
 /** XML leaf for comments. */
