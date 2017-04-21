@@ -48,7 +48,7 @@ val div = dom.document.createElement("div")
 mount(div, component)
 ```
 
-For more examples, see our [test suite](monadic-html/src/test/scala/mhtml/HtmlTests.scala), [examples](examples/src/main/scala/mhtml/examples) ([live here](https://olivierblanvillain.github.io/monadic-html/examples/)) and the [TodoMVC implementation](https://github.com/olafurpg/mhtml-todo/).
+For more examples, see our [test suite](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-html/src/test/scala/mhtml/HtmlTests.scala), [examples](https://github.com/OlivierBlanvillain/monadic-html/blob/master/examples/src/main/scala/mhtml/examples) ([live here](https://olivierblanvillain.github.io/monadic-html/examples/)) and the [TodoMVC implementation](https://github.com/olafurpg/mhtml-todo/).
 
 
 ## Design
@@ -90,7 +90,7 @@ val view =
   </div>
 ```
 
-When mounting this view, [the implementation](monadic-html/src/main/scala/mhtml/mount.scala) will attach callbacks to each `Rx` such that changing `a`, `b` or `c` results in precise DOM updates:
+When mounting this view, [the implementation](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-html/src/main/scala/mhtml/mount.scala) will attach callbacks to each `Rx` such that changing `a`, `b` or `c` results in precise DOM updates:
 
 - Changing `a` will update the `div` attribute (reusing the same `div` node)
 - Changing `b` will delete the text node between `Variable 1: ` and `; variable 2: `, and insert a new replacement between these two nodes.
@@ -162,7 +162,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
     the subscriptions for the previous outgoing `Rx` and start a new
     subscription on the next `Rx`.
 
-    Together with `Rx#map` and `Rx.apply`, flatMap forms a `Monad`. [Proof](monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+    Together with `Rx#map` and `Rx.apply`, flatMap forms a `Monad`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
 
 -  `def product[B](other: Rx[B]): Rx[(A, B)]`
 
@@ -206,7 +206,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
     // merged => 0 8 4 3 3 ...
     ```
 
-    With this operation, `Rx` forms a `Semigroup`. [Proof](monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+    With this operation, `Rx` forms a `Semigroup`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
     `|+|` syntax is available via the `monadic-rx-cats` package.
 
 -  `def foldp[B](seed: B)(step: (B, A) => B): Rx[B]`
@@ -278,7 +278,7 @@ These methods can be usefull for testing and debuging, but should ideally be avo
 
 #### Does the compiler catch HTML typos?
 
-No, only invalid XML literals will be rejected at compile time. However, we do provide [configurable settings](monadic-html/src/main/scala/mhtml/settings.scala) to emit runtime warnings about unknown elements, attributes, entity references and event handlers. For example, the following piece of XML compiles fine:
+No, only invalid XML literals will be rejected at compile time. However, we do provide [configurable settings](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-html/src/main/scala/mhtml/settings.scala) to emit runtime warnings about unknown elements, attributes, entity references and event handlers. For example, the following piece of XML compiles fine:
 
 ```scala
 <captain yolo="true" onClick={ () => println("Oh yeah!") }></captain>
@@ -317,7 +317,7 @@ Elements:
 - `Seq[xml.Node]`
 
 For examples of how each type is rendered into dom nodes, take a look at the
-[tests](monadic-html/src/test/scala/mhtml/RenderTests.scala).
+[tests](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-html/src/test/scala/mhtml/RenderTests.scala).
 
 #### Can I `mount` a `Seq[Node]`?
 
@@ -393,7 +393,7 @@ import cats.implicits._, mhtml.implicits.cats._
 
 This blog post presents several existing solution to handle mutable state in user interfaces. It explains the core ideas behind Flux, Redux, Elm & others, and presents a new approach, *nested dialogues*, which is similar to what you would write in `monadic-html`.
 
-[*Controlling Time and Space: understanding the many formulations of FRP*](https://www.youtube.com/watch?v=Agu6jipKfYw) by Evan Czaplicki (author of [Elm](elm-lang.org))
+[*Controlling Time and Space: understanding the many formulations of FRP*](https://www.youtube.com/watch?v=Agu6jipKfYw) by Evan Czaplicki (author of [Elm](http://elm-lang.org))
 
 This presentation gives an overview of various formulations of FRP. The talked is focused on how different systems deal with the `flatMap` operator. When combined with a `fold` operator, `flatMap` is problematic: it either leaks memory or break referential transparency. Elm solution is to simply avoid the `flatMap` operator altogether (programs can exclusively be written in applicative style).
 
