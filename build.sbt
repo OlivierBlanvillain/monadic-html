@@ -47,9 +47,27 @@ lazy val `examples` = project
   .settings(noPublishSettings: _*)
   .settings(
     emitSourceMaps := true,
-    artifactPath in (Compile, fastOptJS) :=
-      ((crossTarget in (Compile, fastOptJS)).value /
-        ((moduleName in fastOptJS).value + "-opt.js")))
+    artifactPath in (Compile, fastOptJS) := (
+      (crossTarget in (Compile, fastOptJS)).value /
+        ((moduleName in fastOptJS).value + "-opt.js")
+    )
+  )
+
+lazy val `example-todomvc` = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(`monadic-html`, `monadic-rx-catsJS`)
+  .settings(noPublishSettings: _*)
+  .settings(
+    libraryDependencies += "com.lihaoyi" %%% "upickle" % "0.4.4",
+    emitSourceMaps := true,
+    requiresDOM in Test := true,
+    webpackConfigFile in fastOptJS := Some(baseDirectory.value / "dev.webpack.config.js"),
+    npmDependencies in Compile += "todomvc-app-css" -> "2.1.0",
+    artifactPath in (Compile, fastOptJS) := (
+      (crossTarget in (Compile, fastOptJS)).value /
+        ((moduleName in fastOptJS).value + "-opt.js")
+    )
+  )
 
 scalacOptions in ThisBuild := Seq(
   "-deprecation",
