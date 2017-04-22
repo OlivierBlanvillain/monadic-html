@@ -47,7 +47,7 @@ final case class Elem(
     label: String = this.label,
     attributes1: MetaData = this.attributes1,
     scope: Option[Scope] = this.scope,
-    child: Seq[Node] = this.child.toSeq): Elem = Elem(prefix, label, attributes1, scope, child: _*)
+    child: Seq[Node] = this.child): Elem = Elem(prefix, label, attributes1, scope, child: _*)
 }
 
 /** XML leaf for comments. */
