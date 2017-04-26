@@ -139,11 +139,6 @@ sealed trait Rx[+A] { self =>
    */
   def sampleOn[B](other: Rx[B]): Rx[A] = SampleOn[A, B](this, other)
 
-  /**
-   * Applies the side effecting function `f` to each element of this `Rx`.
-   * Returns an `Cancelable` which can be used to cancel the subscription.
-   * Omitting to canceling subscription can lead to memory leaks.
-   */
   val impure: RxImpureOps[A] = RxImpureOps[A](this)
 }
 
@@ -152,6 +147,8 @@ case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
    * Applies the side effecting function `f` to each element of this `Rx`.
    * Returns an `Cancelable` which can be used to cancel the subscription.
    * Omitting to canceling subscription can lead to memory leaks.
+   *
+   * If you use this in your code, you are probably doing in wrong.
    */
   def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
 }
@@ -281,7 +278,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
     foreach(a => :=(f(a))).cancel
 
   override def toString: String =
-    super.toString + s"[$cacheElem]"
+    s"Var(${cacheElem.orNull})"
 }
 
 object Var {

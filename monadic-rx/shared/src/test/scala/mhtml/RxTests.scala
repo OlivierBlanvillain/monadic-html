@@ -335,11 +335,11 @@ class RxTests extends FunSuite {
       string.contains("mhtml.RxTests$$Lambda$") || // JVM has unreliable toString
       string == """
         Merge(
-          Map(mhtml.Var@1[Some(1)],<function1>),
+          Map(Var(1), <function1>),
           Collect(
-            Map(mhtml.Var@2[Some(2)],<function1>),<function1>,0)
+            Map(Var(2), <function1>), <function1>, 0)
         )
-      """.lines.mkString("").filterNot(_ == ' ')
+      """.lines.mkString("").filterNot(' '.==)
     )
   }
 }
