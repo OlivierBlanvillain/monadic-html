@@ -10,10 +10,10 @@ object mount {
   private val onMountAtt   = "mhtml-onmount"
   private val onUnmountAtt = "mhtml-onunmount"
 
-  def apply(parent: DomNode, child: XmlNode, config: MountSettings): Unit = { mountNode(parent, child, None, config); () }
-  def apply(parent: DomNode, obs: Rx[XmlNode], config: MountSettings): Unit = { mountNode(parent, new Atom(obs), None, config); () }
-  def apply(parent: DomNode, child: XmlNode): Unit = { mountNode(parent, child, None, MountSettings.default); () }
-  def apply(parent: DomNode, obs: Rx[XmlNode]): Unit = { mountNode(parent, new Atom(obs), None, MountSettings.default); () }
+  def apply(parent: DomNode, child: XmlNode, config: MountSettings): Cancelable = { mountNode(parent, child, None, config) }
+  def apply(parent: DomNode, obs: Rx[XmlNode], config: MountSettings): Cancelable = { mountNode(parent, new Atom(obs), None, config) }
+  def apply(parent: DomNode, child: XmlNode): Cancelable = { mountNode(parent, child, None, MountSettings.default) }
+  def apply(parent: DomNode, obs: Rx[XmlNode]): Cancelable = { mountNode(parent, new Atom(obs), None, MountSettings.default) }
 
   private def mountNode(parent: DomNode, child: XmlNode, startPoint: Option[DomNode], config: MountSettings): Cancelable =
     child match {

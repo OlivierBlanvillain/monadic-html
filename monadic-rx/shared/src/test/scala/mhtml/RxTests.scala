@@ -318,4 +318,28 @@ class RxTests extends FunSuite {
     ccm.cancel
     assert(rx1.subscribers.isEmpty && rx2.subscribers.isEmpty)
   }
+
+  test("pile printing from README") {
+    val rx1 = Var(1)
+    val rx2 = Var(2)
+    val rx3 =
+      rx1
+        .map(identity)
+        .merge(
+          rx2
+            .map(identity)
+            .dropIf(_ => false)(0)
+        )
+    val string = rx3.toString
+    assert(
+      string.contains("mhtml.RxTests$$Lambda$") || // JVM has unreliable toString
+      string == """
+        Merge(
+          Map(Var(1), <function1>),
+          Collect(
+            Map(Var(2), <function1>), <function1>, 0)
+        )
+      """.lines.mkString("").filterNot(' '.==)
+    )
+  }
 }

@@ -433,4 +433,45 @@ class HtmlTests extends FunSuite {
     mutateMe.appendChild(dom.document.createElement("h2"))
     assert(div.innerHTML == "<div><h1>foobar<h2></h2></h1></div>")
   }
+
+  test("Store README example") {
+    // Data type for the entire application state:
+    sealed trait State
+    object State {
+      val empty = new State {}
+    }
+
+    // Data type for events coming from the outside world:
+    sealed trait Action
+    trait TimeAction extends Action
+
+    // A single State => Html function for the entire page:
+    def view(state: Rx[State]): xml.Node = <div></div>
+
+    // Probably implemented with Var, but we can look at them as Rx. Note that the
+    // type can easily me made more precise by using <: Action instead:
+    val action1_clicks: Rx[Action] = Var(new Action {})
+    val action2_inputs: Rx[Action] = Var(new Action {})
+    val action3_AJAX:   Rx[Action] = Var(new Action {})
+    val action4_timer:  Rx[TimeAction] = Var(new TimeAction {})
+
+    // Let's merges all actions together:
+    val allActions: Rx[Action] =
+      action1_clicks merge
+      action2_inputs merge
+      action3_AJAX   merge
+      action4_timer
+
+    // Compute the new state given an action and a previous state:
+    // (I'm really not convinced by the name)
+    def reducer(previousState: State, action: Action): State = previousState
+
+    // The application State, probably initialize that from local store / DB
+    // updates could also be save on every update.
+    val store: Rx[State] = allActions.foldp(State.empty)(reducer)
+
+    // Tie everything together:
+    val root = dom.document.createElement("div")
+    mount(root, view(store))
+  }
 }
