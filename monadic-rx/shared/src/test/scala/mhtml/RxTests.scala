@@ -42,7 +42,7 @@ class RxTests extends FunSuite {
     assert((104, 105) == result)
 
     cc.cancel
-    assert(a.subscribers.isEmpty && b.subscribers.isEmpty)
+    assert(a.isHot && b.isHot)
   }
 
   test("Referential transparency with map") {
@@ -56,7 +56,7 @@ class RxTests extends FunSuite {
     a := 2
     assert(b.impure.value == 2)
     assert(a.map(identity).impure.value == 2)
-    assert(a.subscribers.isEmpty)
+    assert(a.isHot)
   }
 
   test("max using foldp") {
@@ -73,7 +73,7 @@ class RxTests extends FunSuite {
     assert(current == 5)
 
     cc.cancel
-    assert(value.subscribers.isEmpty)
+    assert(value.isHot)
   }
 
   test("keepIf") {
@@ -93,7 +93,7 @@ class RxTests extends FunSuite {
 
     cc1.cancel
     cc2.cancel
-    assert(numbers.subscribers.isEmpty)
+    assert(numbers.isHot)
   }
 
   test("keepIf fallback") {
@@ -102,7 +102,7 @@ class RxTests extends FunSuite {
     assert(empty.impure.value == -1)
     numbers := 1
     assert(empty.impure.value == -1)
-    assert(numbers.subscribers.isEmpty)
+    assert(numbers.isHot)
   }
 
   test("dropIf") {
@@ -122,7 +122,7 @@ class RxTests extends FunSuite {
 
     cc1.cancel
     cc2.cancel
-    assert(numbers.subscribers.isEmpty)
+    assert(numbers.isHot)
   }
 
   test("collect") {
@@ -141,7 +141,7 @@ class RxTests extends FunSuite {
     assert(evenList == List(0, 20, 40, 60))
     cc1.cancel
     cc2.cancel
-    assert(numbers.subscribers.isEmpty)
+    assert(numbers.isHot)
   }
 
   test("collect fallback") {
@@ -150,7 +150,7 @@ class RxTests extends FunSuite {
     assert(empty.impure.value == -1)
     numbers := 1
     assert(empty.impure.value == -1)
-    assert(numbers.subscribers.isEmpty)
+    assert(numbers.isHot)
   }
 
   test("dropRepeats") {
@@ -172,7 +172,7 @@ class RxTests extends FunSuite {
 
     cc1.cancel
     cc2.cancel
-    assert(numbers.subscribers.isEmpty)
+    assert(numbers.isHot)
   }
 
   test("merge") {
@@ -196,7 +196,7 @@ class RxTests extends FunSuite {
     cc1.cancel
     cc2.cancel
     ccm.cancel
-    assert(rx1.subscribers.isEmpty && rx2.subscribers.isEmpty)
+    assert(rx1.isHot && rx2.isHot)
   }
 
   test("merge update") {
@@ -214,7 +214,7 @@ class RxTests extends FunSuite {
     assert(value == 4)
 
     cc.cancel
-    assert(rx1.subscribers.isEmpty && rx2.subscribers.isEmpty)
+    assert(rx1.isHot && rx2.isHot)
   }
 
   test("Optimisation: Applicative style is faster than monadic style.") {
@@ -242,7 +242,7 @@ class RxTests extends FunSuite {
       assert(count == 2)
 
       cc.cancel
-      assert(rx1.subscribers.isEmpty && rx2.subscribers.isEmpty)
+      assert(rx1.isHot && rx2.isHot)
     }
 
     {
@@ -268,7 +268,7 @@ class RxTests extends FunSuite {
       assert(count == 5) // 5 > 2!
 
       cc.cancel
-      assert(rx1.subscribers.isEmpty && rx2.subscribers.isEmpty)
+      assert(rx1.isHot && rx2.isHot)
     }
 
     {
@@ -291,7 +291,7 @@ class RxTests extends FunSuite {
       assert(count == 6) // 6 > 2!
 
       cc.cancel
-      assert(rx1.subscribers.isEmpty && rx2.subscribers.isEmpty)
+      assert(rx1.isHot && rx2.isHot)
     }
   }
 
@@ -316,7 +316,7 @@ class RxTests extends FunSuite {
     cc1.cancel
     cc2.cancel
     ccm.cancel
-    assert(rx1.subscribers.isEmpty && rx2.subscribers.isEmpty)
+    assert(rx1.isHot && rx2.isHot)
   }
 
   test("pile printing from README") {

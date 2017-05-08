@@ -246,7 +246,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
   private[mhtml] val subscribers = buffer.empty[A => Unit]
 
   private[mhtml] def foreach(s: A => Unit): Cancelable = {
-    if (subscribers.isEmpty) registration = register(this)
+    if (isHot) registration = register(this)
     cacheElem match {
       case Some(v) => s(v)
       case None    =>
@@ -254,9 +254,17 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
     subscribers += s
     Cancelable { () =>
       subscribers -= s
-      if (subscribers.isEmpty) registration.cancel
+      if (isHot) registration.cancel
     }
   }
+
+  /**
+   * Is there anything currently subscribed to this `Var`?
+   *
+   * This method is intended to be used to test the absence of memory leak.
+   * For instance, all `Var`s should be cold after canceling a `mount`.
+   */
+  def isHot: Boolean = subscribers.isEmpty
 
   /** Sets the value of this `Var`. Triggers recalculation of depending `Rx`s. */
   def :=(newValue: A): Unit = {
