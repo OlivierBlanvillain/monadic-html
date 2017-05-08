@@ -4,6 +4,7 @@ import scala.scalajs.js.JSApp
 import scala.xml.Node
 import scala.collection.breakOut
 import cats.implicits._
+import cats.kernel.Semigroup
 import mhtml._
 import mhtml.implicits.cats._
 import org.scalajs.dom
@@ -14,29 +15,33 @@ import org.scalajs.dom.raw.HTMLInputElement
 import upickle.default.read
 import upickle.default.write
 
-import scala.scalajs.runtime.UndefinedBehaviorError
-
 object MhtmlTodo extends JSApp {
 
   case class Component[D](view: Node, model: Rx[D])
 
   case class Todo(title: String, completed: Boolean)
 
-  case class TodoList(text: String, hash: String, items: Rx[Seq[Todo]])
+  case class TodoList(text: String, hash: String, items: Rx[List[Todo]])
+
+  sealed trait TodoEvent
+  final case class UpdateEvent(oldTodo: Todo, newTodo: Todo) extends TodoEvent
+  final case class AddEvent(newTodo: Todo) extends TodoEvent
+  final case class RemovalEvent(todo: Todo) extends TodoEvent
+  //
 
   //
   // Add components for the app
   //
 
-  val header: Component[Option[Todo]] = {
-    val newTodo = Var[Option[Todo]](None)
+  val header: Component[Option[AddEvent]] = {
+    val newTodo = Var[Option[AddEvent]](None)
     def onInputKeydown(event: KeyboardEvent): Unit = {
       (event.currentTarget, event.keyCode) match {
         case (input: HTMLInputElement, KeyCode.Enter) =>
           input.value.trim match {
             case "" =>
             case title =>
-              newTodo := Some(Todo(title, completed = false))
+              newTodo := Some(AddEvent(Todo(title, completed = false)))
               input.value = ""
           }
         case _ =>
@@ -53,8 +58,8 @@ object MhtmlTodo extends JSApp {
     Component(headerNode, newTodo)
   }
 
-  def footer: Component[List[Todo]] = {
-    val removeTodos = Var[List[Todo]](Nil)
+  def footer: Component[Option[RemovalEvent]] = {
+    val removeTodo = Var[Option[RemovalEvent]](None)
     val display = allTodos.map(x => if (x.isEmpty) "none" else "")
     val visibility =
       completed.items.map(x => if (x.isEmpty) "hidden" else "visible")
@@ -63,7 +68,7 @@ object MhtmlTodo extends JSApp {
         <ul class="filters">{todoLists.map(todoListsFooter)}</ul>
         <button onclick={() =>
             allTodos.map(_.filter(_.completed).foreach(todo =>
-              removeTodos.update(rtList => todo :: rtList)
+              removeTodo := Some(RemovalEvent(todo))
             ))
             ()
           }
@@ -72,24 +77,21 @@ object MhtmlTodo extends JSApp {
           Clear completed
         </button>
       </footer>
-    Component(footerNode, removeTodos)
+    Component(footerNode, removeTodo)
   }
 
-  case class TodoUpdate(oldTodo: Todo, newTodo: Todo)
-  case class TodoListItemData(removal: Option[Todo], update: Option[TodoUpdate])
-  //
-  def todoListItem(todo: Todo): Component[TodoListItemData] = {
-    val removeTodo = Var[Option[Todo]](None)
-    val updateTodo = Var[Option[TodoUpdate]](None)
+  def todoListItem(todo: Todo): Component[Option[TodoEvent]] = {
+    val removeTodo = Var[Option[RemovalEvent]](None)
+    val updateTodo = Var[Option[UpdateEvent]](None)
     val suppressOnBlur = Var(false)
     def submit(event: Event) = {
       suppressOnBlur := true
       editingTodo := None
       event.currentTarget.asInstanceOf[HTMLInputElement].value.trim match {
         case "" =>
-          removeTodo := Some(todo)
+          removeTodo := Some(RemovalEvent(todo))
         case trimmedTitle =>
-          updateTodo := Some(TodoUpdate(todo, Todo(trimmedTitle, todo.completed)))
+          updateTodo := Some(UpdateEvent(todo, Todo(trimmedTitle, todo.completed)))
       }
     }
     def onEditTodoTitle(event: KeyboardEvent): Unit = {
@@ -109,7 +111,7 @@ object MhtmlTodo extends JSApp {
     def onToggleCompleted(event: Event): Unit = {
       event.currentTarget match {
         case input: HTMLInputElement =>
-          updateTodo := Some(TodoUpdate(todo, Todo(todo.title, input.checked)))
+          updateTodo := Some(UpdateEvent(todo, Todo(todo.title, input.checked)))
         case _ =>
       }
     }
@@ -118,18 +120,14 @@ object MhtmlTodo extends JSApp {
       focusInput()
     }
     val onDelete: (Event) => Unit = _ =>
-      removeTodo := Some(todo)
+      removeTodo := Some(RemovalEvent(todo))
 
     val css = editingTodo.map { x =>
       val editing = if (x.contains(todo)) "editing" else ""
       val completed = if (todo.completed) "completed" else ""
       s"$editing $completed"
     }
-    val data = (removeTodo |@| updateTodo).map {
-      case (rmTodo: Option[Todo], update: Option[TodoUpdate]) =>
-        TodoListItemData(rmTodo, update)
-    }
-
+    val data: Rx[Option[TodoEvent]] = Semigroup[Rx[Option[TodoEvent]]].combine(removeTodo, updateTodo)
     val todoListElem =
       <li class={ css }>
         <div class="view">
@@ -150,14 +148,14 @@ object MhtmlTodo extends JSApp {
   }
 
 
-  def mainSection: Component[List[TodoUpdate]] = {
+  def mainSection: Component[List[UpdateEvent]] = {
 
-    val todoUpdates = Var[List[TodoUpdate]](Nil)
+    val todoUpdates = Var[List[UpdateEvent]](Nil)
 
-    def setAllCompleted(todosIn: Seq[Todo], completed: Boolean): List[TodoUpdate] =
+    def setAllCompleted(todosIn: Seq[Todo], completed: Boolean): List[UpdateEvent] =
       todosIn.flatMap{
         case todo if todo.completed != completed =>
-          Some(TodoUpdate(todo, Todo(todo.title, completed)))
+          Some(UpdateEvent(todo, Todo(todo.title, completed)))
         case _ => None
       }(breakOut)
 
@@ -187,9 +185,9 @@ object MhtmlTodo extends JSApp {
 
 //  object Model {
   val LocalStorageName = "todo.mhtml"
-  def load(): Seq[Todo] =
-    LocalStorage(LocalStorageName).toSeq.flatMap(read[Seq[Todo]])
-  def save(todos: Seq[Todo]): Unit =
+  def load(): List[Todo] =
+    LocalStorage(LocalStorageName).toSeq.flatMap(read[List[Todo]]).toList
+  def save(todos: List[Todo]): Unit =
     LocalStorage(LocalStorageName) = write(todos)
   val windowHash: Rx[String] = Rx(dom.window.location.hash).merge{
     var updatedHash = Var(dom.window.location.hash)
@@ -205,76 +203,62 @@ object MhtmlTodo extends JSApp {
     TodoList("Active", "#/active", allTodos.map(_.filter(!_.completed)))
   val completed =
     TodoList("Completed", "#/completed", allTodos.map(_.filter(_.completed)))
-  val todoLists = Seq(all, active, completed)
+  val todoLists = List(all, active, completed)
 
 
   val currentTodoList: Rx[TodoList] = windowHash.map(hash =>
     todoLists.find(_.hash === hash).getOrElse(all)
   )
-  val todoListComponents: Rx[Seq[Component[TodoListItemData]]] =
+  val todoListComponents: Rx[List[Component[Option[TodoEvent]]]] =
     currentTodoList.flatMap { current =>
       current.items.map(_.map(todoListItem))
     }
 
-  // Note: Cats Traverse can't support Seq, so we use List
-  def unzipListComponents(listComps: Seq[Component[TodoListItemData]])
-  : (List[Node], List[Rx[TodoListItemData]])
+  def unzipListComponents(listComps: Seq[Component[List[TodoEvent]]])
+  : (List[Node], List[Rx[List[TodoEvent]]])
   = listComps.toList.map(tlc => (tlc.view, tlc.model)).unzip
 
   val todoListElems: Rx[List[Node]] =
-    todoListComponents.map{tlcSeq => unzipListComponents(tlcSeq)._1}
+    todoListComponents.map{tlcSeq => tlcSeq.map(comp => comp.view)}
 
-  val todoListDataChanges: Rx[List[TodoListItemData]] =
-    todoListComponents.flatMap{tlcSeq => unzipListComponents(tlcSeq)._2.sequence}
-
-//  lazy val allTodos: Rx[Seq[Todo]] = (
-//    Rx(load()) |@| header.model |@| todoListDataChanges
-//  ) map {
-//    case (stored: Seq[Todo], newTodoMaybe: Option[Todo], changes: List[TodoListItemData]) =>
-//      val removals: List[Todo] = changes.flatMap(change => change.removal)
-//      val updates: List[TodoUpdate] = changes.flatMap(change => change.update)
-//
-//      (stored ++ newTodoMaybe).filter(todo => !removals .contains(todo))
-//      .map{todo => updates.find{update => update.oldTodo == todo} match {
-//        case Some(foundUpdate) => foundUpdate.newTodo
-//        case None => todo
-//      }}
-//  }
+  val todoListEvent: Rx[Option[TodoEvent]] = {
+    val todoListModelsRx: Rx[List[Rx[Option[TodoEvent]]]] = todoListComponents.map(compList =>
+      compList.map(comp => comp.model)
+    )
+    todoListModelsRx.flatMap(todoListModels =>
+      todoListModels.foldRight[Rx[Option[TodoEvent]]](Rx(None))(
+        (lastEv: Rx[Option[TodoEvent]], nextEv: Rx[Option[TodoEvent]]) => nextEv |+| lastEv
+      )
+    )
+  }
 
   case class ModelSources(
     headerModel: Option[Todo],
-    changes:  List[TodoListItemData]
+    changes:  List[TodoEvent]
   )
 
-  def updateState(currentTodos: Seq[Todo], sources: ModelSources): Seq[Todo] = {
-    val removals: List[Todo] = sources.changes.flatMap(change => change.removal)
-    val updates: List[TodoUpdate] = sources.changes.flatMap(change => change.update)
-
-    (currentTodos ++ sources.headerModel).filter(todo => !removals .contains(todo))
-      .map{todo => updates.find{update => update.oldTodo == todo} match {
-        case Some(foundUpdate) => foundUpdate.newTodo
-        case None => todo
-      }}
+  def updateState(currentTodos: List[Todo], evOpt: Option[TodoEvent]): List[Todo] = evOpt match {
+    case Some(AddEvent(newTodo)) => newTodo :: currentTodos
+    case Some(RemovalEvent(rmTodo)) => currentTodos.filter(todo => todo == rmTodo)
+    case Some(UpdateEvent(oldTodo, newTodo)) =>
+      val listIndex = currentTodos.indexOf(oldTodo)
+      if (listIndex > 0) {
+        currentTodos.updated(listIndex, newTodo)
+      }
+      else currentTodos
+    case None => currentTodos
   }
 
-  val sourcesWrapped: Rx[ModelSources] = header.model |@| todoListDataChanges map {
-    case(newTodoMaybe: Option[Todo], changes: List[TodoListItemData]) =>
-      ModelSources(newTodoMaybe, changes)
-    case whatsit  =>
-      println("mismatch: " + whatsit.getClass.getName)
-      throw new UndefinedBehaviorError("Expected (Option[Todo], List[TodoListItemData])")
-  }
+  val anyEvent: Rx[Option[TodoEvent]] = todoListEvent |+| footer.model |+| header.model
 
-  lazy val allTodos: Rx[Seq[Todo]] = sourcesWrapped.flatMap(mSources =>
-    allTodos.foldp(load()){(last, next) => updateState(last ++ next, mSources)}
+  lazy val allTodos: Rx[List[Todo]] = anyEvent.flatMap(ev =>
+    allTodos.foldp(load()){(last, next) => updateState(last ++ next, ev)}
   )
-
 
   def focusInput() = dom.document.getElementById("editInput") match {
     case t: HTMLInputElement => t.focus()
     case _ =>
   }
-
 
   val count = active.items.map { items =>
     <span class="todo-count">
