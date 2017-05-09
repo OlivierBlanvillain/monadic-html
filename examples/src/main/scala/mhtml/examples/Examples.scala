@@ -88,7 +88,9 @@ object Main extends JSApp {
       {activeExample.map(_.demo)}
     </div>
 
-  def main(): Unit =
+  def main(): Unit = {
     mount(dom.document.body, mainApp)
+    ()
+  }
 }
 

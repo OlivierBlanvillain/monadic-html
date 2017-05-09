@@ -101,21 +101,25 @@ final case object TopScope extends NamespaceBinding(null, null, null) {
  *  - an instance of `PrefixedAttribute namespace_prefix,key,value` or
  *  - `Null`, the empty attribute list.
  */
-sealed trait MetaData extends Iterable[MetaData] {
+sealed trait MetaData {
   def hasNext = (Null != next)
   def key: String
   def value: Node
   def next: MetaData
-
-  def iterator: Iterator[MetaData] =
-    Iterator.single(this) ++ next.iterator
+  def map[T](f: MetaData => T): List[T] = {
+    def map0(acc: List[T], m: MetaData): List[T] =
+      m match {
+        case Null => acc
+        case any  => map0(f(any) :: acc, m.next)
+      }
+    map0(Nil, this)
+  }
 }
 
 case object Null extends MetaData {
   def next = null
   def key = null
   def value = null
-  override def iterator = Iterator.empty
 }
 
 final case class PrefixedAttribute[T: XmlAttributeEmbeddable](
