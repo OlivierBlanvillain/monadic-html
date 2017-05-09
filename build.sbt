@@ -66,7 +66,8 @@ lazy val `example-todomvc` = project
     artifactPath in (Compile, fastOptJS) := (
       (crossTarget in (Compile, fastOptJS)).value /
         ((moduleName in fastOptJS).value + "-opt.js")
-    )
+    ),
+    scalacOptions += "-Xfatal-warnings"
   )
 
 scalacOptions in ThisBuild := Seq(

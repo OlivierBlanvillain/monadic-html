@@ -15,7 +15,9 @@ object mount {
   def apply(parent: DomNode, child: XmlNode): Cancelable = { mountNode(parent, child, None, MountSettings.default) }
   def apply(parent: DomNode, obs: Rx[XmlNode]): Cancelable = { mountNode(parent, new Atom(obs), None, MountSettings.default) }
 
-  private def mountNode(parent: DomNode, child: XmlNode, startPoint: Option[DomNode], config: MountSettings): Cancelable =
+  private def mountNode(parent: DomNode, child: XmlNode, startPoint: Option[DomNode], config: MountSettings): Cancelable = {
+    println(s""">>>>>>>>>>>>> mountNode ${child.toString.lines.mkString("$")}""")
+    println(s"""<<<<<<<<<<<<< mountNode""")
     child match {
       case e @ Elem(_, label, metadata, scope, child @ _*) =>
         config.inspectElement(label)
@@ -62,6 +64,7 @@ object mount {
           Cancelable.empty
       }
     }
+  }
 
   private def mountMetadata(parent: DomNode, scope: Option[Scope], m: MetaData, v: Any, config: MountSettings): Cancelable = v match {
     case a: Atom[_] =>

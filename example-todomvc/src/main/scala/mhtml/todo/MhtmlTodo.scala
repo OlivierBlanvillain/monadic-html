@@ -8,30 +8,65 @@ import cats.kernel.Semigroup
 import mhtml._
 import mhtml.implicits.cats._
 import org.scalajs.dom
-import org.scalajs.dom.{Event, HashChangeEvent, KeyboardEvent}
+import org.scalajs.dom.{Event, KeyboardEvent}
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.ext.LocalStorage
 import org.scalajs.dom.raw.HTMLInputElement
 import upickle.default.read
 import upickle.default.write
 
+case class Component[D](view: Node, model: Rx[D])
+
+case class Todo(title: String, completed: Boolean)
+
+case class TodoList(text: String, hash: String, items: Rx[List[Todo]])
+
+sealed trait TodoEvent
+final case class UpdateEvent(oldTodo: Todo, newTodo: Todo) extends TodoEvent
+final case class AddEvent(newTodo: Todo) extends TodoEvent
+final case class RemovalEvent(todo: Todo) extends TodoEvent
+
 object MhtmlTodo extends JSApp {
+  val windowHash: Rx[String] = Rx(dom.window.location.hash).merge{
+    val updatedHash = Var(dom.window.location.hash)
+    dom.window.onhashchange = (ev: Event) => {
+      updatedHash := dom.window.location.hash
+    }
+    updatedHash
+  }
 
-  case class Component[D](view: Node, model: Rx[D])
+  // There is a cicle here, todoLists is a dependency of currentTodoList, but
+  // currentTodoList is used by todoListComponents,
+  // which is used by todoListEvent,
+  // which is used by anyEvent,
+  // which is used by allTodos,
+  // which is used by all,
+  // which is used by todoLists
 
-  case class Todo(title: String, completed: Boolean)
+  val currentTodoList: Rx[TodoList] = windowHash.map {
+    hash =>
+      // Evidence that cicles result in null, initialisation order is fun!
+      if (this.todoLists == null) ???
+      todoLists.find(_.hash === hash).getOrElse(all)
+  }
 
-  case class TodoList(text: String, hash: String, items: Rx[List[Todo]])
+  currentTodoList.impure.foreach(println)
 
-  sealed trait TodoEvent
-  final case class UpdateEvent(oldTodo: Todo, newTodo: Todo) extends TodoEvent
-  final case class AddEvent(newTodo: Todo) extends TodoEvent
-  final case class RemovalEvent(todo: Todo) extends TodoEvent
-  //
+  val todoListComponents: Rx[List[Component[Option[TodoEvent]]]] =
+    currentTodoList.flatMap { current =>
+      current.items.map(_.map(todoListItem))
+    }
 
-  //
-  // Add components for the app
-  //
+  val todoListEvent: Rx[Option[TodoEvent]] = {
+    val todoListModelsRx: Rx[List[Rx[Option[TodoEvent]]]] = todoListComponents.map(compList =>
+      compList.map(comp => comp.model)
+    )
+    todoListModelsRx.flatMap(todoListModels =>
+      todoListModels.foldRight[Rx[Option[TodoEvent]]](Rx(None))(
+        (lastEv: Rx[Option[TodoEvent]], nextEv: Rx[Option[TodoEvent]]) => nextEv |+| lastEv
+      )
+    )
+  }
 
   val header: Component[Option[AddEvent]] = {
     val newTodo = Var[Option[AddEvent]](None)
@@ -58,26 +93,35 @@ object MhtmlTodo extends JSApp {
     Component(headerNode, newTodo)
   }
 
-  def footer: Component[Option[RemovalEvent]] = {
-    val removeTodo = Var[Option[RemovalEvent]](None)
+  val removeTodo  = Var[Option[RemovalEvent]](None)
+  val footerModel = removeTodo
+  val anyEvent: Rx[Option[TodoEvent]] = todoListEvent |+| footerModel |+| header.model
+
+  val allTodos: Rx[List[Todo]] =
+    anyEvent.foldp(load()) { (last, ev) => updateState(last, ev) }
+
+  val all       = TodoList("All", "#/", allTodos)
+  val active    = TodoList("Active", "#/active", allTodos.map(_.filter(!_.completed)))
+  val completed = TodoList("Completed", "#/completed", allTodos.map(_.filter(_.completed)))
+  val todoLists = List(all, active, completed)
+
+  val footerView = {
     val display = allTodos.map(x => if (x.isEmpty) "none" else "")
     val visibility =
       completed.items.map(x => if (x.isEmpty) "hidden" else "visible")
-    val footerNode =
-      <footer class="footer" style:display={display}>
-        <ul class="filters">{todoLists.map(todoListsFooter)}</ul>
-        <button onclick={() =>
-            allTodos.map(_.filter(_.completed).foreach(todo =>
-              removeTodo := Some(RemovalEvent(todo))
-            ))
-            ()
-          }
-          class="clear-completed"
-          style:visibility={visibility}>
-          Clear completed
-        </button>
-      </footer>
-    Component(footerNode, removeTodo)
+    <footer class="footer" style:display={ display }>
+      <ul class="filters">{ todoLists.map(todoListsFooter) }</ul>
+      <button onclick={() =>
+          allTodos.map(_.filter(_.completed).foreach(todo =>
+            removeTodo := Some(RemovalEvent(todo))
+          ))
+          ()
+        }
+        class="clear-completed"
+        style:visibility={ visibility }>
+        Clear completed
+      </button>
+    </footer>
   }
 
   def todoListItem(todo: Todo): Component[Option[TodoEvent]] = {
@@ -147,9 +191,10 @@ object MhtmlTodo extends JSApp {
     Component(todoListElem, data)
   }
 
+  val todoListElems: Rx[List[Node]] =
+    todoListComponents.map{tlcSeq => tlcSeq.map(comp => comp.view)}
 
-  def mainSection: Component[List[UpdateEvent]] = {
-
+  val mainSection: Component[List[UpdateEvent]] = {
     val todoUpdates = Var[List[UpdateEvent]](Nil)
 
     def setAllCompleted(todosIn: Seq[Todo], completed: Boolean): List[UpdateEvent] =
@@ -185,52 +230,18 @@ object MhtmlTodo extends JSApp {
 
 //  object Model {
   val LocalStorageName = "todo.mhtml"
+
   def load(): List[Todo] =
     LocalStorage(LocalStorageName).toSeq.flatMap(read[List[Todo]]).toList
+
   def save(todos: List[Todo]): Unit =
     LocalStorage(LocalStorageName) = write(todos)
-  val windowHash: Rx[String] = Rx(dom.window.location.hash).merge{
-    var updatedHash = Var(dom.window.location.hash)
-    dom.window.onhashchange = (ev: HashChangeEvent) => {
-      updatedHash := dom.window.location.hash
-    }
-    updatedHash
-  }
 
   val editingTodo: Var[Option[Todo]] = Var[Option[Todo]](None)
-  val all = TodoList("All", "#/", allTodos)
-  val active =
-    TodoList("Active", "#/active", allTodos.map(_.filter(!_.completed)))
-  val completed =
-    TodoList("Completed", "#/completed", allTodos.map(_.filter(_.completed)))
-  val todoLists = List(all, active, completed)
-
-
-  val currentTodoList: Rx[TodoList] = windowHash.map(hash =>
-    todoLists.find(_.hash === hash).getOrElse(all)
-  )
-  val todoListComponents: Rx[List[Component[Option[TodoEvent]]]] =
-    currentTodoList.flatMap { current =>
-      current.items.map(_.map(todoListItem))
-    }
 
   def unzipListComponents(listComps: Seq[Component[List[TodoEvent]]])
-  : (List[Node], List[Rx[List[TodoEvent]]])
-  = listComps.toList.map(tlc => (tlc.view, tlc.model)).unzip
-
-  val todoListElems: Rx[List[Node]] =
-    todoListComponents.map{tlcSeq => tlcSeq.map(comp => comp.view)}
-
-  val todoListEvent: Rx[Option[TodoEvent]] = {
-    val todoListModelsRx: Rx[List[Rx[Option[TodoEvent]]]] = todoListComponents.map(compList =>
-      compList.map(comp => comp.model)
-    )
-    todoListModelsRx.flatMap(todoListModels =>
-      todoListModels.foldRight[Rx[Option[TodoEvent]]](Rx(None))(
-        (lastEv: Rx[Option[TodoEvent]], nextEv: Rx[Option[TodoEvent]]) => nextEv |+| lastEv
-      )
-    )
-  }
+    : (List[Node], List[Rx[List[TodoEvent]]])
+    = listComps.toList.map(tlc => (tlc.view, tlc.model)).unzip
 
   case class ModelSources(
     headerModel: Option[Todo],
@@ -249,16 +260,11 @@ object MhtmlTodo extends JSApp {
     case None => currentTodos
   }
 
-  val anyEvent: Rx[Option[TodoEvent]] = todoListEvent |+| footer.model |+| header.model
-
-  lazy val allTodos: Rx[List[Todo]] = anyEvent.flatMap(ev =>
-    allTodos.foldp(load()){(last, next) => updateState(last ++ next, ev)}
-  )
-
-  def focusInput() = dom.document.getElementById("editInput") match {
-    case t: HTMLInputElement => t.focus()
-    case _ =>
-  }
+  def focusInput(): Unit =
+    dom.document.getElementById("editInput") match {
+      case t: HTMLInputElement => t.focus()
+      case _ =>
+    }
 
   val count = active.items.map { items =>
     <span class="todo-count">
@@ -276,7 +282,7 @@ object MhtmlTodo extends JSApp {
 
   val todoapp: Node = {
     <div>
-      <section class="todoapp">{ header.view }{ mainSection.view }{ footer.view }</section>
+      <section class="todoapp">{ header.view }{ mainSection.view }{ footerView }</section>
       <footer class="info">
         <p>Double-click to edit a todo</p>
         <p>
@@ -293,5 +299,6 @@ object MhtmlTodo extends JSApp {
   def main(): Unit = {
     val div = dom.document.getElementById("application-container")
     mount(div, todoapp)
+    ()
   }
 }
