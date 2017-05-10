@@ -27,6 +27,13 @@ final case class AddEvent(newTodo: Todo) extends TodoEvent
 final case class RemovalEvent(todo: Todo) extends TodoEvent
 
 object MhtmlTodo extends JSApp {
+  val allTodos: Var[List[Todo]] = Var(Nil)
+
+  val all       = TodoList("All", "#/", allTodos)
+  val active    = TodoList("Active", "#/active", allTodos.map(_.filter(!_.completed)))
+  val completed = TodoList("Completed", "#/completed", allTodos.map(_.filter(_.completed)))
+  val todoLists = List(all, active, completed)
+
   val windowHash: Rx[String] = Rx(dom.window.location.hash).merge{
     val updatedHash = Var(dom.window.location.hash)
     dom.window.onhashchange = (ev: Event) => {
@@ -35,7 +42,7 @@ object MhtmlTodo extends JSApp {
     updatedHash
   }
 
-  // There is a cicle here, todoLists is a dependency of currentTodoList, but
+  // There is a cycle here, todoLists is a dependency of currentTodoList, but
   // currentTodoList is used by todoListComponents,
   // which is used by todoListEvent,
   // which is used by anyEvent,
@@ -45,12 +52,12 @@ object MhtmlTodo extends JSApp {
 
   val currentTodoList: Rx[TodoList] = windowHash.map {
     hash =>
-      // Evidence that cicles result in null, initialisation order is fun!
-      if (this.todoLists == null) ???
+      // Evidence that cycles result in null, initialisation order is fun!
+      if (this.todoLists == null) println("todoLists is null!")
       todoLists.find(_.hash === hash).getOrElse(all)
   }
 
-  currentTodoList.impure.foreach(println)
+  currentTodoList.impure.foreach(println) //DEBUG
 
   val todoListComponents: Rx[List[Component[Option[TodoEvent]]]] =
     currentTodoList.flatMap { current =>
@@ -76,6 +83,7 @@ object MhtmlTodo extends JSApp {
           input.value.trim match {
             case "" =>
             case title =>
+              println(s"$title from header!") // DEBUG
               newTodo := Some(AddEvent(Todo(title, completed = false)))
               input.value = ""
           }
@@ -95,15 +103,16 @@ object MhtmlTodo extends JSApp {
 
   val removeTodo  = Var[Option[RemovalEvent]](None)
   val footerModel = removeTodo
+  header.model.map{someAddEv => someAddEv.collect{
+    case AddEvent(newTodo) => println(s"${newTodo.title} from header model")
+    case xEv => println(s"unknown $xEv from header model")
+  }; ()} // DEBUG ;; //FIXME: why if we replace impure.foreach with map, no printlns?
+
   val anyEvent: Rx[Option[TodoEvent]] = todoListEvent |+| footerModel |+| header.model
 
-  val allTodos: Rx[List[Todo]] =
+  val allTodosSplice: Rx[List[Todo]] =
     anyEvent.foldp(load()) { (last, ev) => updateState(last, ev) }
-
-  val all       = TodoList("All", "#/", allTodos)
-  val active    = TodoList("Active", "#/active", allTodos.map(_.filter(!_.completed)))
-  val completed = TodoList("Completed", "#/completed", allTodos.map(_.filter(_.completed)))
-  val todoLists = List(all, active, completed)
+  allTodosSplice.map(allTodos.:=)
 
   val footerView = {
     val display = allTodos.map(x => if (x.isEmpty) "none" else "")
