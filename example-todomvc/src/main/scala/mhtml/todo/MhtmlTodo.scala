@@ -42,22 +42,9 @@ object MhtmlTodo extends JSApp {
     updatedHash
   }
 
-  // There is a cycle here, todoLists is a dependency of currentTodoList, but
-  // currentTodoList is used by todoListComponents,
-  // which is used by todoListEvent,
-  // which is used by anyEvent,
-  // which is used by allTodos,
-  // which is used by all,
-  // which is used by todoLists
-
-  val currentTodoList: Rx[TodoList] = windowHash.map {
-    hash =>
-      // Evidence that cycles result in null, initialisation order is fun!
-      if (this.todoLists == null) println("todoLists is null!")
-      todoLists.find(_.hash === hash).getOrElse(all)
+  val currentTodoList: Rx[TodoList] = windowHash.map { hash =>
+    todoLists.find(_.hash === hash).getOrElse(all)
   }
-
-  currentTodoList.impure.foreach(println) //DEBUG
 
   val todoListComponents: Rx[List[Component[Option[TodoEvent]]]] =
     currentTodoList.flatMap { current =>
@@ -65,9 +52,8 @@ object MhtmlTodo extends JSApp {
     }
 
   val todoListEvent: Rx[Option[TodoEvent]] = {
-    val todoListModelsRx: Rx[List[Rx[Option[TodoEvent]]]] = todoListComponents.map(compList =>
-      compList.map(comp => comp.model)
-    )
+    val todoListModelsRx: Rx[List[Rx[Option[TodoEvent]]]] =
+      todoListComponents.map(compList => compList.map(comp => comp.model))
     todoListModelsRx.flatMap(todoListModels =>
       todoListModels.foldRight[Rx[Option[TodoEvent]]](Rx(None))(
         (lastEv: Rx[Option[TodoEvent]], nextEv: Rx[Option[TodoEvent]]) => nextEv |+| lastEv
@@ -83,7 +69,6 @@ object MhtmlTodo extends JSApp {
           input.value.trim match {
             case "" =>
             case title =>
-              println(s"$title from header!") // DEBUG
               newTodo := Some(AddEvent(Todo(title, completed = false)))
               input.value = ""
           }
@@ -101,36 +86,39 @@ object MhtmlTodo extends JSApp {
     Component(headerNode, newTodo)
   }
 
-  val removeTodo  = Var[Option[RemovalEvent]](None)
-  val footerModel = removeTodo
-  header.model.map{someAddEv => someAddEv.collect{
-    case AddEvent(newTodo) => println(s"${newTodo.title} from header model")
-    case xEv => println(s"unknown $xEv from header model")
-  }; ()} // DEBUG ;; //FIXME: why if we replace impure.foreach with map, no printlns?
-
-  val anyEvent: Rx[Option[TodoEvent]] = todoListEvent |+| footerModel |+| header.model
-
-  val allTodosSplice: Rx[List[Todo]] =
-    anyEvent.foldp(load()) { (last, ev) => updateState(last, ev) }
-  allTodosSplice.map(allTodos.:=)
-
-  val footerView = {
+  val footer: Component[Option[RemovalEvent]] = {
+    val removeTodo = Var[Option[RemovalEvent]](None)
     val display = allTodos.map(x => if (x.isEmpty) "none" else "")
     val visibility =
       completed.items.map(x => if (x.isEmpty) "hidden" else "visible")
-    <footer class="footer" style:display={ display }>
-      <ul class="filters">{ todoLists.map(todoListsFooter) }</ul>
-      <button onclick={() =>
+    val footerNode =
+      <footer class="footer" style:display={display}>
+        <ul class="filters">{todoLists.map(todoListsFooter)}</ul>
+        <button onclick={() =>
           allTodos.map(_.filter(_.completed).foreach(todo =>
             removeTodo := Some(RemovalEvent(todo))
           ))
           ()
-        }
-        class="clear-completed"
-        style:visibility={ visibility }>
-        Clear completed
-      </button>
-    </footer>
+          }
+          class="clear-completed"
+          style:visibility={visibility}>
+          Clear completed
+        </button>
+      </footer>
+    Component(footerNode, removeTodo)
+  }
+
+  val anyEvent: Rx[Option[TodoEvent]] = todoListEvent |+| footer.model |+| header.model
+
+  val allTodosSplice: Rx[List[Todo]] =
+    anyEvent.foldp(load()) { (last, ev) => updateState(last, ev) }
+  val cycleRunner = allTodos |@| allTodosSplice map {
+    case (oldTodos, newTodos) =>
+      if (oldTodos != newTodos) {
+        println("updating all todos")
+        allTodos := newTodos
+      }
+    <div/>
   }
 
   def todoListItem(todo: Todo): Component[Option[TodoEvent]] = {
@@ -291,7 +279,8 @@ object MhtmlTodo extends JSApp {
 
   val todoapp: Node = {
     <div>
-      <section class="todoapp">{ header.view }{ mainSection.view }{ footerView }</section>
+      { cycleRunner }
+      <section class="todoapp">{ header.view }{ mainSection.view }{ footer.view }</section>
       <footer class="info">
         <p>Double-click to edit a todo</p>
         <p>
