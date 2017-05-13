@@ -15,6 +15,45 @@ import org.scalajs.dom.raw.HTMLInputElement
 import upickle.default.read
 import upickle.default.write
 
+
+class SemiVar[A](initialValue: Option[A], register: Var[A] => Cancelable)
+  extends Var[A](initialValue, register) {
+
+  protected var callLocations: Set[Int] = Set()
+  protected def wasSet: Boolean = callLocations.size > 1
+  protected def addUpdateCall(): Unit = {
+    val straceSeq = new RuntimeException().getStackTrace.toSeq
+    val lineNumHash = straceSeq.map(stl => stl.getLineNumber).mkString("\n").hashCode.toString
+    val contentHash = straceSeq.map(
+      stl => stl.getFileName + stl.getClassName + stl.getClassName
+    ).mkString("\n").hashCode.toString
+    val hashCode: Int = (lineNumHash + contentHash).hashCode
+    callLocations += hashCode
+  }
+
+
+  /** Sets the value of this `Var`. Triggers recalculation of depending `Rx`s. */
+  override def :=(newValue: A): Unit = {
+    addUpdateCall()
+    if (wasSet) throw new IllegalStateException("SemiVar was already set.")
+    super.:=(newValue)
+  }
+
+  /** Updates the value of this `Var`. Triggers recalculation of depending `Rx`s. */
+  override def update(f: A => A): Unit = {
+    addUpdateCall()
+    if (wasSet) throw new IllegalStateException("SemiVar was already set, can't update.")
+    super.update(f)
+  }
+}
+
+object SemiVar {
+  /** Create a `SemiVar` from an initial value. */
+  def apply[A](initialValue: A): SemiVar[A] =
+    new SemiVar[A](Some(initialValue), _ => Cancelable.empty)
+}
+
+
 case class Component[D](view: Node, model: Rx[D])
 
 case class Todo(title: String, completed: Boolean)
@@ -26,8 +65,9 @@ final case class UpdateEvent(oldTodo: Todo, newTodo: Todo) extends TodoEvent
 final case class AddEvent(newTodo: Todo) extends TodoEvent
 final case class RemovalEvent(todo: Todo) extends TodoEvent
 
+
 object MhtmlTodo extends JSApp {
-  val allTodos: Var[List[Todo]] = Var(Nil)
+  val allTodos: Var[List[Todo]] = SemiVar(Nil)
 
   val all       = TodoList("All", "#/", allTodos)
   val active    = TodoList("Active", "#/active", allTodos.map(_.filter(!_.completed)))
@@ -114,7 +154,7 @@ object MhtmlTodo extends JSApp {
     anyEvent.foldp(load()) { (last, ev) => updateState(last, ev) }
   val cycleRunner = allTodos |@| allTodosSplice map {
     case (oldTodos, newTodos) =>
-      if (oldTodos != newTodos) {
+      if (oldTodos ne newTodos) {
         println("updating all todos")
         allTodos := newTodos
       }
