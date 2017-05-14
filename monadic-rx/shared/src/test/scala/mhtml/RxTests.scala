@@ -18,8 +18,8 @@ class RxTests extends FunSuite {
 
   test("Scala.Rx README leak") {
     var count: Int = 0
-    val a: Var[Int] = Var(1)
-    val b: Var[Int] = Var(2)
+    val a: Var[Int] = Var(1, allowMultiMutations = true)
+    val b: Var[Int] = Var(2, allowMultiMutations = true)
     def mkRx(i: Int): Rx[Int] = b.map { v => count += 1; i + v }
 
     val c: Rx[Int] = a.flatMap(mkRx)
@@ -46,7 +46,7 @@ class RxTests extends FunSuite {
   }
 
   test("Referential transparency with map") {
-    val a: Var[Int] = Var(0)
+    val a: Var[Int] = Var(0, allowMultiMutations = true)
     val b: Rx[Int] = a.map(identity)
     assert(b.impure.value == 0)
     assert(a.map(identity).impure.value == 0)
@@ -60,7 +60,7 @@ class RxTests extends FunSuite {
   }
 
   test("max using foldp") {
-    val value: Var[Int] = Var(0)
+    val value: Var[Int] = Var(0, allowMultiMutations = true)
     val max: Rx[Int] = value.foldp(0)(_ max _)
     var current = -1
     val cc = max.impure.foreach(current = _)
@@ -77,7 +77,7 @@ class RxTests extends FunSuite {
   }
 
   test("keepIf") {
-    val numbers: Var[Int] = Var(0)
+    val numbers: Var[Int] = Var(0, allowMultiMutations = true)
     val even: Rx[Int] = numbers.keepIf(_ % 2 == 0)(-1)
     var numbersList: List[Int] = Nil
     var evenList: List[Int] = Nil
@@ -106,7 +106,7 @@ class RxTests extends FunSuite {
   }
 
   test("dropIf") {
-    val numbers: Var[Int] = Var(0)
+    val numbers: Var[Int] = Var(0, allowMultiMutations = true)
     val even: Rx[Int] = numbers.dropIf(_ % 2 == 0)(-1)
     var numbersList: List[Int] = Nil
     var evenList: List[Int] = Nil
@@ -126,7 +126,7 @@ class RxTests extends FunSuite {
   }
 
   test("collect") {
-    val numbers: Var[Int] = Var(0)
+    val numbers: Var[Int] = Var(0, allowMultiMutations = true)
     val even: Rx[Int] = numbers.collect { case x if x % 2 == 0 => x * 10 } (-1)
     var numbersList: List[Int] = Nil
     var evenList: List[Int] = Nil
@@ -154,7 +154,7 @@ class RxTests extends FunSuite {
   }
 
   test("dropRepeats") {
-    val numbers: Var[Int] = Var(0)
+    val numbers: Var[Int] = Var(0, allowMultiMutations = true)
     val noDups: Rx[Int] = numbers.dropRepeats
     var numbersList: List[Int] = Nil
     var noDupsList: List[Int] = Nil
@@ -176,8 +176,8 @@ class RxTests extends FunSuite {
   }
 
   test("merge") {
-    val rx1: Var[Int] = Var(0)
-    val rx2: Var[Int] = Var(1)
+    val rx1: Var[Int] = Var(0, allowMultiMutations = true)
+    val rx2: Var[Int] = Var(1, allowMultiMutations = true)
     val merged: Rx[Int] = rx1.merge(rx2)
     var rx1List: List[Int] = Nil
     var rx2List: List[Int] = Nil
@@ -201,7 +201,7 @@ class RxTests extends FunSuite {
 
   test("merge update") {
     val rx1: Var[Int] = Var(0)
-    val rx2: Var[Int] = Var(1)
+    val rx2: Var[Int] = Var(1, allowMultiMutations = true)
     val merged: Rx[Int] = rx1.merge(rx2)
     var value = -1
     val cc = merged.impure.foreach(value = _)
@@ -295,9 +295,9 @@ class RxTests extends FunSuite {
     }
   }
 
-  test("zip") {
-    val rx1: Var[Int] = Var(0)
-    val rx2: Var[Int] = Var(1)
+  test("product") {
+    val rx1: Var[Int] = Var(0, allowMultiMutations = true)
+    val rx2: Var[Int] = Var(1, allowMultiMutations = true)
     val zip: Rx[(Int, Int)] = rx1.zip(rx2)
     var rx1List: List[Int] = Nil
     var rx2List: List[Int] = Nil

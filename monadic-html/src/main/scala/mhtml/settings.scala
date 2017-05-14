@@ -18,7 +18,7 @@ trait MountSettings {
 }
 
 object MountSettings {
-  /** Production settings with fastOptJS a developement settings with fullOptJS. */
+  /** Production settings with fastOptJS a development settings with fullOptJS. */
   val default: MountSettings =
     if (LinkingInfo.productionMode)
       new ProdSettings {}
@@ -40,7 +40,7 @@ trait ProdSettings extends MountSettings {
   def inspectAttributeKey(att: String): Unit  = ()
 }
 
-/** Developement mode. Warns about unknown elements/attributes/events/EntityRef. */
+/** Development mode. Warns about unknown elements/attributes/events/EntityRef. */
 trait DevSettings extends MountSettings {
   def warn(message: String): Unit = println(s"[mhtml] Warning: $message")
 
