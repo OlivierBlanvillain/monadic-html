@@ -132,7 +132,7 @@ trait DevSettings extends MountSettings {
     "span"            , "spellcheck"      , "src"             , "srcdoc"          , "srclang"         ,
     "start"           , "step"            , "style"           , "tabindex"        , "target"          ,
     "title"           , "translate"       , "type"            , "usemap"          , "value"           ,
-    "width"           , "wrap"
+    "width"           , "wrap"            , "srcset"
   )
 
   /**
