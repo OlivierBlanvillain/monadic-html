@@ -15,8 +15,14 @@ import org.scalajs.dom.raw.HTMLInputElement
 import upickle.default.read
 import upickle.default.write
 
+sealed abstract class AbstractComponent[D](view: Node, model: Rx[D])
+case class Component[D](view: Node, model: Rx[D]) extends AbstractComponent[D](view, model)
 
-case class Component[D](view: Node, model: Rx[D])
+/**
+  * TaggedComponent is useful for updating a collection of components where one would want to
+  * sometimes alter Component[D] based on input data of type T
+  */
+case class TaggedComponent[D,T](view: Node, model: Rx[D], tag: T) extends AbstractComponent[D](view, model)
 
 case class Todo(title: String, completed: Boolean)
 
@@ -48,10 +54,25 @@ object MhtmlTodo extends JSApp {
     todoLists.find(_.hash === hash).getOrElse(all)
   }
 
-  val todoListComponents: Rx[List[Component[Option[TodoEvent]]]] =
-    currentTodoList.flatMap { current =>
-      current.items.map(_.map(todoListItem))
+  val todoListComponents: Var[List[TaggedComponent[Option[TodoEvent], Todo]]] = Var(Nil)
+  val todoListComponentsRunner = (currentTodoList |@| todoListComponents map {
+    case (currentTodos: TodoList, currentComps: List[TaggedComponent[Option[TodoEvent], Todo]]) =>
+    currentTodos.items.map(_.map{todo =>
+      val idx = currentComps.indexWhere{cmp => cmp.tag == todo}
+      println(s"comp index is $idx") // DEBUG
+      if (idx >= 0) currentComps(idx)
+      else todoListItem(todo)
+    })
+  }).flatMap(x => x) |@| todoListComponents map{ case (newComps, oldComps) =>
+    println(s"oldcomps = $oldComps;\nnewcomps= $newComps\n${oldComps == newComps}") //DEBUG
+    if (oldComps != newComps) {println("oldcomps != newComps, updating!")  // DEBUG
+      todoListComponents := newComps
     }
+    <div/>
+  }
+  todoListComponents.impure.foreach(ev => println(s"event from todoListComponents: $ev")) // DEBUG
+
+
 
   val todoListEvent: Rx[Option[TodoEvent]] = {
     val todoListModelsRx: Rx[List[Rx[Option[TodoEvent]]]] =
@@ -110,11 +131,13 @@ object MhtmlTodo extends JSApp {
     Component(footerNode, removeTodo)
   }
 
+  todoListEvent.impure.foreach(ev => println(s"event from todoListEvent: $ev")) // DEBUG
+
   val anyEvent: Rx[Option[TodoEvent]] = todoListEvent |+| footer.model |+| header.model
 
   val allTodosSplice: Rx[List[Todo]] =
     anyEvent.foldp(load()) { (last, ev) => updateState(last, ev) }
-  val cycleRunner = allTodos |@| allTodosSplice map {
+  val allTodosRunner = allTodos |@| allTodosSplice map {
     case (oldTodos, newTodos) =>
       if (oldTodos ne newTodos) {
         println("updating all todos")
@@ -123,7 +146,8 @@ object MhtmlTodo extends JSApp {
     <div/>
   }
 
-  def todoListItem(todo: Todo): Component[Option[TodoEvent]] = {
+  def todoListItem(todo: Todo): TaggedComponent[Option[TodoEvent], Todo] = {
+    println(s"making new todo component for $todo") // DEBUG
     val removeTodo = Var[Option[RemovalEvent]](None)
     val updateTodo = Var[Option[UpdateEvent]](None)
     val suppressOnBlur = Var(false)
@@ -187,7 +211,7 @@ object MhtmlTodo extends JSApp {
                value={ todo.title }
                onblur={ blurHandler }/>
       </li>
-    Component(todoListElem, data)
+    TaggedComponent(todoListElem, data, todo)
   }
 
   val todoListElems: Rx[List[Node]] =
@@ -281,7 +305,7 @@ object MhtmlTodo extends JSApp {
 
   val todoapp: Node = {
     <div>
-      { cycleRunner }
+      { todoListComponentsRunner }{ allTodosRunner }
       <section class="todoapp">{ header.view }{ mainSection.view }{ footer.view }</section>
       <footer class="info">
         <p>Double-click to edit a todo</p>
