@@ -129,7 +129,7 @@ final case class PrefixedAttribute[T: XmlAttributeEmbeddable](
   next: MetaData
 )(implicit ev: XmlAttributeEmbeddable[T]) extends MetaData {
   val value: Node = e match { case n: Node => n; case _ => new Atom(e) }
-  override def toString = s"PrefixedAttribute($pre, $key, $e, $next"
+  override def toString = s"PrefixedAttribute($pre, $key, $e, $next)"
 }
 
 final case class UnprefixedAttribute[T](
@@ -138,7 +138,7 @@ final case class UnprefixedAttribute[T](
   next: MetaData
 )(implicit ev: XmlAttributeEmbeddable[T]) extends MetaData {
   val value: Node = e match { case n: Node => n; case _ => new Atom(e) }
-  override def toString = s"UnprefixedAttribute($key, $e, $next"
+  override def toString = s"UnprefixedAttribute($key, $e, $next)"
 }
 
 /** Evidence that T can be embedded in xml attribute position. */
