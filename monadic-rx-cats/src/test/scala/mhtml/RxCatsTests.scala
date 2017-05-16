@@ -61,12 +61,14 @@ class RxCatsTests extends FunSuite {
     var todoListItemCounter: Int = 0
     def todoListItem(todo: Todo): TaggedComponent[Option[TodoEvent], Todo] = {
       val someEvent = Rx(Some(AddEvent(todo)))
+      todoListItemCounter += 1
       TaggedComponent(<div>{todoListItemCounter}</div>, someEvent, todo)
     }
 
     val todoListComponents: Var[List[TaggedComponent[Option[TodoEvent], Todo]]] = Var(Nil)
     val todoListComponentsRunner = (currentTodoList |@| todoListComponents map {
       case (currentTodos: TodoList, currentComps: List[TaggedComponent[Option[TodoEvent], Todo]]) =>
+        println(s"oldcomps in first var = $currentComps")
         currentTodos.items.map(_.map{todo =>
           val idx = currentComps.indexWhere{cmp => cmp.tag == todo}
           println(s"comp index is $idx") // DEBUG

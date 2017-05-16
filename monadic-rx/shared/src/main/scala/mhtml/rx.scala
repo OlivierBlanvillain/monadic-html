@@ -271,6 +271,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
 
   /** Sets the value of this `Var`. Triggers recalculation of depending `Rx`s. */
   def :=(newValue: A): Unit = {
+    println(s"proposed new value: $newValue") // DEBUG
     cacheElem = Some(newValue)
     var i = subscribers.size
     val copy = buffer[A => Unit](i)
