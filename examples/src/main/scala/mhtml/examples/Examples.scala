@@ -58,6 +58,7 @@ object Main extends JSApp {
     Timer,
     FocusElement,
     Counter,
+    StepCounter,
     ContactList,
     GithubAvatar,
     SelectList,
