@@ -33,15 +33,18 @@ sealed trait Rx[+A] { self =>
    * `for { a <- ra; b <- rb } yield (a, b)`.
    *
    * ```
-   * // r1      => 0     8                       9     ...
-   * // r2      => 1           4     5     6           ...
-   * // product => (0,1) (8,1) (8,4) (8,5) (8,6) (9,6) ...
+   * // r1  => 0     8                       9     ...
+   * // r2  => 1           4     5     6           ...
+   * // zip => (0,1) (8,1) (8,4) (8,5) (8,6) (9,6) ...
    * ```
    *
    * This method, together with `Rx.apply`, forms am `Applicative`.
    * `|@|` syntax is available via the `monadic-rx-cats` package.
    */
-  def product[B](other: Rx[B]): Rx[(A, B)] = Product[A, B](this, other)
+  def zip[B](other: Rx[B]): Rx[(A, B)] = Zip[A, B](this, other)
+
+  @deprecated("Renamed to zip", "0.3.3")
+  def product[B](other: Rx[B]): Rx[(A, B)] = zip(other)
 
   /**
    * Drop repeated value of this `Rx`.
@@ -159,7 +162,7 @@ object Rx {
 
   final case class Map     [A, B]     (self: Rx[A], f: A => B)                      extends Rx[B]
   final case class FlatMap [A, B]     (self: Rx[A], f: A => Rx[B])                  extends Rx[B]
-  final case class Product [A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[(A, B)]
+  final case class Zip [A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[(A, B)]
   final case class DropRep [A]        (self: Rx[A])                                 extends Rx[A]
   final case class Merge   [A, B >: A](self: Rx[A], other: Rx[B])                   extends Rx[B]
   final case class Foldp   [A, B]     (self: Rx[A], seed: B, step: (B, A) => B)     extends Rx[B]
@@ -179,7 +182,7 @@ object Rx {
       }
       Cancelable { () => c1.cancel; c2.cancel }
 
-    case Product(self, other) =>
+    case Zip(self, other) =>
       var go = false
       var v1: Any = null
       var v2: Any = null

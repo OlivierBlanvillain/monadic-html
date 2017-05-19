@@ -164,7 +164,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
 
     Together with `Rx#map` and `Rx.apply`, flatMap forms a `Monad`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
 
--  `def product[B](other: Rx[B]): Rx[(A, B)]`
+-  `def zip[B](other: Rx[B]): Rx[(A, B)]`
 
     Create the Cartesian product of two `Rx`. The output tuple contains the
     latest values from each input `Rx`, which updates whenever the value from
@@ -172,9 +172,9 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
     `for { a <- ra; b <- rb } yield (a, b)`.
 
     ```
-    // r1      => 0     8                       9     ...
-    // r2      => 1           4     5     6           ...
-    // product => (0,1) (8,1) (8,4) (8,5) (8,6) (9,6) ...
+    // r1  => 0     8                       9     ...
+    // r2  => 1           4     5     6           ...
+    // zip => (0,1) (8,1) (8,4) (8,5) (8,6) (9,6) ...
     ```
 
     This method, together with `Rx.apply`, forms am `Applicative`.
