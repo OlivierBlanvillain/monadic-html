@@ -219,7 +219,7 @@ object cats {
         }
 
       override def product[A, B](a: Rx[A], b: Rx[B]): Rx[(A, B)] =
-        a.product(b)
+        a.zip(b)
     }
 
   /**
