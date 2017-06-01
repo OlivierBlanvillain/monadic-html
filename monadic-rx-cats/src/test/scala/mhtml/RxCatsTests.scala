@@ -4,8 +4,6 @@ import cats.implicits._
 import mhtml.implicits.cats._
 import org.scalatest.FunSuite
 
-import scala.xml.Node
-
 class RxCatsTests extends FunSuite {
 
   test("cyclic_update: simple list") {
@@ -34,6 +32,8 @@ class RxCatsTests extends FunSuite {
 
   test("cyclic_update: component updater") {
 
+    // Dummy node class
+    case class Node(data: Any)
 
     sealed abstract class AbstractComponent[D](view: Node, model: Rx[D])
     case class Component[D](view: Node, model: Rx[D]) extends AbstractComponent[D](view, model)
@@ -58,43 +58,41 @@ class RxCatsTests extends FunSuite {
 
     val currentTodoList: Var[TodoList] = Var(all)
 
+    def makeFix[T](r: Var[T]): (Rx[T] => Rx[T]) => Rx[T] = {
+      val fix: (Rx[T] => Rx[T]) => Rx[T] = {f =>
+        f(r).map { v => r := v; v }
+      }
+      fix
+    }
+
     var todoListItemCounter: Int = 0
     def todoListItem(todo: Todo): TaggedComponent[Option[TodoEvent], Todo] = {
       val someEvent = Rx(Some(AddEvent(todo)))
       todoListItemCounter += 1
-      TaggedComponent(<div>{todoListItemCounter}</div>, someEvent, todo)
+      TaggedComponent(Node(todoListItemCounter), someEvent, todo)
     }
 
-    val todoListComponents: Var[List[TaggedComponent[Option[TodoEvent], Todo]]] = Var(Nil)
-    val todoListComponentsSplice = (currentTodoList |@| todoListComponents map {
-      case (currentTodos: TodoList, currentComps: List[TaggedComponent[Option[TodoEvent], Todo]]) =>
-        println(s"oldcomps in first var = $currentComps")
-        currentTodos.items.map(_.map{todo =>
-          val idx = currentComps.indexWhere{cmp => cmp.tag == todo}
-          println(s"comp index is $idx") // DEBUG
-          if (idx >= 0) currentComps(idx)
-          else todoListItem(todo)
-        })
-    }).flatMap(x => x)
+    val todoListComponentsFix = makeFix(
+      Var[List[TaggedComponent[Option[TodoEvent], Todo]]](Nil)
+    )
 
-    val todoListComponentsRunner = todoListComponentsSplice |@| todoListComponents map{
-      case (newComps, oldComps) =>
-        println(s"oldcomps = $oldComps;\nnewcomps= $newComps\n${oldComps == newComps}") //DEBUG
-        if (oldComps != newComps) {println("oldcomps != newComps, updating!")  // DEBUG
-          todoListComponents := newComps
-        }
-        <div/>
+    val todoListComponents = todoListComponentsFix { tlc =>
+      (currentTodoList |@| tlc map {
+        case (currentTodos: TodoList, currentComps: List[TaggedComponent[Option[TodoEvent], Todo]]) =>
+          println(s"oldcomps in first var = $currentComps")
+          currentTodos.items.map(_.map{todo =>
+            val idx = currentComps.indexWhere{cmp => cmp.tag == todo}
+            println(s"comp index is $idx") // DEBUG
+            if (idx >= 0) currentComps(idx)
+            else todoListItem(todo)
+          })
+      }).flatMap(x => x)
     }
 
-    // We can't do this since todoListComponentsSplice is an Rx[T] and not just a T.
-    // todoListComponents := todoListComponentsSplice
-
-
-    val cc = todoListComponentsRunner.impure.foreach(x => ())
     currentTodoList := active
+    currentTodoList := all
     todoListComponents.map(list => assert(list != Nil))
 
-    cc.cancel
   }
 
 
