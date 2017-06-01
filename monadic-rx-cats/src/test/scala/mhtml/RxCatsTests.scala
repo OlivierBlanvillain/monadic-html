@@ -66,7 +66,7 @@ class RxCatsTests extends FunSuite {
     }
 
     val todoListComponents: Var[List[TaggedComponent[Option[TodoEvent], Todo]]] = Var(Nil)
-    val todoListComponentsRunner = (currentTodoList |@| todoListComponents map {
+    val todoListComponentsSplice = (currentTodoList |@| todoListComponents map {
       case (currentTodos: TodoList, currentComps: List[TaggedComponent[Option[TodoEvent], Todo]]) =>
         println(s"oldcomps in first var = $currentComps")
         currentTodos.items.map(_.map{todo =>
@@ -75,13 +75,20 @@ class RxCatsTests extends FunSuite {
           if (idx >= 0) currentComps(idx)
           else todoListItem(todo)
         })
-    }).flatMap(x => x) |@| todoListComponents map{ case (newComps, oldComps) =>
-      println(s"oldcomps = $oldComps;\nnewcomps= $newComps\n${oldComps == newComps}") //DEBUG
-      if (oldComps != newComps) {println("oldcomps != newComps, updating!")  // DEBUG
-        todoListComponents := newComps
-      }
+    }).flatMap(x => x)
+
+    val todoListComponentsRunner = todoListComponentsSplice |@| todoListComponents map{
+      case (newComps, oldComps) =>
+        println(s"oldcomps = $oldComps;\nnewcomps= $newComps\n${oldComps == newComps}") //DEBUG
+        if (oldComps != newComps) {println("oldcomps != newComps, updating!")  // DEBUG
+          todoListComponents := newComps
+        }
         <div/>
     }
+
+    // We can't do this since todoListComponentsSplice is an Rx[T] and not just a T.
+    // todoListComponents := todoListComponentsSplice
+
 
     val cc = todoListComponentsRunner.impure.foreach(x => ())
     currentTodoList := active
