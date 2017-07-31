@@ -241,8 +241,8 @@ object Rx {
 
 /** A smart variable that can be set manually. */
 class Var[A](
-  initialValue: Option[A], register: Var[A] => Cancelable,
-  allowMultiMutations: Boolean = false
+  initialValue: Option[A],
+  register: Var[A] => Cancelable, allowMultiMutations: Boolean = false
 ) extends Rx[A] {
   // Last computed value, retained to be sent to new subscribers as they come in.
   private[mhtml] var cacheElem: Option[A] = initialValue
@@ -250,23 +250,33 @@ class Var[A](
   private[mhtml] var registration: Cancelable = Cancelable.empty
   // Mutable set of all currently subscribed functions, implementing with an `Array`.
   private[mhtml] val subscribers = buffer.empty[A => Unit]
+
   // Keeps track of mutable call locations
-  private[mhtml] var mutationLocations: Set[Int] = Set()
+  final case class MutationInfo(file: String, line: Int, hash: Int)
+  private[mhtml] var mutationLocations: List[MutationInfo] = List()
   private[mhtml] def wasSet: Boolean = mutationLocations.size > 1
 
-  private[mhtml] def addUpdateCall(): Unit = {
-    if (!Var.isProduction) {
-      if (!allowMultiMutations) {
-        // Avoid doing expensive safety checks in optimized code that
-        // should be caught during testing.
-        val straceSeq = new RuntimeException().getStackTrace.toSeq
-        val lineNumHash = straceSeq.map(stl => stl.getLineNumber).mkString("\n").hashCode.toString
-        val contentHash = straceSeq.map(
-          stl => stl.getFileName + stl.getClassName + stl.getClassName
-        ).mkString("\n").hashCode.toString
-        val hashCode: Int = (lineNumHash + contentHash).hashCode
-        mutationLocations += hashCode
-      }
+  private[mhtml] def addUpdateCall(updateType: String): Unit = {
+    if (!Var.isProduction && !allowMultiMutations) {
+      // Avoid doing expensive safety checks in optimized code that
+      // should be caught during testing.
+      val straceSeq = new RuntimeException().getStackTrace.toSeq
+      val lineNumHash = straceSeq.map(stl => stl.getLineNumber).mkString("\n").hashCode.toString
+      val contentHash = straceSeq.map(
+        stl => stl.getFileName + stl.getClassName + stl.getClassName
+      ).mkString("\n").hashCode.toString
+      val hashCode: Int = (lineNumHash + contentHash).hashCode
+      mutationLocations = MutationInfo(
+        straceSeq(2).getFileName, straceSeq(2).getLineNumber, hashCode
+      ) :: mutationLocations
+    }
+    if (wasSet) {
+      val mut2 = mutationLocations.head
+      val mut1 = mutationLocations(1)
+      throw new IllegalStateException(
+        s"$updateType attempted at [${mut2.file} (${mut2.line})];" +
+          s" but Var was already set at [${mut1.file} (${mut1.line})];"
+      )
     }
   }
 
@@ -294,13 +304,7 @@ class Var[A](
 
   /** Sets the value of this `Var`. Triggers recalculation of depending `Rx`s. */
   def :=(newValue: A): Unit = {
-    addUpdateCall()
-    if (wasSet) {
-      val ex = new IllegalStateException(":= attempted; Var was already set.")
-      ex.printStackTrace()
-      throw ex
-    }
-
+    addUpdateCall(":=")
     cacheElem = Some(newValue)
     var i = subscribers.size
     val copy = buffer[A => Unit](i)
@@ -316,8 +320,7 @@ class Var[A](
 
   /** Updates the value of this `Var`. Triggers recalculation of depending `Rx`s. */
   def update(f: A => A): Unit = {
-    addUpdateCall()
-    if (wasSet) throw new IllegalStateException("update attempted; Var was already set.")
+    addUpdateCall("update")
     foreach(a => :=(f(a))).cancel
   }
 

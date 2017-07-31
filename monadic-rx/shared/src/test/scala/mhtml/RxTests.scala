@@ -319,6 +319,30 @@ class RxTests extends FunSuite {
     assert(rx1.isHot && rx2.isHot)
   }
 
+  test("var multiassign check") {
+    val rx1: Var[Int] = Var(0, allowMultiMutations = false)
+    rx1 := 8
+    try {
+      rx1 := 9
+      fail()
+    }
+    catch {
+      case _: IllegalStateException => // Expected, so continue
+    }
+
+    val rx2: Var[Int] = Var(0, allowMultiMutations = true)
+    rx2 := 8
+    try {
+      rx2 := 9
+    }
+    catch {
+      case _: IllegalStateException => fail()
+    }
+
+    assert(rx1.isHot)
+    assert(rx2.isHot)
+  }
+
   test("pile printing from README") {
     val rx1 = Var(1)
     val rx2 = Var(2)

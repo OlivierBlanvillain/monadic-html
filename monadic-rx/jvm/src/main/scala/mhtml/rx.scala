@@ -1,7 +1,7 @@
 package mhtml
 
-object Platform {
+private[mhtml] object Platform {
 
   //TODO: implement a JVM configuration
-  private[mhtml] def checkIsProduction: Boolean = false
+  def checkIsProduction: Boolean = false
 }

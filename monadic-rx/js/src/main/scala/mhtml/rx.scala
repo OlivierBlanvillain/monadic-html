@@ -1,6 +1,6 @@
 package mhtml
 
-object Platform {
-  private[mhtml] def checkIsProduction: Boolean =
+private[mhtml] object Platform {
+  def checkIsProduction: Boolean =
     scala.scalajs.LinkingInfo.productionMode
 }
