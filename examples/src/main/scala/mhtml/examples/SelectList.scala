@@ -6,6 +6,7 @@ import scala.xml.Node
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import mhtml._
+import mhtml.future.syntax._
 import org.scalajs.dom
 import org.scalajs.dom.ext.Ajax
 
@@ -14,7 +15,7 @@ case class Country(name: String, isoCode: String) {
     s"https://raw.githubusercontent.com/hjnilsson/country-flags/master/svg/${iso.toLowerCase}.svg"
   def svg: Node = {
     val id = Math.random().toString // Random id to insert loaded svg.
-    Utils.fromFuture(Ajax.get(svgUrl(isoCode))).impure.foreach {
+    Ajax.get(svgUrl(isoCode)).toRx.impure.foreach {
       case Some(Success(response)) =>
         // Can't scala.xml.Xml.load to get scala.xml.Node instance, instead
         // we bypass mhtml and insert the svg directly into the dom.
@@ -39,7 +40,7 @@ object SelectList extends Example {
 
   def app: Node = {
     val options = Var(List.empty[Country])
-    Utils.fromFuture(Ajax.get(countriesUrl)).impure.foreach {
+    Ajax.get(countriesUrl).toRx.impure.foreach {
       case Some(Success(response)) =>
         options := response.responseText.lines.collect {
           case country(code, name) => Country(name, code)

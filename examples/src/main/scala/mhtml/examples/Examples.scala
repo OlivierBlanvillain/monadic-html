@@ -6,6 +6,7 @@ import scala.xml.Node
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import mhtml._
+import mhtml.future.syntax._
 import org.scalajs.dom
 import org.scalajs.dom.Event
 import org.scalajs.dom.ext.Ajax
@@ -30,7 +31,7 @@ trait Example {
 
   lazy val sourceCode: Rx[String] = {
     val init = Var("Loading...")
-    Utils.fromFuture(Ajax.get(rawUrl)).impure.foreach {
+    Ajax.get(rawUrl).toRx.impure.foreach {
       case Some(Success(x)) =>
         init := x.responseText
       case _ =>

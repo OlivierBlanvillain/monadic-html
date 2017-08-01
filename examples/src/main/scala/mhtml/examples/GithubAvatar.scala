@@ -10,6 +10,7 @@ import scala.xml.Node
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import mhtml._
+import mhtml.future.syntax._
 import org.scalajs.dom.ext.Ajax
 
 @js.native
@@ -43,8 +44,8 @@ object GithubAvatar extends Example {
   }
 
   def doRequest[T](suffix: String)(f: js.Dynamic => T): Rx[Option[Try[T]]] =
-    Utils
-      .fromFuture(Ajax.get(s"$api/$suffix"))
+    Ajax.get(s"$api/$suffix")
+      .toRx
       .map(_.map(_.withFilter(_.status == 200).map { x =>
         val json = JSON.parse(x.responseText)
         println("JSON: " + json)
