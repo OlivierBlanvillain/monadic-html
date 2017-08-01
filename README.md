@@ -90,6 +90,12 @@ val view =
   </div>
 ```
 
+By default, a `Var` can only be mutated in one location, as this is the standard practice when using a `Var` for a local mutation or for using a `Var` to complete a cycle (cycles should be avoided if possible!). If you really need multiple mutation sites, you can set this explicitly:
+
+```scala
+val value: Var[Int] = Var(0, allowMultiMutations = true)
+```
+
 When mounting this view, [the implementation](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-html/src/main/scala/mhtml/mount.scala) will attach callbacks to each `Rx` such that changing `a`, `b` or `c` results in precise DOM updates:
 
 - Changing `a` will update the `div` attribute (reusing the same `div` node)

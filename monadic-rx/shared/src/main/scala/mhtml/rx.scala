@@ -240,13 +240,46 @@ object Rx {
 }
 
 /** A smart variable that can be set manually. */
-class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx[A] {
+class Var[A](
+  initialValue: Option[A],
+  register: Var[A] => Cancelable, allowMultiMutations: Boolean = false
+) extends Rx[A] {
   // Last computed value, retained to be sent to new subscribers as they come in.
   private[mhtml] var cacheElem: Option[A] = initialValue
   // Current registration to the feeding `Rx`, canceled whenever nobody's listening.
   private[mhtml] var registration: Cancelable = Cancelable.empty
   // Mutable set of all currently subscribed functions, implementing with an `Array`.
   private[mhtml] val subscribers = buffer.empty[A => Unit]
+
+  // Keeps track of mutable call locations
+  final case class MutationInfo(file: String, line: Int, hash: Int)
+  private[mhtml] var mutationLocations: List[MutationInfo] = List()
+  private[mhtml] def wasSet: Boolean = mutationLocations.size > 1
+
+  private[mhtml] def addUpdateCall(updateType: String): Unit = {
+    if (!Var.isProduction && !allowMultiMutations) {
+      // Avoid doing expensive safety checks in optimized code that
+      // should be caught during testing.
+      val straceSeq = new RuntimeException().getStackTrace.toSeq
+      val lineNumHash = straceSeq.map(stl => stl.getLineNumber).mkString("\n").hashCode.toString
+      val contentHash = straceSeq.map(
+        stl => stl.getFileName + stl.getClassName + stl.getClassName
+      ).mkString("\n").hashCode.toString
+      val hashCode: Int = (lineNumHash + contentHash).hashCode
+      mutationLocations = MutationInfo(
+        straceSeq(2).getFileName, straceSeq(2).getLineNumber, hashCode
+      ) :: mutationLocations
+    }
+    if (wasSet) {
+      val mut2 = mutationLocations.head
+      val mut1 = mutationLocations(1)
+      throw new IllegalStateException(
+        s"$updateType attempted at [${mut2.file} (${mut2.line})];" +
+          s" but Var was already set at [${mut1.file} (${mut1.line})];"
+      )
+    }
+  }
+
 
   private[mhtml] def foreach(s: A => Unit): Cancelable = {
     if (isHot) registration = register(this)
@@ -271,6 +304,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
 
   /** Sets the value of this `Var`. Triggers recalculation of depending `Rx`s. */
   def :=(newValue: A): Unit = {
+    addUpdateCall(":=")
     cacheElem = Some(newValue)
     var i = subscribers.size
     val copy = buffer[A => Unit](i)
@@ -285,8 +319,10 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
   }
 
   /** Updates the value of this `Var`. Triggers recalculation of depending `Rx`s. */
-  def update(f: A => A): Unit =
+  def update(f: A => A): Unit = {
+    addUpdateCall("update")
     foreach(a => :=(f(a))).cancel
+  }
 
   override def toString: String =
     s"Var(${cacheElem.orNull})"
@@ -296,6 +332,8 @@ object Var {
   /** Create a `Var` from an initial value. */
   def apply[A](initialValue: A): Var[A] =
     new Var[A](Some(initialValue), _ => Cancelable.empty)
+  def apply[A](initialValue: A, allowMultiMutations: Boolean): Var[A] =
+    new Var[A](Some(initialValue), _ => Cancelable.empty, allowMultiMutations)
 
   /**
    * Create a `Var` from an initial value and a register function .
@@ -309,7 +347,11 @@ object Var {
    */
   def create[A](initialValue: A)(register: Var[A] => Cancelable): Var[A] =
     new Var[A](Some(initialValue), register)
+
+
+  private[mhtml] lazy val isProduction: Boolean = Platform.checkIsProduction
 }
+
 
 /** Action used to cancel `foreach` subscription. */
 final class Cancelable(val cancelFunction: () => Unit) extends AnyVal {

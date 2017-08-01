@@ -36,7 +36,7 @@ class HtmlTests extends FunSuite {
   }
 
   test("Updating binded String in Node Seq") {
-    val text: Var[String] = Var("original text")
+    val text: Var[String] = Var("original text", allowMultiMutations = true)
     val span: Elem = <span><p>pre {text} <br/> post </p></span>
     val div = dom.document.createElement("div")
     mount(div, span)
@@ -48,7 +48,7 @@ class HtmlTests extends FunSuite {
   }
 
   test("Updating binded Seq") {
-    val list: Var[Seq[String]] = Var(Seq("original text 0", "original text 1"))
+    val list: Var[Seq[String]] = Var(Seq("original text 0", "original text 1"), allowMultiMutations = true)
     val span: Elem = <span> <p> { list.map(xs => for (x <- xs) yield <b>{x}</b>) } </p> </span>
     val div = dom.document.createElement("div")
     mount(div, span)
@@ -60,7 +60,7 @@ class HtmlTests extends FunSuite {
   }
 
   test("Updating attribute") {
-    val id: Var[String] = Var("oldId")
+    val id: Var[String] = Var("oldId", allowMultiMutations = true)
     val hr: Elem = <hr id={id}/>
     val div = dom.document.createElement("div")
     mount(div, hr)
@@ -222,7 +222,7 @@ class HtmlTests extends FunSuite {
     var ext = 0
     def handler1(e: dom.MouseEvent): Unit = ext = 1
     def handler2(e: dom.MouseEvent): Unit = ext = 2
-    val varHandler = Var[dom.MouseEvent => Unit](handler1)
+    val varHandler = Var[dom.MouseEvent => Unit](handler1 _, allowMultiMutations = true)
     val button  = <button class="c" onclick={varHandler} id="1">Click Me!</button>
     val div = dom.document.createElement("div")
     mount(div, button)
@@ -243,13 +243,16 @@ class HtmlTests extends FunSuite {
     import scala.xml.Node
     import org.scalajs.dom
 
-    val count: Var[Int] = Var(0)
+    val count: Var[Int] = Var(0, allowMultiMutations = true)
 
     val doge: Node =
       <img style="width: 100px;" src="http://doge2048.com/meta/doge-600.png"/>
 
     val rxDoges: Rx[Seq[Node]] =
-      count.map(i => Seq.fill(i)(doge))
+      count.map({i =>
+        println("adding a doge!")
+        Seq.fill(i)(doge)
+      })
 
     val component = // ← look, you can even use fancy names!
       <div>
@@ -377,7 +380,7 @@ class HtmlTests extends FunSuite {
 
   test("mhtml-{onmount,onunmount} with Function0") {
     val div = dom.document.createElement("div")
-    val rx: Var[Option[xml.Node]] = Var(None)
+    val rx: Var[Option[xml.Node]] = Var(None, allowMultiMutations = true)
     var mounted = 0
     var unmounted = 0
     val node =
@@ -401,7 +404,7 @@ class HtmlTests extends FunSuite {
 
   test("mhtml-{onmount,onunmount} with Function1") {
     val div = dom.document.createElement("div")
-    val rx: Var[Option[xml.Node]] = Var(None)
+    val rx: Var[Option[xml.Node]] = Var(None, allowMultiMutations = true)
     var mounted = 0
     var unmounted = 0
     val node =
