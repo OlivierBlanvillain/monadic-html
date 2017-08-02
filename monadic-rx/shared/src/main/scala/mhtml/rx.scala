@@ -311,15 +311,20 @@ object Var {
     new Var[A](Some(initialValue), register)
 }
 
-/** Action used to cancel `foreach` subscription. */
+/** Action used to cancel subscription. */
 final class Cancelable(val cancelFunction: () => Unit) extends AnyVal {
   // scalac: side-effecting nullary methods are discouraged: suggest defining
   // as `def cancel()` instead. Until we get systematic warnings for forgotten
   // parenthesis, this will stay a side-effecting nullary method...
+
+  /** Cancel this subscription. */
   def cancel: Unit = cancelFunction()
 }
 
 object Cancelable {
+  /** Creates a `Cancelable` with the specified cancel function. */
   def apply(cancelFunction: () => Unit) = new Cancelable(cancelFunction)
+
+  /** The empty `Cancelable`. */
   val empty = Cancelable(() => ())
 }
