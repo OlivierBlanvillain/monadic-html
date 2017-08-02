@@ -464,6 +464,50 @@ mount(root, view(store))
 
 If you're really into *globally mutable state*™, you can also give up on purity and type safety by making allActions a `Var[Action]` and calling `:=` all around your code.
 
+### Is it possible to have a cyclic `Rx` graph?
+
+Yes, using the `imitate` method on a `Var` to "close the loop" of a cyclic graph:
+
+-  `def imitate(other: Rx[A]): Rx[A]`
+
+     Updates this `Var` with values emitted by the `other` `Rx`. This method
+     is side effect free. Consequently, the returned `Rx` must be used at
+     least once for the imitation to take place. This `Var` the `other` `Rx`
+     and the returned `Rx` will all emit the same values.
+
+     This method exists (only) to allow *circular dependency* in `Rx` graphs.
+
+As an example, suppose we want to augment a source of integers with the successors of all odd elements, interleave with the original elements. A possible implementation uses two `Rx` with a *circular dependency*:
+
+```
+source ----------> \
+                    --> fst --+
++--> snd --(+1)--> /          |
+|                             |
++----------(isOdd?)-----------+
+
+// source   => 1       6     7
+// fst      =>  1 2     6     7 8
+// snd      =>   1             7
+```
+
+The naive approach to implement this graph is not valid Scala code because of the forward reference to an uninitialized variable:
+
+```
+val source = Var(1)
+val fst = snd.map(1.+).merge(source)
+val snd = fst.keepIf(isOdd)(-1)
+```
+
+The typical *imitate* pattern involves a pair `Rx`/`Var`, `snd` and `sndProxy` in this case, that are later reconsolidated by having `sndProxy` imitating `snd`:
+
+```
+val sndProxy = Var(1)
+val fst = source.merge(sndProxy.map(1.+))
+val snd = fst.keepIf(isOdd)(-1)
+val imitating = sndProxy.imitate(snd)
+```
+
 ## Further reading
 
 [*Unidirectional User Interface Architectures*](http://staltz.com/unidirectional-user-interface-architectures.html) by André Staltz
