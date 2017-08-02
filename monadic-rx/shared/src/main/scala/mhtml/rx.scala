@@ -269,6 +269,8 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
    */
   def isCold: Boolean = subscribers.isEmpty
 
+  def imitate(other: Rx[A]): Rx[A] = ???
+
   /** Sets the value of this `Var`. Triggers recalculation of depending `Rx`s. */
   def :=(newValue: A): Unit = {
     cacheElem = Some(newValue)
