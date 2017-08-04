@@ -162,13 +162,18 @@ object Rx {
 
   final case class Map     [A, B]     (self: Rx[A], f: A => B)                      extends Rx[B]
   final case class FlatMap [A, B]     (self: Rx[A], f: A => Rx[B])                  extends Rx[B]
-  final case class Zip [A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[(A, B)]
+  final case class Zip     [A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[(A, B)]
   final case class DropRep [A]        (self: Rx[A])                                 extends Rx[A]
   final case class Merge   [A, B >: A](self: Rx[A], other: Rx[B])                   extends Rx[B]
   final case class Foldp   [A, B]     (self: Rx[A], seed: B, step: (B, A) => B)     extends Rx[B]
   final case class Collect [A, B]     (self: Rx[A], f: PartialFunction[A, B], b: B) extends Rx[B]
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
+  final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
 
+  /**
+   * The `impure.foreach` interpreter. Traverses the `Rx` tree and registers
+   * callbacks to run the outer most effect according to documented semantics.
+   */
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
     case Map(self, f) =>
       run(self)(x => effect(f(x)))
@@ -234,6 +239,17 @@ object Rx {
       val cb = run(other)(_ => effect(currentA))
       Cancelable { () => ca.cancel; cb.cancel }
 
+    case Imitate(self, other) =>
+      if (!self.imitating) {
+        self.imitating = true
+        val cc = run(other) { a =>
+          // self: Var[A] and a: A, pattern matching is fucked up...
+          self.asInstanceOf[Var[Any]] := a
+          effect(a)
+        }
+        Cancelable { () => cc.cancel; self.imitating = false }
+      } else run(other)(effect)
+
     case leaf: Var[A] =>
       leaf.foreach(effect)
   }
@@ -247,9 +263,11 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
   private[mhtml] var registration: Cancelable = Cancelable.empty
   // Mutable set of all currently subscribed functions, implementing with an `Array`.
   private[mhtml] val subscribers = buffer.empty[A => Unit]
+  // Is this Var currently imitating another Rx?
+  private[mhtml] var imitating = false
 
   private[mhtml] def foreach(s: A => Unit): Cancelable = {
-    if (isHot) registration = register(this)
+    if (isCold) registration = register(this)
     cacheElem match {
       case Some(v) => s(v)
       case None    =>
@@ -257,7 +275,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
     subscribers += s
     Cancelable { () =>
       subscribers -= s
-      if (isHot) registration.cancel
+      if (isCold) registration.cancel
     }
   }
 
@@ -267,7 +285,17 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
    * This method is intended to be used to test the absence of memory leak.
    * For instance, all `Var`s should be cold after canceling a `mount`.
    */
-  def isHot: Boolean = subscribers.isEmpty
+  def isCold: Boolean = subscribers.isEmpty
+
+  /**
+   * Updates this `Var` with values emitted by the `other` `Rx`. This method
+   * is side effect free. Consequently, the returned `Rx` must be used at
+   * least once for the imitation to take place. This `Var` the `other` `Rx`
+   * and the returned `Rx` will all emit the same values.
+   *
+   * This method exists (only) to allow *circular dependency* in `Rx` graphs.
+   */
+  def imitate(other: Rx[A]): Rx[A] = Rx.Imitate(this, other)
 
   /** Sets the value of this `Var`. Triggers recalculation of depending `Rx`s. */
   def :=(newValue: A): Unit = {
@@ -311,15 +339,20 @@ object Var {
     new Var[A](Some(initialValue), register)
 }
 
-/** Action used to cancel `foreach` subscription. */
+/** Action used to cancel subscription. */
 final class Cancelable(val cancelFunction: () => Unit) extends AnyVal {
   // scalac: side-effecting nullary methods are discouraged: suggest defining
   // as `def cancel()` instead. Until we get systematic warnings for forgotten
   // parenthesis, this will stay a side-effecting nullary method...
+
+  /** Cancel this subscription. */
   def cancel: Unit = cancelFunction()
 }
 
 object Cancelable {
+  /** Creates a `Cancelable` with the specified cancel function. */
   def apply(cancelFunction: () => Unit) = new Cancelable(cancelFunction)
+
+  /** The empty `Cancelable`. */
   val empty = Cancelable(() => ())
 }

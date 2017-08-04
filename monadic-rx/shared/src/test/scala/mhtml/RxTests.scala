@@ -42,7 +42,7 @@ class RxTests extends FunSuite {
     assert((104, 105) == result)
 
     cc.cancel
-    assert(a.isHot && b.isHot)
+    assert(a.isCold && b.isCold)
   }
 
   test("Referential transparency with map") {
@@ -56,7 +56,7 @@ class RxTests extends FunSuite {
     a := 2
     assert(b.impure.value == 2)
     assert(a.map(identity).impure.value == 2)
-    assert(a.isHot)
+    assert(a.isCold)
   }
 
   test("max using foldp") {
@@ -73,7 +73,7 @@ class RxTests extends FunSuite {
     assert(current == 5)
 
     cc.cancel
-    assert(value.isHot)
+    assert(value.isCold)
   }
 
   test("keepIf") {
@@ -93,7 +93,7 @@ class RxTests extends FunSuite {
 
     cc1.cancel
     cc2.cancel
-    assert(numbers.isHot)
+    assert(numbers.isCold)
   }
 
   test("keepIf fallback") {
@@ -102,7 +102,7 @@ class RxTests extends FunSuite {
     assert(empty.impure.value == -1)
     numbers := 1
     assert(empty.impure.value == -1)
-    assert(numbers.isHot)
+    assert(numbers.isCold)
   }
 
   test("dropIf") {
@@ -122,7 +122,7 @@ class RxTests extends FunSuite {
 
     cc1.cancel
     cc2.cancel
-    assert(numbers.isHot)
+    assert(numbers.isCold)
   }
 
   test("collect") {
@@ -141,7 +141,7 @@ class RxTests extends FunSuite {
     assert(evenList == List(0, 20, 40, 60))
     cc1.cancel
     cc2.cancel
-    assert(numbers.isHot)
+    assert(numbers.isCold)
   }
 
   test("collect fallback") {
@@ -150,7 +150,7 @@ class RxTests extends FunSuite {
     assert(empty.impure.value == -1)
     numbers := 1
     assert(empty.impure.value == -1)
-    assert(numbers.isHot)
+    assert(numbers.isCold)
   }
 
   test("dropRepeats") {
@@ -172,7 +172,7 @@ class RxTests extends FunSuite {
 
     cc1.cancel
     cc2.cancel
-    assert(numbers.isHot)
+    assert(numbers.isCold)
   }
 
   test("merge") {
@@ -196,7 +196,7 @@ class RxTests extends FunSuite {
     cc1.cancel
     cc2.cancel
     ccm.cancel
-    assert(rx1.isHot && rx2.isHot)
+    assert(rx1.isCold && rx2.isCold)
   }
 
   test("merge update") {
@@ -214,7 +214,7 @@ class RxTests extends FunSuite {
     assert(value == 4)
 
     cc.cancel
-    assert(rx1.isHot && rx2.isHot)
+    assert(rx1.isCold && rx2.isCold)
   }
 
   test("Optimisation: Applicative style is faster than monadic style.") {
@@ -242,7 +242,7 @@ class RxTests extends FunSuite {
       assert(count == 2)
 
       cc.cancel
-      assert(rx1.isHot && rx2.isHot)
+      assert(rx1.isCold && rx2.isCold)
     }
 
     {
@@ -268,7 +268,7 @@ class RxTests extends FunSuite {
       assert(count == 5) // 5 > 2!
 
       cc.cancel
-      assert(rx1.isHot && rx2.isHot)
+      assert(rx1.isCold && rx2.isCold)
     }
 
     {
@@ -291,7 +291,7 @@ class RxTests extends FunSuite {
       assert(count == 6) // 6 > 2!
 
       cc.cancel
-      assert(rx1.isHot && rx2.isHot)
+      assert(rx1.isCold && rx2.isCold)
     }
   }
 
@@ -316,7 +316,7 @@ class RxTests extends FunSuite {
     cc1.cancel
     cc2.cancel
     ccm.cancel
-    assert(rx1.isHot && rx2.isHot)
+    assert(rx1.isCold && rx2.isCold)
   }
 
   test("pile printing from README") {
@@ -341,5 +341,36 @@ class RxTests extends FunSuite {
         )
       """.lines.mkString("").filterNot(' '.==)
     )
+  }
+
+  test("imitate") {
+    def isOdd(x: Int) = x % 2 == 1
+
+    var fstList: List[Int] = Nil
+    var sndList: List[Int] = Nil
+
+    val source = Var(0)
+    val sndProxy = Var(0)
+    val fst = source.merge(sndProxy.map(1.+))
+    val snd = fst.keepIf(isOdd)(-101)
+    val imitating = sndProxy.imitate(snd)
+
+    assert(source.isCold && sndProxy.isCold)
+
+    val cc1 = imitating.impure.foreach(_ => ())
+    val cc2 = fst.impure.foreach(n => fstList = fstList :+ n)
+    val cc3 = snd.impure.foreach(n => sndList = sndList :+ n)
+
+    source := 1
+    source := 6
+    source := 7
+
+    cc1.cancel
+    cc2.cancel
+    cc3.cancel
+
+    assert(fstList == List(0, -100, 2, 1, 6, 8, 7))
+    assert(sndList == List(-101, 1, 7))
+    assert(source.isCold && sndProxy.isCold)
   }
 }
