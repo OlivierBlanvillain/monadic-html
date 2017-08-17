@@ -2,6 +2,7 @@ package mhtml
 
 import java.util.Arrays.binarySearch
 import scala.scalajs.LinkingInfo
+import unicode.fromCodePoint
 
 trait MountSettings {
   /** Used to transform EntityRef (`&lambda;`) before mounting them to the DOM. */
@@ -46,11 +47,18 @@ trait DevSettings extends MountSettings {
 
   // Converts EntityRefs according to HTML specifications. Warns about unknown keys.
   def transformEntityRef(entityRef: String): String  = {
-    val i = binarySearch(EntityRefMap.keys.asInstanceOf[Array[AnyRef]], entityRef)
-    if (i < 0) {
-      warn(s"""Unknown EntityRef $entityRef. Did you mean ${EntityRefMap.keys.minBy(levenshtein(entityRef))} instead?""")
-      entityRef
-    } else EntityRefMap.values(i)
+    if (entityRef.startsWith("#")) {
+      val entityNum: Int = entityRef.slice(1, entityRef.length).toInt
+      fromCodePoint(entityNum)
+    }
+    else {
+      val i = binarySearch(EntityRefMap.keys.asInstanceOf[Array[AnyRef]], entityRef)
+      if (i < 0) {
+        warn(s"""Unknown EntityRef $entityRef. Did you mean ${EntityRefMap.keys.minBy(levenshtein(entityRef))} instead?""")
+        entityRef
+      }
+      else EntityRefMap.values(i)
+    }
   }
 
   def inspectElement(elem: String): Unit     = isKnown("element", elements, elem)
