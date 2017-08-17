@@ -3,7 +3,7 @@ package mhtml
 import org.scalajs.dom
 import org.scalatest.FunSuite
 
-import scala.xml.{Elem, Group}
+import scala.xml.{Elem, Group, EntityRef}
 
 class HtmlTests extends FunSuite {
 
@@ -301,6 +301,15 @@ class HtmlTests extends FunSuite {
     assert(w == List("Unknown EntityRef yolo. Did you mean Iota instead?"))
   }
 
+  test("EntityRef numeric") {
+    var w: List[String] = Nil
+    def entity = <div>{EntityRef("#182")}</div>
+    val div = dom.document.createElement("div")
+    mount(div, entity, new DevSettings { override def warn(s: String) = w = s :: w })
+    assert(div.innerHTML == "<div>¶</div>")
+    assert(w == List())
+  }
+
   test("Element warn") {
     var w: List[String] = Nil
     def entity = <yolo></yolo>
@@ -349,7 +358,7 @@ class HtmlTests extends FunSuite {
     assert(sorted(EntityRefMap.keys))
   }
 
-  test("EntityRefMap arrays and equaly sized") {
+  test("EntityRefMap arrays are equally sized") {
     assert(EntityRefMap.keys.length == EntityRefMap.values.length)
   }
 
