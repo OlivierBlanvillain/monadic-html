@@ -384,7 +384,7 @@ implicit class SequencingListFFS[A](self: List[Rx[A]]) {
 }
 ```
 
-[Long answer:](http://typelevel.org/cats/typeclasses/traverse.html)
+[Long answer:](https://github.com/typelevel/cats/blob/master/docs/src/main/tut/typeclasses/traverse.md)
 
 ```scala
 "in.nvilla" %%% "monadic-rx-cats" % "0.3.2"
