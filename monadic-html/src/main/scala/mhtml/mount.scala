@@ -63,6 +63,7 @@ object mount {
       }
     }
 
+
   private def mountMetadata(parent: DomNode, scope: Option[Scope], m: MetaData, v: Any, config: MountSettings): Cancelable = v match {
     case a: Atom[_] =>
       mountMetadata(parent, scope, m, a.data, config)

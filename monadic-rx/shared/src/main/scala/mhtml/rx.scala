@@ -252,6 +252,9 @@ object Rx {
 
     case leaf: Var[A] =>
       leaf.foreach(effect)
+
+    case null =>
+      throw new NullPointerException
   }
 }
 
