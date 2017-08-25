@@ -47,6 +47,7 @@ lazy val `examples` = project
   .settings(noPublishSettings: _*)
   .settings(
     emitSourceMaps := true,
+    libraryDependencies += "com.github.japgolly.scalacss" %%% "core" % "0.5.3",
     artifactPath in (Compile, fastOptJS) :=
       ((crossTarget in (Compile, fastOptJS)).value /
         ((moduleName in fastOptJS).value + "-opt.js")))
