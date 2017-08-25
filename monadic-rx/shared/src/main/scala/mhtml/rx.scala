@@ -1,5 +1,7 @@
 package mhtml
 
+import collection.mutable.ArrayBuilder
+
 /** Reactive value of type `A`. Automatically recalculate on dependency update. */
 sealed trait Rx[+A] { self =>
   import Rx._
@@ -262,7 +264,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
   // Current registration to the feeding `Rx`, canceled whenever nobody's listening.
   private[mhtml] var registration: Cancelable = Cancelable.empty
   // Mutable set of all currently subscribed functions, implementing with an `Array`.
-  private[mhtml] val subscribers = buffer.empty[A => Unit]
+  private[mhtml] var subscribers: ArrayBuilder[A => Unit] = buffer.empty
   // Is this Var currently imitating another Rx?
   private[mhtml] var imitating = false
 
@@ -274,7 +276,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
     }
     subscribers += s
     Cancelable { () =>
-      subscribers -= s
+      subscribers = buffer.remove(s, subscribers)
       if (isCold) registration.cancel
     }
   }
@@ -285,7 +287,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
    * This method is intended to be used to test the absence of memory leak.
    * For instance, all `Var`s should be cold after canceling a `mount`.
    */
-  def isCold: Boolean = subscribers.isEmpty
+  def isCold: Boolean = subscribers.result().isEmpty
 
   /**
    * Updates this `Var` with values emitted by the `other` `Rx`. This method
@@ -300,13 +302,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
   /** Sets the value of this `Var`. Triggers recalculation of depending `Rx`s. */
   def :=(newValue: A): Unit = {
     cacheElem = Some(newValue)
-    var i = subscribers.size
-    val copy = buffer[A => Unit](i)
-    while (i > 0) {
-      i = i - 1
-      val s = subscribers(i)
-      copy(i) = s
-    }
+    val copy: Array[A => Unit] = subscribers.result()
     copy.foreach { f =>
       f(newValue)
     }
