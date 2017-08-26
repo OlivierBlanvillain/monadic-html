@@ -3,6 +3,7 @@ package mhtml
 import scalajs.js.Array
 
 private[mhtml] object buffer {
-  def empty[A]: Array[A] = new Array[A]
-  def apply[A](size: Int): Array[A] = new Array(size)
+  type Buffer[E] = Array[E]
+  def empty[A]: Buffer[A] = new Array[A]
+  def apply[A](size: Int): Buffer[A] = new Array(size)
 }
