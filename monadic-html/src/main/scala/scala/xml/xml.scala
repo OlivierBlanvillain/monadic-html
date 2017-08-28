@@ -54,7 +54,16 @@ final case class Elem(
 final case class Comment(commentText: String) extends Node
 
 /** XML leaf for entity references. */
-final case class EntityRef(entityName: String) extends Node
+final case class EntityRef(entityName: String) extends Node {
+  def text: String = entityName match {
+    case "lt"   => "<"
+    case "gt"   => ">"
+    case "amp"  => "&"
+    case "apos" => "'"
+    case "quot" => "\""
+    case _      => entityName
+  }
+}
 
 /** XML leaf for text. */
 final case class Text(text: String) extends Atom[String](text)

@@ -180,19 +180,18 @@ class HtmlTests extends FunSuite {
   }
 
   test("Entity") {
-    def entity = <div>&amp;&lt;&copy;&lambda;</div>
+    def entity = <div>&amp;&lt;</div>
     val div = dom.document.createElement("div")
     mount(div, entity)
-    assert(div.innerHTML == "<div>&amp;&lt;©λ</div>")
+    assert(div.innerHTML == "<div>&amp;&lt;</div>")
   }
 
   test("CustomAttribute") {
     var w: List[String] = Nil
     def hr = <hr data:custom-key="value"/>
     val div = dom.document.createElement("div")
-    mount(div, hr, new DevSettings { override def warn(s: String) = w = s :: w })
+    mount(div, hr)
     assert(div.innerHTML == """<hr data:custom-key="value">""")
-    assert(w == List("Unknown attribute data:custom-key. Did you mean accesskey instead?"))
   }
 
   test("onClick = Function0") {
@@ -290,73 +289,6 @@ class HtmlTests extends FunSuite {
     assert(div.innerHTML == "<div></div>")
     va := "<h1>yolo<br>"
     assert(div.innerHTML == "<div><h1>yolo<br></h1></div>")
-  }
-
-  test("EntityRef warn") {
-    var w: List[String] = Nil
-    def entity = <div>&yolo;</div>
-    val div = dom.document.createElement("div")
-    mount(div, entity, new DevSettings { override def warn(s: String) = w = s :: w })
-    assert(div.innerHTML == "<div>yolo</div>")
-    assert(w == List("Unknown EntityRef yolo. Did you mean Iota instead?"))
-  }
-
-  test("Element warn") {
-    var w: List[String] = Nil
-    def entity = <yolo></yolo>
-    val div = dom.document.createElement("div")
-    mount(div, entity, new DevSettings { override def warn(s: String) = w = s :: w })
-    assert(div.innerHTML == "<yolo></yolo>")
-    assert(w == List("Unknown element yolo. Did you mean col instead?"))
-  }
-
-  test("EventKey warn") {
-    var w: List[String] = Nil
-    def entity = <div onClick={ () => () }></div>
-    val div = dom.document.createElement("div")
-    mount(div, entity, new DevSettings { override def warn(s: String) = w = s :: w })
-    assert(div.innerHTML == "<div></div>")
-    assert(w == List("Unknown event onClick. Did you mean onclick instead?"))
-  }
-
-  test("AttributeKey warn") {
-    var w: List[String] = Nil
-    def entity = <div yolo="true"></div>
-    val div = dom.document.createElement("div")
-    mount(div, entity, new DevSettings { override def warn(s: String) = w = s :: w })
-    assert(div.innerHTML == """<div yolo="true"></div>""")
-    assert(w == List("Unknown attribute yolo. Did you mean cols instead?"))
-  }
-
-  test("README warnings") {
-    var w: List[String] = Nil
-    def entity = <captain yolo="true" onClick={ () => println("Oh yeah!") }>{None.toString}</captain>
-    val div = dom.document.createElement("div")
-    mount(div, entity, new DevSettings { override def warn(s: String) = w = s :: w })
-    assert(w == List(
-      """Unknown event onClick. Did you mean onclick instead?""",
-      """Unknown attribute yolo. Did you mean cols instead?""",
-      """Unknown element captain. Did you mean caption instead?"""
-    ))
-  }
-
-  test("Elements, attributes, events and EntityRef.keys arrays are binary searchable") {
-    val d = new DevSettings {}
-    def sorted(a: Array[String]): Boolean = a.toList.sorted == a.toList
-    assert(sorted(d.elements))
-    assert(sorted(d.attributes))
-    assert(sorted(d.events))
-    assert(sorted(EntityRefMap.keys))
-  }
-
-  test("EntityRefMap arrays and equaly sized") {
-    assert(EntityRefMap.keys.length == EntityRefMap.values.length)
-  }
-
-  test("levenshtein") {
-    val d = new DevSettings {}
-    assert(d.levenshtein("kitten")("sitting") == 3)
-    assert(d.levenshtein("rosettacode")("raisethysword") == 8)
   }
 
   test("Ill-typed Attribute") {

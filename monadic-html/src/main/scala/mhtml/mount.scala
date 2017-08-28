@@ -10,27 +10,23 @@ object mount {
   private val onMountAtt   = "mhtml-onmount"
   private val onUnmountAtt = "mhtml-onunmount"
 
-  def apply(parent: DomNode, child: XmlNode, config: MountSettings): Cancelable = { mountNode(parent, child, None, config) }
-  def apply(parent: DomNode, obs: Rx[XmlNode], config: MountSettings): Cancelable = { mountNode(parent, new Atom(obs), None, config) }
-  def apply(parent: DomNode, child: XmlNode): Cancelable = { mountNode(parent, child, None, MountSettings.default) }
-  def apply(parent: DomNode, obs: Rx[XmlNode]): Cancelable = { mountNode(parent, new Atom(obs), None, MountSettings.default) }
+  def apply(parent: DomNode, child: XmlNode): Cancelable = { mountNode(parent, child, None) }
+  def apply(parent: DomNode, obs: Rx[XmlNode]): Cancelable = { mountNode(parent, new Atom(obs), None) }
 
-  private def mountNode(parent: DomNode, child: XmlNode, startPoint: Option[DomNode], config: MountSettings): Cancelable =
+  private def mountNode(parent: DomNode, child: XmlNode, startPoint: Option[DomNode]): Cancelable =
     child match {
       case e @ Elem(_, label, metadata, scope, child @ _*) =>
-        config.inspectElement(label)
         val elemNode = e.namespace match {
           case Some(ns) => dom.document.createElementNS(ns, label)
           case None     => dom.document.createElement(label)
         }
-        val cancelMetadata = metadata.map { m => mountMetadata(elemNode, scope, m, m.value, config) }
-        val cancelChild = child.map(c => mountNode(elemNode, c, None, config))
+        val cancelMetadata = metadata.map { m => mountMetadata(elemNode, scope, m, m.value) }
+        val cancelChild = child.map(c => mountNode(elemNode, c, None))
         parent.mountHere(elemNode, startPoint)
         Cancelable { () => cancelMetadata.foreach(_.cancel); cancelChild.foreach(_.cancel) }
 
       case e: EntityRef  =>
-        val er = config.transformEntityRef(e.entityName)
-        parent.mountHere(dom.document.createTextNode(er), startPoint)
+        parent.mountHere(dom.document.createTextNode(e.text), startPoint)
         Cancelable.empty
 
       case Comment(text) =>
@@ -38,23 +34,23 @@ object mount {
         Cancelable.empty
 
       case Group(nodes)  =>
-        val cancels = nodes.map(n => mountNode(parent, n, startPoint, config))
+        val cancels = nodes.map(n => mountNode(parent, n, startPoint))
         Cancelable(() => cancels.foreach(_.cancel))
 
       case a: Atom[_] => a.data match {
-        case n: XmlNode  => mountNode(parent, n, startPoint, config)
+        case n: XmlNode  => mountNode(parent, n, startPoint)
         case rx: Rx[_]   =>
           val (start, end) = parent.createMountSection()
           var c1 = Cancelable.empty
           val c2 = rx.impure.foreach { v =>
             parent.cleanMountSection(start, end)
             c1.cancel
-            c1 = mountNode(parent, new Atom(v), Some(start), config)
+            c1 = mountNode(parent, new Atom(v), Some(start))
           }
           Cancelable { () => c1.cancel; c2.cancel }
-        case Some(x)     => mountNode(parent, new Atom(x), startPoint, config)
+        case Some(x)     => mountNode(parent, new Atom(x), startPoint)
         case None        => Cancelable.empty
-        case seq: Seq[_] => mountNode(parent, new Group(seq.map(new Atom(_))), startPoint, config)
+        case seq: Seq[_] => mountNode(parent, new Group(seq.map(new Atom(_))), startPoint)
         case primitive   =>
           val content = primitive.toString
           if (!content.isEmpty)
@@ -63,19 +59,19 @@ object mount {
       }
     }
 
-  private def mountMetadata(parent: DomNode, scope: Option[Scope], m: MetaData, v: Any, config: MountSettings): Cancelable = v match {
+  private def mountMetadata(parent: DomNode, scope: Option[Scope], m: MetaData, v: Any): Cancelable = v match {
     case a: Atom[_] =>
-      mountMetadata(parent, scope, m, a.data, config)
+      mountMetadata(parent, scope, m, a.data)
 
     case Some(x: Any) =>
-      mountMetadata(parent, scope, m, x, config)
+      mountMetadata(parent, scope, m, x)
 
     case r: Rx[_] =>
       val rx: Rx[_] = r
       var c1 = Cancelable.empty
       val c2 = rx.impure.foreach { value =>
         c1.cancel
-        c1 = mountMetadata(parent, scope, m, value, config)
+        c1 = mountMetadata(parent, scope, m, value)
       }
       Cancelable { () => c1.cancel; c2.cancel }
 
@@ -85,7 +81,6 @@ object mount {
       } else if(m.key == onUnmountAtt) {
         Cancelable(f)
       } else {
-        config.inspectEvent(m.key)
         parent.setEventListener(m.key, (_: dom.Event) => f())
       }
 
@@ -95,12 +90,11 @@ object mount {
       } else if (m.key == onUnmountAtt) {
         Cancelable(() => f(parent))
       } else {
-        config.inspectEvent(m.key)
         parent.setEventListener(m.key, f)
       }
 
     case _ =>
-      parent.setMetadata(scope, m, v, config)
+      parent.setMetadata(scope, m, v)
       Cancelable.empty
   }
 
@@ -111,12 +105,11 @@ object mount {
       Cancelable(() => dyn.updateDynamic(key)(null))
     }
 
-    def setMetadata(scope: Option[Scope], m: MetaData, v: Any, config: MountSettings): Unit = {
+    def setMetadata(scope: Option[Scope], m: MetaData, v: Any): Unit = {
       val htmlNode = node.asInstanceOf[dom.html.Html]
       def set(key: String, prefix: Option[String]): Unit = v match {
         case null | None | false => htmlNode.removeAttribute(key)
         case _ =>
-          config.inspectAttributeKey(key)
           val value = v match {
             case true => ""
             case _    => v.toString
