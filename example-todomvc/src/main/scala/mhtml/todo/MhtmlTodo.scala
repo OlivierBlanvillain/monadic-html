@@ -71,13 +71,15 @@ object MhtmlTodo extends JSApp {
   val completed = TodoList("Completed", "#/completed", allTodosProxy.map(_.filter(_.completed)).dropRepeats)
   val todoLists = List(all, active, completed)
 
-  val windowHash: Rx[String] = Rx(dom.window.location.hash).merge {
+  val windowHash: Rx[String] = {
     val updatedHash = Var(dom.window.location.hash)
-    dom.window.onhashchange = (ev: Event) => {
-      updatedHash := dom.window.location.hash
+    Var.create(dom.window.location.hash) { self =>
+      dom.window.onhashchange = (ev: Event) => {
+        updatedHash := dom.window.location.hash
+      }
+      Cancelable(() => dom.window.onhashchange = null)
     }
-    updatedHash
-  }.dropRepeats
+  }
 
   val currentTodoList: Rx[TodoList] = windowHash.map { hash =>
     todoLists.find(_.hash === hash).getOrElse(all)
@@ -121,10 +123,6 @@ object MhtmlTodo extends JSApp {
     ComponentList(view, store)
   }
 
-  //DEBUG
-  todoListComponents.store.impure.foreach(tlc => println(s"tlc size = ${tlc.size}"))
-
-
   //FIXME: fold with flatmap is potentially problematic: https://github.com/OlivierBlanvillain/monadic-html
   val todoListEvent: Rx[Option[TodoEvent]] = {
     println("in todoListEvent definition") // DEBUG
@@ -137,8 +135,6 @@ object MhtmlTodo extends JSApp {
       }.dropRepeats.map { tle => println(s"got tlEvent $tle from todoListComponents (DEBUG)"); tle } // DEBUG
     todoListEventProxy.imitate(todoListEventDef)
   }
-
-  todoListEvent.impure.foreach(tle => println(s"tle = $tle"))
 
   val header: Component[Option[AddEvent]] = {
     val newTodo = Var[Option[AddEvent]](None)
@@ -177,14 +173,13 @@ object MhtmlTodo extends JSApp {
         <ul class="filters">
           {todoLists.map(todoListsFooter)}
         </ul>
-        <button onclick={() =>
+        <button onclick={ () =>
           println("DEBUG: footer clicked")
           allTodos.map(_.filter(_.completed).foreach(todo =>
             removeTodo := Some(RemovalEvent(todo))
           ))
-          ()}
-                class="clear-completed"
-                style:visibility={visibility}>
+          ()
+        } class="clear-completed" style:visibility={visibility}>
           Clear completed
         </button>
       </footer>
@@ -193,8 +188,6 @@ object MhtmlTodo extends JSApp {
 
   val anyEvent: Rx[Option[TodoEvent]] =
     (todoListEvent |+| footer.model |+| header.model).dropRepeats
-
-  anyEvent.impure.foreach(ev => println(s"anyEvent: $ev")) //DEBUG
 
   val allTodos: Rx[List[Todo]] = anyEvent.foldp(load()) {
     (last, ev) => updateState(last, ev)
@@ -263,7 +256,6 @@ object MhtmlTodo extends JSApp {
       s"$editing $completed"
     }
     val data: Rx[Option[TodoEvent]] = Semigroup[Rx[Option[TodoEvent]]].combine(removeTodo, updateTodo)
-    data.impure.foreach(ev => println(s"DEBUG: todoListItem event: $ev"))
     val todoListElem =
       <li class={css}>
         <div class="view">
