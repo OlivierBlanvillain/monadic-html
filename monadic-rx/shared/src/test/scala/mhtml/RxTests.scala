@@ -199,6 +199,32 @@ class RxTests extends FunSuite {
     assert(rx1.isCold && rx2.isCold)
   }
 
+  test("mergeN") {
+    // Should be identical to merge test above
+    val rx1: Var[Int] = Var(0)
+    val rx2: Var[Int] = Var(1)
+    val rxs = List(rx1, rx2)
+    val merged: Rx[Int] = rxs.merge
+    var rx1List: List[Int] = Nil
+    var rx2List: List[Int] = Nil
+    var mergedList: List[Int] = Nil
+    val cc1 = rx1.impure.foreach(n => rx1List = rx1List :+ n)
+    val cc2 = rx2.impure.foreach(n => rx2List = rx2List :+ n)
+    val ccm = merged.impure.foreach(n => mergedList = mergedList :+ n)
+    rx1 := 8
+    rx2 := 4
+    rx2 := 3
+    rx1 := 3
+    assert(rx1List == List(0, 8, 3))
+    assert(rx2List == List(1, 4, 3))
+    assert(mergedList == List(0, 1, 8, 4, 3, 3))
+
+    cc1.cancel
+    cc2.cancel
+    ccm.cancel
+    assert(rx1.isCold && rx2.isCold)
+  }
+
   test("merge update") {
     val rx1: Var[Int] = Var(0)
     val rx2: Var[Int] = Var(1)

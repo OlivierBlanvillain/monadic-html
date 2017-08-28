@@ -1,4 +1,5 @@
 package mhtml
+import buffer.Buffer
 
 /** Reactive value of type `A`. Automatically recalculate on dependency update. */
 sealed trait Rx[+A] { self =>
@@ -165,10 +166,15 @@ object Rx {
   final case class Zip     [A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[(A, B)]
   final case class DropRep [A]        (self: Rx[A])                                 extends Rx[A]
   final case class Merge   [A, B >: A](self: Rx[A], other: Rx[B])                   extends Rx[B]
+  final case class MergeN  [A, B >: A](self: List[Rx[A]])                           extends Rx[B]
   final case class Foldp   [A, B]     (self: Rx[A], seed: B, step: (B, A) => B)     extends Rx[B]
   final case class Collect [A, B]     (self: Rx[A], f: PartialFunction[A, B], b: B) extends Rx[B]
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
+
+  implicit class RichListRx[A](val value: List[Rx[A]]) extends AnyVal {
+    def merge[B >: A]: Rx[B] = MergeN[A, B](value)
+  }
 
   /**
    * The `impure.foreach` interpreter. Traverses the `Rx` tree and registers
@@ -210,6 +216,11 @@ object Rx {
       val c1 = run(self)(effect)
       val c2 = run(other)(effect)
       Cancelable { () => c1.cancel; c2.cancel }
+
+    case MergeN(self) => {
+      val ccs: List[Cancelable] = self.map(rx => run(rx)(effect))
+      Cancelable { () => ccs.foreach(cc => cc.cancel) }
+    }
 
     case Foldp(self, seed, step) =>
       var b = seed
