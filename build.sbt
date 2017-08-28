@@ -40,6 +40,8 @@ lazy val `monadic-rx-cats`    = crossProject
   .settings(publishSettings: _*)
   .dependsOn(`monadic-rx`)
   .settings(libraryDependencies += "org.typelevel" %%% "cats" % cats)
+  .settings(libraryDependencies += "org.scalatest" %%% "scalatest" % scalatest % "test")
+
 
 lazy val `examples` = project
   .enablePlugins(ScalaJSPlugin)
