@@ -1,8 +1,10 @@
 package mhtml
 package implicits
 
-import _root_.cats.{Monad, Semigroup}
+import _root_.cats.{Monad, Monoid, Semigroup}
+
 import scala.language.implicitConversions
+import scala.reflect.ClassTag
 
 object cats {
   /**
@@ -291,10 +293,26 @@ object cats {
    *
    * Both sides are equivalent. Q.E.D.
    */
-  implicit def mhtmlRxSemigroupIntstance[A]: Semigroup[Rx[A]] =
-    new Semigroup[Rx[A]] {
-      def combine(x: Rx[A], y: Rx[A]): Rx[A] = x.merge(y)
-    }
+  trait MhtmlRxSemigroup[A] extends Semigroup[Rx[A]] {
+    def combine(x: Rx[A], y: Rx[A]): Rx[A] = x.merge(y)
+  }
+  implicit def mhtmlRxSemigroupIntstance[A]: Semigroup[Rx[A]] = new MhtmlRxSemigroup[A] {}
+
+  class MhtmlRxMonoid[A](ct: ClassTag[A]) extends MhtmlRxSemigroup[A] with Monoid[Rx[A]] {
+
+    private val listClz = classOf[List[_]]
+    private val iterClz = classOf[Iterable[_]]
+    private val seqClz = classOf[Seq[_]]
+
+    def empty: Rx[A] = Rx(ct.runtimeClass match {
+      case tpe if tpe == listClz => List.empty.asInstanceOf[A]
+      case tpe if tpe == iterClz => Iterable.empty.asInstanceOf[A]
+      case tpe if tpe == seqClz => Seq.empty.asInstanceOf[A]
+      case _ => null.asInstanceOf[A]
+    })
+  }
+  implicit def mhtmlRxMonoidInstance[A](implicit ct: ClassTag[A]): Monoid[Rx[A]] = new MhtmlRxMonoid[A](ct) {}
+
 
   // Custom syntax instances for Vars. Without these, users would have to
   // manually upcast their `Var`s as `Rx`s to be able to use `|@|` and `|+|`.
@@ -307,4 +325,6 @@ object cats {
 
   implicit def mhtmlVarSyntaxSemigroup[A](fa: Var[A]) =
     new _root_.cats.syntax.SemigroupOps[Rx[A]](fa)(mhtmlRxSemigroupIntstance)
+
+
 }
