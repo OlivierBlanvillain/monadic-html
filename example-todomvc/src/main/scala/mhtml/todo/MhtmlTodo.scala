@@ -98,7 +98,10 @@ object MhtmlTodo extends JSApp {
           println(s"yield tlt = $tlt}")
           println(s"yield tle = $tle}")
           (ctl, tlt, tle)
-        }).dropRepeats
+        }).dropRepeats.map{ tclm => // DEBUG
+          println(tclm)
+          tclm
+        }
 
     val store: Rx[Store] = ctlTodosZipped.foldp[Rx[Store]]( Rx(Map()) ) {
       (storeNow: Rx[Store], tlcMonitors: TLCMonitors) =>
@@ -123,16 +126,15 @@ object MhtmlTodo extends JSApp {
     ComponentList(view, store)
   }
 
-  //FIXME: fold with flatmap is potentially problematic: https://github.com/OlivierBlanvillain/monadic-html
   val todoListEvent: Rx[Option[TodoEvent]] = {
     println("in todoListEvent definition") // DEBUG
-    val todoListEventDef = todoListComponents.store.map(comps => comps.values.map(comp => comp.model))
-      .flatMap {todoListModels =>
-        println(s"inside flatmap for todoListEventDef: todoListModels size = ${todoListModels.size} ")
-        todoListModels.foldRight[Rx[Option[TodoEvent]]](Rx(None))(
-          (lastEv: Rx[Option[TodoEvent]], nextEv: Rx[Option[TodoEvent]]) => nextEv |+| lastEv
-        )
-      }.dropRepeats.map { tle => println(s"got tlEvent $tle from todoListComponents (DEBUG)"); tle } // DEBUG
+    val todoListEventDef: Rx[Option[TodoEvent]] = todoListComponents.store.map { comps =>
+      println("in todoListEventDef definition") // DEBUG
+      Semigroup.combineAllOption(comps.values.map(comp => comp.model)) match {
+        case Some(evs) => evs
+        case None => Rx(None)
+      }
+    }.flatten.dropRepeats
     todoListEventProxy.imitate(todoListEventDef)
   }
 
