@@ -179,13 +179,6 @@ class HtmlTests extends FunSuite {
     assert(div.innerHTML == "<div> </div>")
   }
 
-  test("Entity") {
-    def entity = <div>&amp;&lt;</div>
-    val div = dom.document.createElement("div")
-    mount(div, entity)
-    assert(div.innerHTML == "<div>&amp;&lt;</div>")
-  }
-
   test("CustomAttribute") {
     var w: List[String] = Nil
     def hr = <hr data:custom-key="value"/>

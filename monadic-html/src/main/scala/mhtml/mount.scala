@@ -25,8 +25,10 @@ object mount {
         parent.mountHere(elemNode, startPoint)
         Cancelable { () => cancelMetadata.foreach(_.cancel); cancelChild.foreach(_.cancel) }
 
-      case e: EntityRef  =>
-        parent.mountHere(dom.document.createTextNode(e.text), startPoint)
+      case EntityRef(entityName)  =>
+        val node = dom.document.createTextNode("").asInstanceOf[dom.Element]
+        node.innerHTML = s"&$entityName;"
+        parent.mountHere(node, startPoint)
         Cancelable.empty
 
       case Comment(text) =>

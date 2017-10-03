@@ -54,16 +54,7 @@ final case class Elem(
 final case class Comment(commentText: String) extends Node
 
 /** XML leaf for entity references. */
-final case class EntityRef(entityName: String) extends Node {
-  def text: String = entityName match {
-    case "lt"   => "<"
-    case "gt"   => ">"
-    case "amp"  => "&"
-    case "apos" => "'"
-    case "quot" => "\""
-    case _      => entityName
-  }
-}
+final case class EntityRef(entityName: String)(implicit ev: XmlEntityRefEmbeddable) extends Node
 
 /** XML leaf for text. */
 final case class Text(text: String) extends Atom[String](text)
@@ -197,6 +188,9 @@ object XmlElementEmbeddable {
   @inline implicit def seqElementEmbeddable[C[x] <: Seq[x], T <: Node]:   XE[C[T]]      = null
   @inline implicit def rxElementEmbeddable[C[x] <: mhtml.Rx[x], T: XE]:   XE[C[T]]      = null
 }
+
+@implicitNotFound("""EntityRef are not supported, use Strings instead: <p>{"<"}</p>""")
+trait XmlEntityRefEmbeddable
 
 /** Internal structure used by scalac to create literals */
 class NodeBuffer extends scala.collection.mutable.ArrayBuffer[Node] {

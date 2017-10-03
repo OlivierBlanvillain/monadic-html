@@ -31,6 +31,11 @@ class RenderTests extends FunSuite {
   check(<div>{"string"}</div>               , "<div>string</div>")
   check(<div>{List(xml.Comment("a"))}</div> , "<div><!--a--></div>")
 
+  check(<text>{">"}</text>, """<text>&gt;</text>""")
+  check(<text>{"<"}</text>, """<text>&lt;</text>""")
+  check(<text>{'"'}</text>, """<text>"</text>""")
+  check(<text>{"\u00A0"}</text>, "<text>&nbsp;</text>") // &nbsp;
+
   // Optional attributes
   check(<form disabled={Rx(true)}>1</form>       , """<form disabled="">1</form>""")
   check(<form disabled={Rx(false)}>1</form>      , """<form>1</form>""")

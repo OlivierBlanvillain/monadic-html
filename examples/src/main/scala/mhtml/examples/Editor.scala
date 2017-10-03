@@ -59,7 +59,7 @@ object Neptune {
     Act(<div>•</div>, "Unordered List") {
       exec("insertUnorderedList")
     },
-    Act(<div>&lt;/&gt;</div>, "Code") {
+    Act(<div>{"<>"}</div>, "Code") {
       exec("formatBlock", "<PRE>")
     },
     Act(<div>―</div>, "Horizontal Line") {
