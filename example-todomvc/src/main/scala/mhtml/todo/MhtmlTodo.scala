@@ -26,30 +26,25 @@ case class TaggedComponent[D,T](view: Node, model: Rx[D], tag: T) extends Abstra
 
 /**
   * Alternative to using TaggedComponent; tags are replaces by keys in a map. This is not a true
-  * list of components, but rahter a component that simulates a list of components.
+  * list of components, but rather a component that simulates a list of components.
   * @param view
-  * @param model
-  * @param tag
   * @tparam D
   * @tparam T
   */
 case class ComponentList[D,T](
-  view: Rx[Node],
+  view: Node,
   store: Rx[Map[T,D]],
   orderMaybe: Option[Ordering[T]] = None
-)
-// TODO: Ideally, views in components would be the union of Rx[Node] and Node;
-// TODO: currently we can extend AbstractComponent because of this
-//  extends AbstractComponent[List[D]](
-//    view,
-//    store.map(storeNow =>
-//      orderMaybe match {
-//        case Some(order) =>
-//          storeNow.keys.toList.sorted(order).map(key => storeNow(key))
-//        case None => storeNow.values.toList
-//      }
-//    )
-//  )
+) extends AbstractComponent[Iterable[D]](
+    view,
+    store.map(storeNow =>
+      orderMaybe match {
+        case Some(order) =>
+          storeNow.keys.toList.sorted(order).map(key => storeNow(key))
+        case None => storeNow.values.toList
+      }
+    )
+  )
 
 case class Todo(title: String, completed: Boolean)
 
@@ -62,6 +57,17 @@ final case class RemovalEvent(todo: Todo) extends TodoEvent
 
 
 object MhtmlTodo extends JSApp {
+
+  implicit class RxNode(val rxNode: Rx[Node]) extends AnyVal {
+    def toNode(errNode: Node = <div>Error/404</div>): Node = {
+      val nodeOuter = <div>{ rxNode }</div>
+      nodeOuter.child.headOption match {
+        case Some(nd) => <div class="debug">{ nd }</div>
+        case None => errNode
+      }
+    }
+  }
+
   type TodoItem = Component[Option[TodoEvent]]
   type Store = Map[Todo, TodoItem]
   val allTodosProxy: Var[List[Todo]] = Var(Nil)
@@ -123,7 +129,7 @@ object MhtmlTodo extends JSApp {
       Group(compMap.values.map(item => item.view) (breakOut) )
     }.dropRepeats
 
-    ComponentList(view, store)
+    ComponentList(view.dropRepeats.toNode(), store)
   }
 
   val todoListEvent: Rx[Option[TodoEvent]] = {
@@ -286,7 +292,6 @@ object MhtmlTodo extends JSApp {
         case _ => None
       }(breakOut)
 
-    // TODO(olafur) This is broken in 0.1, fix here https://github.com/OlivierBlanvillain/monadic-html/pull/9
     val checked = active.items.map(x => x.isEmpty)
     val display = allTodos.map(todos => if (todos.isEmpty) "none" else "")
 
