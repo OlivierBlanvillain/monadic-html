@@ -191,13 +191,10 @@ object MhtmlTodo extends JSApp {
   val anyEvent: Rx[Option[TodoEvent]] =
     (todoListEvent |+| footer.model |+| header.model).dropRepeats
 
-  val allTodos: Rx[List[Todo]] = anyEvent.foldp(load()) {
-    (last, ev) => updateState(last, ev)
-  }.dropRepeats
-  val allTodosRunner: Rx[Node] = allTodosProxy.imitate(allTodos)
-    .dropRepeats.map { _ => {
-      <div/>
-  }}
+  val allTodos: Rx[List[Todo]] = allTodosProxy.imitate(
+    anyEvent.foldp(load()) { (last, ev) => updateState(last, ev)}.dropRepeats
+  ).dropRepeats
+
 
   def todoItem(todo: Todo): TodoItem = {
     println(s"making new todo component for $todo") // DEBUG
@@ -382,7 +379,6 @@ object MhtmlTodo extends JSApp {
 
   val todoapp: Node = {
     <div>
-      { allTodosRunner }
       <section class="todoapp">{ header.view }{ mainSection.view }{ footer.view }</section>
       <footer class="info">
         <p>Double-click to edit a todo</p>
