@@ -114,6 +114,26 @@ class RxTests extends FunSuite {
     assert(value.isCold)
   }
 
+  test("Referential transparency with foldp") {
+
+    val a: Var[Int] = Var(0)
+    val b: Rx[Int] = a.foldp(0)(2*_ + 2*_)
+    // Should be:  2*0 + 2*0 == 0
+    assert(b.impure.value == 0)
+    assert(a.foldp(0)(2*_ + 2*_).impure.value == 0)
+    a := 1
+    // Should be:  2*0 + 2*1 == 2
+    assert(b.impure.value == 2)
+    assert(a.foldp(0)(2*_ + 2*_).impure.value == 2)
+    a := 1
+    // Should be:  2*2 + 2*1 == 6
+    assert(b.impure.value == 6)
+    assert(a.foldp(0)(2*_ + 2*_).impure.value == 6)
+
+    assert(a.isCold)
+  }
+
+
   test("keepIf") {
     val numbers: Var[Int] = Var(0)
     val even: Rx[Int] = numbers.keepIf(_ % 2 == 0)(-1)
