@@ -213,11 +213,12 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
 
     Produces a `Rx` containing cumulative results of applying a binary
     operator to each element of this `Rx`, starting from a `seed` and the
-    current value, and moving forward in time.
+    current value of the upstream `Rx`, and moving forward in time; no internal
+    state is maintained.
 
     ```scala
     val numbers: Rx[Int]
-    val folded: Rx[Int] = numbers.fold(0)(_ + _)
+    val folded: Rx[Int] = numbers.foldp(0)(_ + _)
     // numbers => 1 2 1 1 3 ...
     // folded  => 1 3 4 5 8 ...
     ```
