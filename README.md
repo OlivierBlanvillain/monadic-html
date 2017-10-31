@@ -107,7 +107,7 @@ Interactions with DOM events are handled using functions attached directly to xm
 <button onclick={ () => println("clicked!") }>Click Me!</button>
 ```
 
-Even handlers can also take one argument, which will be populated using raw event objects coming directly from the browser:
+Event handlers can also take one argument, which will be populated using raw event objects coming directly from the browser:
 
 ```scala
 <input type="text" onchange={
