@@ -193,7 +193,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
 
 -  `def merge(other: Rx[A]): Rx[A]`
 
-    Merge two `Rx` into one.  Updates coming from either of the incoming `Rx`
+    Merge two `Rx` into one. Updates coming from either of the incoming `Rx`
     trigger updates in the outgoing `Rx`. Upon creation, the outgoing `Rx`
     first receives the current value from this `Rx`, then from the other `Rx`.
 
@@ -213,11 +213,12 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
 
     Produces a `Rx` containing cumulative results of applying a binary
     operator to each element of this `Rx`, starting from a `seed` and the
-    current value, and moving forward in time.
+    current value of the upstream `Rx`, and moving forward in time; no internal
+    state is maintained.
 
     ```scala
     val numbers: Rx[Int]
-    val folded: Rx[Int] = numbers.fold(0)(_ + _)
+    val folded: Rx[Int] = numbers.foldp(0)(_ + _)
     // numbers => 1 2 1 1 3 ...
     // folded  => 1 3 4 5 8 ...
     ```
@@ -274,7 +275,7 @@ case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
    * Returns an `Cancelable` which can be used to cancel the subscription.
    * Omitting to canceling subscription can lead to memory leaks.
    *
-   * If you use this in your code, you are probably doing in wrong.
+   * If you use this in your code, you are probably doing it wrong.
    */
   def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
 }
