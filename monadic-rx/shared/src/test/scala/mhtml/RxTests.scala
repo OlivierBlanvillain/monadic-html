@@ -59,6 +59,44 @@ class RxTests extends FunSuite {
     assert(a.isCold)
   }
 
+  test("Verify sharing memoization and updates") {
+    var count = 0
+    val sourceVar = Var(0)
+
+    // Demonstrate typical (non-shared) conditions
+    val source: Rx[Int] = sourceVar.map{x => count +=1; x}
+    val noshare1: Rx[Int] = source.map(identity)
+    val noshare2: Rx[Int] = source.map(identity)
+    val cc_ns1 = noshare1.impure.foreach(_ => ())
+    val cc_ns2 = noshare2.impure.foreach(_ => ())
+    assert(count == 2)
+    assert(noshare1.impure.value == 0)
+    sourceVar := 1
+    assert(noshare1.impure.value == 1)
+    assert(count == 6) //FIXME: should be 4?
+    cc_ns1.cancel
+    cc_ns2.cancel
+
+    // Demonstrate sharing
+    sourceVar := 0
+    count = 0
+    val sharedSource: Rx[Int] = sourceVar.map{x => count +=1; x}.sharing
+    assert(count == 0)
+    val share1: Rx[Int] = sharedSource.map(identity)
+    val share2: Rx[Int] = sharedSource.map(identity)
+    val cc_s1 = share1.impure.foreach(_ => ())
+    val cc_s2 = share2.impure.foreach(_ => ())
+    assert(count == 1)
+    assert(share1.impure.value == 0)
+    sourceVar := 1
+    assert(share1.impure.value == 1)
+    assert(count == 2)
+    cc_s1.cancel
+    cc_s2.cancel
+
+    assert(sourceVar.isCold)
+  }
+
   test("max using foldp") {
     val value: Var[Int] = Var(0)
     val max: Rx[Int] = value.foldp(0)(_ max _)

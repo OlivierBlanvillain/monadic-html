@@ -142,7 +142,18 @@ sealed trait Rx[+A] { self =>
    */
   def sampleOn[B](other: Rx[B]): Rx[A] = SampleOn[A, B](this, other)
 
+  /**
+    * Memoizes this `Rx` using an internal `Var`. This is primarily
+    * useful for optimizing an Rx graph, so that this `Rx` is only
+    * computed once.
+    */
+  def sharing: Rx[A] = Sharing[A](this)
+
   val impure: RxImpureOps[A] = RxImpureOps[A](this)
+
+  protected var isSharing = false
+  protected var sharingMemo: Option[Any] = None
+  protected var sharingCancelable: Cancelable = Cancelable.empty
 }
 
 case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
@@ -169,6 +180,7 @@ object Rx {
   final case class Collect [A, B]     (self: Rx[A], f: PartialFunction[A, B], b: B) extends Rx[B]
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
+  final case class Sharing [A]        (self: Rx[A])                                 extends Rx[A]
 
   /**
    * The `impure.foreach` interpreter. Traverses the `Rx` tree and registers
@@ -249,6 +261,18 @@ object Rx {
         }
         Cancelable { () => cc.cancel; self.imitating = false }
       } else run(other)(effect)
+
+    case Sharing(self) =>
+      if (!self.isSharing) {
+        self.sharingCancelable = self.impure.foreach{ x =>
+          self.sharingMemo = Option(x)
+          println(s"hello from sharing: $x") // DEBUG
+          effect(x)
+        }
+        self.isSharing = true
+      }
+      else self.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
+      self.sharingCancelable
 
     case leaf: Var[A] =>
       leaf.foreach(effect)
