@@ -150,10 +150,6 @@ sealed trait Rx[+A] { self =>
   def sharing: Rx[A] = Sharing[A](this)
 
   val impure: RxImpureOps[A] = RxImpureOps[A](this)
-
-  protected var isSharing = false
-  protected var sharingMemo: Option[Any] = None
-  protected var sharingCancelable: Cancelable = Cancelable.empty
 }
 
 case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
@@ -180,7 +176,11 @@ object Rx {
   final case class Collect [A, B]     (self: Rx[A], f: PartialFunction[A, B], b: B) extends Rx[B]
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
-  final case class Sharing [A]        (self: Rx[A])                                 extends Rx[A]
+  final case class Sharing [+A]        (self: Rx[A])                                 extends Rx[A] {
+    protected[Rx] var sharingMemo: Option[A] = None
+    protected[Rx] var isSharing = false
+    protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
+  }
 
   /**
    * The `impure.foreach` interpreter. Traverses the `Rx` tree and registers
@@ -262,17 +262,20 @@ object Rx {
         Cancelable { () => cc.cancel; self.imitating = false }
       } else run(other)(effect)
 
-    case Sharing(self) =>
-      if (!self.isSharing) {
-        self.sharingCancelable = self.impure.foreach{ x =>
-          self.sharingMemo = Option(x)
+    case shareRxGADT @ Sharing(self) =>
+      val shareRx: Sharing[A] = shareRxGADT
+      if (!shareRx.isSharing) {
+        shareRx.sharingCancelable = run(self){ x =>
+          // This is a GADT skolem, when using Option(x):
+          val shareMemoAny: Option[Any] = Option(x.asInstanceOf[Any])
+          shareRx.sharingMemo = shareMemoAny.asInstanceOf[Option[A]]
           println(s"hello from sharing: $x") // DEBUG
           effect(x)
         }
-        self.isSharing = true
+        shareRx.isSharing = true
       }
-      else self.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
-      self.sharingCancelable
+      else effect(shareRx.sharingMemo.get)
+      shareRx.sharingCancelable
 
     case leaf: Var[A] =>
       leaf.foreach(effect)
