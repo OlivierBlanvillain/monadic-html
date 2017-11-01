@@ -176,8 +176,8 @@ object Rx {
   final case class Collect [A, B]     (self: Rx[A], f: PartialFunction[A, B], b: B) extends Rx[B]
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
-  final case class Sharing [+A]        (self: Rx[A])                                 extends Rx[A] {
-    protected[Rx] var sharingMemo: Option[A] = None
+  final case class Sharing [A]        (self: Rx[A])                                 extends Rx[A] {
+    protected[Rx] var sharingMemo: Option[Any] = None // Should be Option[A], but gives GADT Skolem bug
     protected[Rx] var isSharing = false
     protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
   }
@@ -262,19 +262,16 @@ object Rx {
         Cancelable { () => cc.cancel; self.imitating = false }
       } else run(other)(effect)
 
-    case shareRxGADT @ Sharing(self) =>
-      val shareRx: Sharing[A] = shareRxGADT
+    case shareRx @ Sharing(self) =>
       if (!shareRx.isSharing) {
         shareRx.sharingCancelable = run(self){ x =>
-          // This is a GADT skolem, when using Option(x):
-          val shareMemoAny: Option[Any] = Option(x.asInstanceOf[Any])
-          shareRx.sharingMemo = shareMemoAny.asInstanceOf[Option[A]]
+          shareRx.sharingMemo = Option(x)
           println(s"hello from sharing: $x") // DEBUG
           effect(x)
         }
         shareRx.isSharing = true
       }
-      else effect(shareRx.sharingMemo.get)
+      else effect(shareRx.sharingMemo.get.asInstanceOf[A])
       shareRx.sharingCancelable
 
     case leaf: Var[A] =>
