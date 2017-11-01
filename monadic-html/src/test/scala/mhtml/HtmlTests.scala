@@ -477,7 +477,7 @@ class HtmlTests extends FunSuite {
 
   test("toString on xml node") {
     val node = <button class="c" id="1">Click Me!</button>
-    val makeMeDream = """Elem(None,button,UnprefixedAttribute(xmlns,null,UnprefixedAttribute(class,Text(c),UnprefixedAttribute(id,Text(1),Null))),Some(TopScope),ArrayBuffer(Text(Click Me!)))"""
-    assert(node.toString == makeMeDream)
+    val makeMeDream = """Elem(None,button,UnprefixedAttribute(xmlns,null,UnprefixedAttribute(class,Text(c),UnprefixedAttribute(id,Text(1),Null))),Some(TopScope),ArrayBuffer(Text(ClickMe!)))"""
+    assert(node.toString.filterNot(_.isWhitespace) == makeMeDream)
   }
 }
