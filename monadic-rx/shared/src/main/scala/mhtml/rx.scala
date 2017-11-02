@@ -177,7 +177,8 @@ object Rx {
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
   final case class Sharing [A]        (self: Rx[A])                                 extends Rx[A] {
-    protected[Rx] var sharingMemo: Option[Any] = None // Should be Option[A], but gives GADT Skolem bug
+    // Should be Var[A], but gives GADT Skolem bug:
+    protected[Rx] val sharingMemo: Var[Any] = Var(None)
     protected[Rx] var isSharing = false
     protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
   }
@@ -226,7 +227,7 @@ object Rx {
     case Foldp(self, seed, step) =>
       var b = seed
       run(self) { a =>
-        // This is a GADT skolem. I'm sober. scalac is drunk.
+        // This is a GADT skolem. I'm sober. scalac is drunk; works in dotty
         val next = step.asInstanceOf[(Any, Any) => A](b, a)
         b = next
         effect(next)
@@ -265,14 +266,18 @@ object Rx {
     case shareRx @ Sharing(self) =>
       if (!shareRx.isSharing) {
         shareRx.sharingCancelable = run(self){ x =>
-          shareRx.sharingMemo = Option(x)
-          println(s"hello from sharing: $x") // DEBUG
-          effect(x)
+          shareRx.sharingMemo := x
         }
         shareRx.isSharing = true
       }
-      else effect(shareRx.sharingMemo.get.asInstanceOf[A])
-      shareRx.sharingCancelable
+      val foreachCancelable = shareRx.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
+      Cancelable { () => {
+        foreachCancelable.cancel
+        if (shareRx.sharingMemo.subscribers.isEmpty) {
+          shareRx.sharingCancelable.cancel
+          shareRx.isSharing = false
+        }
+      }}
 
     case leaf: Var[A] =>
       leaf.foreach(effect)
