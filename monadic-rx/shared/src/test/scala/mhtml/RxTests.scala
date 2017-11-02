@@ -80,7 +80,7 @@ class RxTests extends FunSuite {
     // Demonstrate sharing
     sourceVar := 0
     count = 0
-    val sharedSource: Rx[Int] = sourceVar.map{x => count +=1; x}.sharing
+    val sharedSource: Rx[Int] = sourceVar.map{x => count +=1; x}.impure.sharing
     assert(count == 0)
     val share1: Rx[Int] = sharedSource.map(identity)
     val share2: Rx[Int] = sharedSource.map(identity)

@@ -142,13 +142,6 @@ sealed trait Rx[+A] { self =>
    */
   def sampleOn[B](other: Rx[B]): Rx[A] = SampleOn[A, B](this, other)
 
-  /**
-    * Memoizes this `Rx` using an internal `Var`. This is primarily
-    * useful for optimizing an Rx graph, so that this `Rx` is only
-    * computed once.
-    */
-  def sharing: Rx[A] = Sharing[A](this)
-
   val impure: RxImpureOps[A] = RxImpureOps[A](this)
 }
 
@@ -161,6 +154,14 @@ case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
    * If you use this in your code, you are probably doing in wrong.
    */
   def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
+
+  /**
+    * Memoizes this `Rx` using an internal `Var`. This is primarily
+    * useful for optimizing an Rx graph, so that this `Rx` is only
+    * computed once.
+    */
+  @deprecated("This will eventually be made private and used under-the-hood, automatically.")
+  def sharing: Rx[A] = Rx.Sharing[A](self)
 }
 
 object Rx {
