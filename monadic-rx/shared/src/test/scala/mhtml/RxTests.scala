@@ -73,7 +73,7 @@ class RxTests extends FunSuite {
     assert(noshare1.impure.value == 0)
     sourceVar := 1
     assert(noshare1.impure.value == 1)
-    assert(count == 6) //FIXME: should be 4?
+    assert(count == 6) // Note: impure.value calls increment also
     cc_ns1.cancel
     cc_ns2.cancel
 
