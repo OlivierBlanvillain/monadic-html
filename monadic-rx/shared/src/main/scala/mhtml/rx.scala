@@ -155,6 +155,14 @@ case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
    * If you use this in your code, you are probably doing it wrong.
    */
   def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
+
+  /**
+    * Memoizes this `Rx` using an internal `Var`. This is only
+    * useful for optimizing an Rx graph, so that values generated
+    * by this `Rx` are computed only once and shared between all executions.
+    */
+  @deprecated("This will eventually be made private and used under-the-hood, automatically.", "1.0.0")
+  def sharing: Rx[A] = Rx.Sharing[A](self)
 }
 
 object Rx {
@@ -170,6 +178,12 @@ object Rx {
   final case class Collect [A, B]     (self: Rx[A], f: PartialFunction[A, B], b: B) extends Rx[B]
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
+  final case class Sharing [A]        (self: Rx[A])                                 extends Rx[A] {
+    // Should be Var[A], but gives GADT Skolem bug:
+    protected[Rx] val sharingMemo: Var[Any] = Var(None)
+    protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
+    protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
+  }
 
   /**
    * The `impure.foreach` interpreter. Traverses the `Rx` tree and registers
@@ -215,7 +229,7 @@ object Rx {
     case Foldp(self, seed, step) =>
       var b = seed
       run(self) { a =>
-        // This is a GADT skolem. I'm sober. scalac is drunk.
+        // This is a GADT skolem. I'm sober. scalac is drunk; works in dotty
         val next = step.asInstanceOf[(Any, Any) => A](b, a)
         b = next
         effect(next)
@@ -250,6 +264,19 @@ object Rx {
         }
         Cancelable { () => cc.cancel; self.imitating = false }
       } else run(other)(effect)
+
+    case rx @ Sharing(self) =>
+      if (!rx.isSharing) {
+        rx.sharingCancelable = run(self)(rx.sharingMemo.:=)
+      }
+      val foreachCancelable = rx.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
+      Cancelable { () =>
+        foreachCancelable.cancel
+        if (rx.sharingMemo.subscribers.isEmpty) {
+          rx.sharingCancelable.cancel
+          rx.sharingCancelable = Cancelable.empty
+        }
+      }
 
     case leaf: Var[A] =>
       leaf.foreach(effect)
