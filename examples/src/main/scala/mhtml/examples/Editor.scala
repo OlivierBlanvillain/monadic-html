@@ -2,22 +2,18 @@ package examples
 
 import mhtml._
 import styles.NeptuneStyles
-
 import scala.scalajs.js
 import org.scalajs.dom
 import dom.{document, window}
 import dom.raw.{MouseEvent, MutationObserver, MutationObserverInit, MutationRecord}
 import org.scalajs.dom.html.Div
 import scalacss.ProdDefaults._
-
 import scala.xml.Node
-
 
 /**
   Copyright (c) 2017 Amir Karimi, Brandon Barker
   Adapted from https://github.com/amirkarimi/neptune
   */
-
 object Neptune {
 
   case class Component[D](view: Node, model: Rx[D])
@@ -63,7 +59,7 @@ object Neptune {
     Act(<div>•</div>, "Unordered List") {
       exec("insertUnorderedList")
     },
-    Act(<div>&lt;/&gt;</div>, "Code") {
+    Act(<div>{"<>"}</div>, "Code") {
       exec("formatBlock", "<PRE>")
     },
     Act(<div>―</div>, "Horizontal Line") {
@@ -79,17 +75,13 @@ object Neptune {
     }
   )
 
-  private def exec(command: String) = {
-    document.execCommand(command, false, null)
-  }
-
-  private def exec(command: String, value: scalajs.js.Any) = {
-    document.execCommand(command, false, value)
+  private def exec(command: String, value: scalajs.js.Any = null): Unit = {
+    document.execCommand(command, false, value); ()
   }
 
   def editor(settings: Settings = Settings()): Component[String] = {
     // TODO: settings.classes.actionbar
-    val actionBar = <div class={NeptuneStyles.neptuneActionbar.htmlClass}>{
+    val actionBar = <div class={ NeptuneStyles.neptuneActionbar.htmlClass }>{
       actions.map { action =>
         <button class={ NeptuneStyles.neptuneButton.htmlClass }
                 title={ action.title }
@@ -117,8 +109,8 @@ object Neptune {
     }
 
     val contentStore = <div
-      class={NeptuneStyles.neptuneContent.htmlClass}
-      contentEditable="true" onkeydown={preventTab _}
+      class={ NeptuneStyles.neptuneContent.htmlClass }
+      contentEditable="true" onkeydown={ preventTab _ }
       mhtml-onmount={ updateContent _ }
     />
 
@@ -128,11 +120,8 @@ object Neptune {
     Component(view, content)
   }
 
-
   def preventTab(kev: dom.KeyboardEvent): Unit =
     if (kev.keyCode == 9) kev.preventDefault()
-
-
 }
 
 object Editor extends Example {

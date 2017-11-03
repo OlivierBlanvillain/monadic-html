@@ -4,8 +4,6 @@ import org.scalajs.dom
 import org.scalajs.dom.raw.SVGAElement
 import org.scalatest.FunSuite
 
-import scala.xml.EntityRef
-
 class RenderTests extends FunSuite {
   def render(node: xml.Node): String = mountNode(node).innerHTML
 
@@ -33,6 +31,11 @@ class RenderTests extends FunSuite {
   check(<div>{"string"}</div>               , "<div>string</div>")
   check(<div>{List(xml.Comment("a"))}</div> , "<div><!--a--></div>")
 
+  check(<text>{">"}</text>, """<text>&gt;</text>""")
+  check(<text>{"<"}</text>, """<text>&lt;</text>""")
+  check(<text>{'"'}</text>, """<text>"</text>""")
+  check(<text>{"\u00A0"}</text>, "<text>&nbsp;</text>") // &nbsp;
+
   // Optional attributes
   check(<form disabled={Rx(true)}>1</form>       , """<form disabled="">1</form>""")
   check(<form disabled={Rx(false)}>1</form>      , """<form>1</form>""")
@@ -43,13 +46,6 @@ class RenderTests extends FunSuite {
   check(<form disabled={Some(Rx(true))}>4</form> , """<form disabled="">4</form>""")
 
   check(<p>{emptyHTML}</p>                       , "<p></p>")
-
-  check(
-    <div>{Seq(
-      EntityRef("amp"), EntityRef("lt"), EntityRef("copy"), EntityRef("lambda")
-    )}</div>,
-    "<div>&amp;&lt;©λ</div>"
-  )
 
   check(<svg xmlns="http://hello.com"></svg>,
      """<svg xmlns="http://hello.com"></svg>""")

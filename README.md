@@ -287,21 +287,7 @@ This method can be useful for testing and debugging, but should ideally be avoid
 
 #### Does the compiler catch HTML typos?
 
-No, only invalid XML literals will be rejected at compile time. However, we do provide [configurable settings](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-html/src/main/scala/mhtml/settings.scala) to emit runtime warnings about unknown elements, attributes, entity references and event handlers. For example, the following piece of XML compiles fine:
-
-```scala
-<captain yolo="true" onClick={ () => println("Oh yeah!") }></captain>
-```
-
-But mounting it to the DOM will print warnings in the console:
-
-```
-[mhtml] Warning: Unknown event onClick. Did you mean onclick instead?
-[mhtml] Warning: Unknown attribute yolo. Did you mean cols instead?
-[mhtml] Warning: Unknown element captain. Did you mean caption instead?
-```
-
-`MountSettings.default` emit warnings only when compiled to with `fastOptJS`, and becomes silent (and faster) when compiled with `fullOptJS`.
+No, only invalid XML literals will be rejected at compile time.
 
 #### Can I insert Any values into xml literals?
 
@@ -348,13 +334,15 @@ dom.document.getElementsByTagName("head").headOption match {
 
 #### How do I use HTML entities?
 
-There are a couple of ways. The first is to inject it directly into a node. To get two non-breaking spaces, you might do:
-`<span>&npsp;&npsp;</span>`. More generally, you will need `scala.xml.EntityRef` to reference an entity directly in Scala:
+You don't. Scala has great support for unicode `val ™ = <div>™</div>`, and if that doesn't work it's always possible to use String literals:
 
-```scala
-def space(nn: Int): Node = Group(Seq.fill(nn)(EntityRef("nbsp")))
-<span>{space(2)}</span> // results in <span>&npsp;&npsp;</span>
-```
+- ```scala
+  <pre>{"<>"}</pre> // &lt;&gt;
+  ```
+
+- ```scala
+  <text>{"\u00A0"}</text> // &nbsp;
+  ```
 
 #### Global mutable state, Booo! Booo!!!
 
