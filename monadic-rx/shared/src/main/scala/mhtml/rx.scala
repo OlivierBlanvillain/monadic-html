@@ -156,11 +156,11 @@ case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
   def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
 
   /**
-    * Memoizes this `Rx` using an internal `Var`. This is primarily
-    * useful for optimizing an Rx graph, so that this `Rx` is only
-    * computed once.
+    * Memoizes this `Rx` using an internal `Var`. This is only
+    * useful for optimizing an Rx graph, so that values generated
+    * by this `Rx` are computed only once and shared between all executions.
     */
-  @deprecated("This will eventually be made private and used under-the-hood, automatically.")
+  @deprecated("This will eventually be made private and used under-the-hood, automatically.", "1.0.0")
   def sharing: Rx[A] = Rx.Sharing[A](self)
 }
 
@@ -180,7 +180,7 @@ object Rx {
   final case class Sharing [A]        (self: Rx[A])                                 extends Rx[A] {
     // Should be Var[A], but gives GADT Skolem bug:
     protected[Rx] val sharingMemo: Var[Any] = Var(None)
-    protected[Rx] var isSharing = false
+    protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
     protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
   }
 
@@ -264,21 +264,18 @@ object Rx {
         Cancelable { () => cc.cancel; self.imitating = false }
       } else run(other)(effect)
 
-    case shareRx @ Sharing(self) =>
-      if (!shareRx.isSharing) {
-        shareRx.sharingCancelable = run(self){ x =>
-          shareRx.sharingMemo := x
-        }
-        shareRx.isSharing = true
+    case rx @ Sharing(self) =>
+      if (!rx.isSharing) {
+        rx.sharingCancelable = run(self)(rx.sharingMemo.:=)
       }
-      val foreachCancelable = shareRx.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
-      Cancelable { () => {
+      val foreachCancelable = rx.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
+      Cancelable { () =>
         foreachCancelable.cancel
-        if (shareRx.sharingMemo.subscribers.isEmpty) {
-          shareRx.sharingCancelable.cancel
-          shareRx.isSharing = false
+        if (rx.sharingMemo.subscribers.isEmpty) {
+          rx.sharingCancelable.cancel
+          rx.sharingCancelable = Cancelable.empty
         }
-      }}
+      }
 
     case leaf: Var[A] =>
       leaf.foreach(effect)
