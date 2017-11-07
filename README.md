@@ -261,7 +261,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
      // sp =>   1   3   3   4 ...
      ```
 
-In order to observe content of `Rx` value we expose a `.impure.foreach` method:
+In order to observe content of `Rx` value we expose a `.impure.run` method:
 
 ```scala
 trait Rx[+A] {
@@ -277,7 +277,7 @@ case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
    *
    * If you use this in your code, you are probably doing it wrong.
    */
-  def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
+  def run(effect: A => Unit): Cancelable = Rx.run(self)(effect)
 }
 ```
 
@@ -383,9 +383,9 @@ implicit class SequencingListFFS[A](self: List[Rx[A]]) {
 import cats.implicits._, mhtml.implicits.cats._
 ```
 
-#### What's the difference between impure.foreach(effect) and map(effect)?
+#### What's the difference between impure.run(effect) and map(effect)?
 
-`.impure.foreach` should really be used with care (read: don't use it). It returns a `Cancelable` that you can freely ignore to leak memory. Contrarily, `map(effect)` is always memory safe and side effect free! Calling `map` actually just piles up a `Map` node on top of a `Rx`. Side effects will only happen "at the end of the world", with the `mount` method (it uses `.impure.foreach` internally). You can observe things piling up by printing a `Rx`:
+Formerly, `impure.run` was named `impure.foreach`, which may have caused some confusion: `.impure.run` should really be used with care (read: don't use it). It returns a `Cancelable` that you can freely ignore to leak memory. Contrarily, `map(effect)` is always memory safe and side effect free! Calling `map` actually just piles up a `Map` node on top of a `Rx`. Side effects will only happen "at the end of the world", with the `mount` method (it uses `.impure.run` internally). You can observe things piling up by printing a `Rx`:
 
 ```scala
 val rx1 = Var(1)
@@ -406,7 +406,7 @@ println(rx3)
 // )
 ```
 
-So nothing is happening here really, the code above is just a description of an execution graph. It's only when calling `.impure.foreach` that everything comes to life. In the implementation of `foreach` everything has been carefully assembled (and tested) to avoid any memory leak.
+So nothing is happening here really, the code above is just a description of an execution graph. It's only when calling `.impure.run` that everything comes to life. In the implementation of `run` everything has been carefully assembled (and tested) to avoid any memory leak.
 
 #### How do you implement the {redux, flux, outwatch}.Store pattern?
 
