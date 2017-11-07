@@ -6,7 +6,7 @@ class RxTests extends FunSuite {
   implicit class MoreImpureStuff[A](impure: RxImpureOps[A]) {
     def value: A = {
       var v: Option[A] = None
-      impure.foreach(a => v = Some(a)).cancel
+      impure.run(a => v = Some(a)).cancel
       // This can never happen if using the default Rx/Var constructors and
       // methods. The proof is a simple case analysis showing that every method
       // preserves non emptiness. Var created with unsafeCreate Messing up with
@@ -25,7 +25,7 @@ class RxTests extends FunSuite {
     val c: Rx[Int] = a.flatMap(mkRx)
 
     var result: (Int, Int) = null
-    val cc = c.impure.foreach { i => result = (i, count) }
+    val cc = c.impure.run { i => result = (i, count) }
 
     assert((3, 1) == result)
 
@@ -67,8 +67,8 @@ class RxTests extends FunSuite {
     val source: Rx[Int] = sourceVar.map{x => count +=1; x}
     val noshare1: Rx[Int] = source.map(identity)
     val noshare2: Rx[Int] = source.map(identity)
-    val cc_ns1 = noshare1.impure.foreach(_ => ())
-    val cc_ns2 = noshare2.impure.foreach(_ => ())
+    val cc_ns1 = noshare1.impure.run(_ => ())
+    val cc_ns2 = noshare2.impure.run(_ => ())
     assert(count == 2)
     assert(noshare1.impure.value == 0)
     sourceVar := 1
@@ -84,8 +84,8 @@ class RxTests extends FunSuite {
     assert(count == 0)
     val share1: Rx[Int] = sharedSource.map(identity)
     val share2: Rx[Int] = sharedSource.map(identity)
-    val cc_s1 = share1.impure.foreach(_ => ())
-    val cc_s2 = share2.impure.foreach(_ => ())
+    val cc_s1 = share1.impure.run(_ => ())
+    val cc_s2 = share2.impure.run(_ => ())
     assert(count == 1)
     assert(share1.impure.value == 0)
     sourceVar := 1
@@ -101,7 +101,7 @@ class RxTests extends FunSuite {
     val value: Var[Int] = Var(0)
     val max: Rx[Int] = value.foldp(0)(_ max _)
     var current = -1
-    val cc = max.impure.foreach(current = _)
+    val cc = max.impure.run(current = _)
     assert(current == 0)
     value := 3
     assert(current == 3)
@@ -119,8 +119,8 @@ class RxTests extends FunSuite {
     val even: Rx[Int] = numbers.keepIf(_ % 2 == 0)(-1)
     var numbersList: List[Int] = Nil
     var evenList: List[Int] = Nil
-    val cc1 = numbers.impure.foreach(n => numbersList = numbersList :+ n)
-    val cc2 = even.impure.foreach(n => evenList = evenList :+ n)
+    val cc1 = numbers.impure.run(n => numbersList = numbersList :+ n)
+    val cc2 = even.impure.run(n => evenList = evenList :+ n)
     numbers := 0
     numbers := 3
     numbers := 4
@@ -148,8 +148,8 @@ class RxTests extends FunSuite {
     val even: Rx[Int] = numbers.dropIf(_ % 2 == 0)(-1)
     var numbersList: List[Int] = Nil
     var evenList: List[Int] = Nil
-    val cc1 = numbers.impure.foreach(n => numbersList = numbersList :+ n)
-    val cc2 = even.impure.foreach(n => evenList = evenList :+ n)
+    val cc1 = numbers.impure.run(n => numbersList = numbersList :+ n)
+    val cc2 = even.impure.run(n => evenList = evenList :+ n)
     numbers := 0
     numbers := 3
     numbers := 4
@@ -168,8 +168,8 @@ class RxTests extends FunSuite {
     val even: Rx[Int] = numbers.collect { case x if x % 2 == 0 => x * 10 } (-1)
     var numbersList: List[Int] = Nil
     var evenList: List[Int] = Nil
-    val cc1 = numbers.impure.foreach(n => numbersList = numbersList :+ n)
-    val cc2 = even.impure.foreach(n => evenList = evenList :+ n)
+    val cc1 = numbers.impure.run(n => numbersList = numbersList :+ n)
+    val cc2 = even.impure.run(n => evenList = evenList :+ n)
     numbers := 2
     numbers := 3
     numbers := 4
@@ -196,8 +196,8 @@ class RxTests extends FunSuite {
     val noDups: Rx[Int] = numbers.dropRepeats
     var numbersList: List[Int] = Nil
     var noDupsList: List[Int] = Nil
-    val cc1 = numbers.impure.foreach(n => numbersList = numbersList :+ n)
-    val cc2 = noDups.impure.foreach(n => noDupsList = noDupsList :+ n)
+    val cc1 = numbers.impure.run(n => numbersList = numbersList :+ n)
+    val cc2 = noDups.impure.run(n => noDupsList = noDupsList :+ n)
     numbers := 0
     numbers := 3
     numbers := 3
@@ -220,9 +220,9 @@ class RxTests extends FunSuite {
     var rx1List: List[Int] = Nil
     var rx2List: List[Int] = Nil
     var mergedList: List[Int] = Nil
-    val cc1 = rx1.impure.foreach(n => rx1List = rx1List :+ n)
-    val cc2 = rx2.impure.foreach(n => rx2List = rx2List :+ n)
-    val ccm = merged.impure.foreach(n => mergedList = mergedList :+ n)
+    val cc1 = rx1.impure.run(n => rx1List = rx1List :+ n)
+    val cc2 = rx2.impure.run(n => rx2List = rx2List :+ n)
+    val ccm = merged.impure.run(n => mergedList = mergedList :+ n)
     rx1 := 8
     rx2 := 4
     rx2 := 3
@@ -242,7 +242,7 @@ class RxTests extends FunSuite {
     val rx2: Var[Int] = Var(1)
     val merged: Rx[Int] = rx1.merge(rx2)
     var value = -1
-    val cc = merged.impure.foreach(value = _)
+    val cc = merged.impure.run(value = _)
     assert(value == 1)
     rx2 := 2
     assert(value == 2)
@@ -273,7 +273,7 @@ class RxTests extends FunSuite {
         }
 
       var list: List[Int] = Nil
-      val cc = rx3.impure.foreach(n => list = list :+ n)
+      val cc = rx3.impure.run(n => list = list :+ n)
       rx1 := 3
       rx2 := 4
       assert(list == List(3, 5, 5, 5, 5, 7))
@@ -299,7 +299,7 @@ class RxTests extends FunSuite {
       }
 
       var list: List[Int] = Nil
-      val cc = rx3.impure.foreach(n => list = list :+ n)
+      val cc = rx3.impure.run(n => list = list :+ n)
       rx1 := 3
       rx2 := 4
       assert(list == List(3, 3, 3, 5, 7))
@@ -322,7 +322,7 @@ class RxTests extends FunSuite {
       } yield i + j
 
       var list: List[Int] = Nil
-      val cc = rx3.impure.foreach(n => list = list :+ n)
+      val cc = rx3.impure.run(n => list = list :+ n)
       rx1 := 3
       rx2 := 4
       assert(list == List(3, 3, 3, 3, 5, 7))
@@ -340,9 +340,9 @@ class RxTests extends FunSuite {
     var rx1List: List[Int] = Nil
     var rx2List: List[Int] = Nil
     var zipList: List[(Int, Int)] = Nil
-    val cc1 = rx1.impure.foreach(n => rx1List = rx1List :+ n)
-    val cc2 = rx2.impure.foreach(n => rx2List = rx2List :+ n)
-    val ccm = zip.impure.foreach(n => zipList = zipList :+ n)
+    val cc1 = rx1.impure.run(n => rx1List = rx1List :+ n)
+    val cc2 = rx2.impure.run(n => rx2List = rx2List :+ n)
+    val ccm = zip.impure.run(n => zipList = zipList :+ n)
     rx1 := 8
     rx2 := 4
     rx2 := 5
@@ -395,9 +395,9 @@ class RxTests extends FunSuite {
 
     assert(source.isCold && sndProxy.isCold)
 
-    val cc1 = imitating.impure.foreach(_ => ())
-    val cc2 = fst.impure.foreach(n => fstList = fstList :+ n)
-    val cc3 = snd.impure.foreach(n => sndList = sndList :+ n)
+    val cc1 = imitating.impure.run(_ => ())
+    val cc2 = fst.impure.run(n => fstList = fstList :+ n)
+    val cc3 = snd.impure.run(n => sndList = sndList :+ n)
 
     source := 1
     source := 6

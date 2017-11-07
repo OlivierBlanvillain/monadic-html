@@ -111,7 +111,7 @@ object Chosen {
     var cancelableSelectionHandler = Cancelable.empty
     def selectionHandler(node: HTMLInputElement): Unit =
       cancelableSelectionHandler =
-        rxSelected.impure.foreach(c => node.value = c.map(Searcheable[T].show).getOrElse(""))
+        rxSelected.impure.run(c => node.value = c.map(Searcheable[T].show).getOrElse(""))
 
     def onkeydown(e: KeyboardEvent): Unit =
       e.keyCode match {

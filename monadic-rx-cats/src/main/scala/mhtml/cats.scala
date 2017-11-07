@@ -10,12 +10,12 @@ object cats {
    *
    * # Left identity law: M.flatMap(M.pure(a), f) === f(a)
    *
-   * Proving that LHS.impure.foreach(effect) == RHS.impure.foreach(effect). Starting from the LHS.
+   * Proving that LHS.impure.run(effect) == RHS.impure.run(effect). Starting from the LHS.
    *
    * <=> (by definition of M)
-   * FlatMap(Pure(a), f).impure.foreach(effect)
+   * FlatMap(Pure(a), f).impure.run(effect)
    *
-   * <=> (by definition of .impure.foreach for FlatMap)
+   * <=> (by definition of .impure.run for FlatMap)
    * var c1 = Cancelable.empty
    * val c2 = run(Pure(a)) { b => // [self := Pure(a)]
    *   c1.cancel
@@ -24,7 +24,7 @@ object cats {
    * }
    * Cancelable { () => c1.cancel; c2.cancel }
    *
-   * <=> (by definition of .impure.foreach for Pure)
+   * <=> (by definition of .impure.run for Pure)
    * var c1 = Cancelable.empty
    * val c2 = {
    *   { b => // [effect := { b => ... }]
@@ -49,20 +49,20 @@ object cats {
    * <=> (simplifications following from Cancelable.empty.cancel === ())
    * run(f(a))(effect)
    *
-   * <=> (by definition of .impure.foreach)
-   * f(a).impure.foreach(effect)
+   * <=> (by definition of .impure.run)
+   * f(a).impure.run(effect)
    *
    * Both sides are equivalent. Q.E.D.
    *
    *
    * # Right identity law: M.flatMap(m, M.pure) === m
    *
-   * Proving that LHS.impure.foreach(effect) == RHS.impure.foreach(effect). Starting from the LHS.
+   * Proving that LHS.impure.run(effect) == RHS.impure.run(effect). Starting from the LHS.
    *
    * (by definition of M)
-   * FlatMap(m, Pure).impure.foreach(effect)
+   * FlatMap(m, Pure).impure.run(effect)
    *
-   * <=> (by definition of .impure.foreach for FlatMap)
+   * <=> (by definition of .impure.run for FlatMap)
    * var c1 = Cancelable.empty
    * val c2 = run(m) { b => // [self := m]
    *   c1.cancel
@@ -71,7 +71,7 @@ object cats {
    * }
    * Cancelable { () => c1.cancel; c2.cancel }
    *
-   * <=> (by definition of .impure.foreach for Pure)
+   * <=> (by definition of .impure.run for Pure)
    * var c1 = Cancelable.empty
    * val c2 = run(m) { b =>
    *   c1.cancel
@@ -83,20 +83,20 @@ object cats {
    * <=> (simplifications following from Cancelable.empty.cancel === ())
    * run(m)(effect)
    *
-   * <=> (by definition of .impure.foreach)
-   * m.impure.foreach(effect)
+   * <=> (by definition of .impure.run)
+   * m.impure.run(effect)
    *
    * Both sides are equivalent. Q.E.D.
    *
    *
    * # Associativity law: M.flatMap(M.flatMap(m, f), g) === M.flatMap(m, x => M.flatMap(f(x), g))
    *
-   * Proving that LHS.impure.foreach(effect) == RHS.impure.foreach(effect). Starting from the RHS.
+   * Proving that LHS.impure.run(effect) == RHS.impure.run(effect). Starting from the RHS.
    *
    * (by definition of M)
-   * FlatMap(m, x => FlatMap(f(x), g)).impure.foreach(effect)
+   * FlatMap(m, x => FlatMap(f(x), g)).impure.run(effect)
    *
-   * <=> (by definition of .impure.foreach for FlatMap (local variable primed))
+   * <=> (by definition of .impure.run for FlatMap (local variable primed))
    * var c1' = Cancelable.empty
    * val c2' = run(m) { b' =>      // [self := m]
    *   c1'.cancel
@@ -150,9 +150,9 @@ object cats {
    * Starting from the LHS.
    *
    * (by definition of M)
-   * FlatMap(FlatMap(m, f), g).impure.foreach(effect)
+   * FlatMap(FlatMap(m, f), g).impure.run(effect)
    *
-   * <=> (by definition of .impure.foreach for FlatMap (local variable primed))
+   * <=> (by definition of .impure.run for FlatMap (local variable primed))
    * var c1' = Cancelable.empty
    * val c2' = run(FlatMap(m, f)) { b' => // [self' := FlatMap(m, f)]
    *   c1'.cancel
@@ -227,12 +227,12 @@ object cats {
    *
    * # Associativity law: S.combine(S.combine(x, y), z) = S.combine(x, Semigroup[Rx].combine(y, z))
    *
-   * Proving that LHS.impure.foreach(effect) == RHS.impure.foreach(effect). Starting from the RHS.
+   * Proving that LHS.impure.run(effect) == RHS.impure.run(effect). Starting from the RHS.
    *
    * (by definition of Semigroup[Rx])
-   * Merge(Merge(x, y), z).impure.foreach(effect)
+   * Merge(Merge(x, y), z).impure.run(effect)
    *
-   * <=> (by definition of .impure.foreach for Merge (local variable primed))
+   * <=> (by definition of .impure.run for Merge (local variable primed))
    * val c1' = run(Merge(x, y))(effect) // [self := Merge(x, y)]
    * val c2' = run(z)(effect)           // [other := z]
    * Cancelable { () => c1'.cancel; c2'.cancel }
@@ -261,9 +261,9 @@ object cats {
    * Starting from the LHS.
    *
    * (by definition of Semigroup[Rx])
-   * Merge(x, Merge(y, z)).impure.foreach(effect)
+   * Merge(x, Merge(y, z)).impure.run(effect)
    *
-   * <=> (by definition of .impure.foreach for Merge (local variable primed))
+   * <=> (by definition of .impure.run for Merge (local variable primed))
    * val c1' = run(x)(effect)           // [self := x]
    * val c2' = run(Merge(y, z))(effect) // [other := Merge(y, z)]
    * Cancelable { () => c1'.cancel; c2'.cancel }
