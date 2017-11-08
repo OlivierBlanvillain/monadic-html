@@ -29,7 +29,8 @@ lazy val `monadic-rxJS`  = `monadic-rx`.js
 lazy val `monadic-rxJVM` = `monadic-rx`.jvm
 lazy val `monadic-rx`    = crossProject
   .crossType(CrossType.Full)
-  .settings(publishSettings: _*)
+  .jsSettings(publishSettings: _*)
+  .jvmSettings(noPublishSettings: _*)
   .jsSettings(testSettings: _*)
   .settings(libraryDependencies += "org.scalatest" %%% "scalatest" % scalatest % "test")
 
@@ -37,7 +38,8 @@ lazy val `monadic-rx-catsJS`  = `monadic-rx-cats`.js
 lazy val `monadic-rx-catsJVM` = `monadic-rx-cats`.jvm
 lazy val `monadic-rx-cats`    = crossProject
   .crossType(CrossType.Pure)
-  .settings(publishSettings: _*)
+  .jsSettings(publishSettings: _*)
+  .jvmSettings(noPublishSettings: _*)
   .dependsOn(`monadic-rx`)
   .settings(libraryDependencies += "org.typelevel" %%% "cats" % cats)
 
