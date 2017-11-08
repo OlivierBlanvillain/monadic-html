@@ -96,7 +96,7 @@ When mounting this view, [the implementation](https://github.com/OlivierBlanvill
 - Changing `b` will delete the text node between `Variable 1: ` and `; variable 2: `, and insert a new replacement between these two nodes.
 - Changing `c` will do the same between `; variable 2: ` and `.`.
 
-These updates correspond to what React is able to compute after running its virtual-DOM diffing algorithm on the entire page. However this approach falls short when  working with large immutable data structures. Indeed, creating a large view out of a `Rx[List[_]]` implies that any changes to the `List` triggers a re-rendering of the entirety of the view. We plan to address this point in [#13](https://github.com/OlivierBlanvillain/monadic-html/issues/13) by combining the current approach with targeted virtual-DOM.
+These updates correspond to what React is able to compute after running its virtual-DOM diffing algorithm on the entire page. However, this approach falls short when working with large immutable data structures. Indeed, creating a large view out of a `Rx[List[_]]` implies that any changes to the `List` trigger a re-rendering of the entirety of the view. We plan to address this point in [#13](https://github.com/OlivierBlanvillain/monadic-html/issues/13) by combining the current approach with targeted virtual-DOM.
 
 
 ## Interacting with DOM events
@@ -127,7 +127,7 @@ The function argument can be anything here, so if you're in a type safe mood fee
 }></div>
 ```
 
-In some cases you may need to obtain references to the underlying DOM nodes your xml gets interpreted into. For this purpose, we added two new lifecycle hooks to those already available for the DOM:
+In some cases, you may need to obtain references to the underlying DOM nodes your xml gets interpreted into. For this purpose, we added two new lifecycle hooks to those already available for the DOM:
 
 - `mhtml-onmount`: called when adding a node to the DOM
 - `mhtml-onunmount`: called when removing a node from the DOM
@@ -146,7 +146,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
 
 -  `def map[B](f: A => B): Rx[B]`
 
-    Apply a function to each elements of this `Rx`.
+    Apply a function to each element of this `Rx`.
 
     ```scala
     val numbers: Rx[Int]
@@ -171,10 +171,13 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
     either input `Rx` update. This method is faster than combining `Rx`s using
     `for { a <- ra; b <- rb } yield (a, b)`.
 
-    ```
-    // r1  => 0     8                       9     ...
-    // r2  => 1           4     5     6           ...
-    // zip => (0,1) (8,1) (8,4) (8,5) (8,6) (9,6) ...
+    ```scala
+    val r1: Rx[Int]
+    val r2: Rx[Int]
+    val zipped: Rx[Int] = r1.zip(r2)
+    // r1     => 0     8                       9     ...
+    // r2     => 1           4     5     6           ...
+    // zipped => (0,1) (8,1) (8,4) (8,5) (8,6) (9,6) ...
     ```
 
     This method, together with `Rx.apply`, forms am `Applicative`.
@@ -410,7 +413,7 @@ So nothing is happening here really, the code above is just a description of an 
 
 #### How do you implement the {redux, flux, outwatch}.Store pattern?
 
-The "Store" pattern can be implemented with `foldp`, you can see this in action in the mario example. Here is a sketch of how things can be formulated using Flux vocabulary:
+The "Store" pattern can be implemented with `foldp`, you can see this in action in the Mario example. Here is a sketch of how things can be formulated using Flux vocabulary:
 
 ```scala
 // Data type for the entire application state:
@@ -501,12 +504,12 @@ val imitating = sndProxy.imitate(snd)
 
 [*Unidirectional User Interface Architectures*](http://staltz.com/unidirectional-user-interface-architectures.html) by André Staltz
 
-This blog post presents several existing solution to handle mutable state in user interfaces. It explains the core ideas behind Flux, Redux, Elm & others, and presents a new approach, *nested dialogues*, which is similar to what you would write in `monadic-html`.
+This blog post presents several existing solutions to handle mutable state in user interfaces. It explains the core ideas behind Flux, Redux, Elm & others, and presents a new approach, *nested dialogues*, which is similar to what you would write in `monadic-html`.
 
 [*Controlling Time and Space: understanding the many formulations of FRP*](https://www.youtube.com/watch?v=Agu6jipKfYw) by Evan Czaplicki (author of [Elm](http://elm-lang.org))
 
-This presentation gives an overview of various formulations of FRP. The talked is focused on how different systems deal with the `flatMap` operator. When combined with a `fold` operator, `flatMap` is problematic: it either leaks memory or break referential transparency. Elm solution is to simply avoid the `flatMap` operator altogether (programs can exclusively be written in applicative style).
+This presentation gives an overview of various formulations of FRP. The talked is focused on how different systems deal with the `flatMap` operator. When combined with a `fold` operator, `flatMap` is problematic: it either leaks memory or breaks referential transparency. Elm solution is to simply avoid the `flatMap` operator altogether (programs can exclusively be written in applicative style).
 
 [*Breaking down FRP*](https://blogs.janestreet.com/breaking-down-frp/) by Yaron Minsky
 
-Blog post discussing various formulations of reactive programs. The author makes a distinction between Applicative FRP, Monadic FRP, impure Monadic FRP and Self-Adjusting Computations. The takeaway is that history-sensitivity and dynamism are competing goals: each implementations make a different trade offs.
+A blog post discussing various formulations of reactive programs. The author makes a distinction between Applicative FRP, Monadic FRP, impure Monadic FRP and Self-Adjusting Computations. The takeaway is that history-sensitivity and dynamism are competing goals: each implementation make a different trade-offs.
