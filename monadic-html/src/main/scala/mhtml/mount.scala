@@ -44,7 +44,7 @@ object mount {
         case rx: Rx[_]   =>
           val (start, end) = parent.createMountSection()
           var c1 = Cancelable.empty
-          val c2 = rx.impure.foreach { v =>
+          val c2 = rx.impure.run { v =>
             parent.cleanMountSection(start, end)
             c1.cancel
             c1 = mountNode(parent, new Atom(v), Some(start))
@@ -71,7 +71,7 @@ object mount {
     case r: Rx[_] =>
       val rx: Rx[_] = r
       var c1 = Cancelable.empty
-      val c2 = rx.impure.foreach { value =>
+      val c2 = rx.impure.run { value =>
         c1.cancel
         c1 = mountMetadata(parent, scope, m, value)
       }

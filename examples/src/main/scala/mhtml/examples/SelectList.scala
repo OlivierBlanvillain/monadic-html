@@ -15,7 +15,7 @@ case class Country(name: String, isoCode: String) {
     s"https://raw.githubusercontent.com/hjnilsson/country-flags/master/svg/${iso.toLowerCase}.svg"
   def svg: Node = {
     val id = Math.random().toString // Random id to insert loaded svg.
-    Ajax.get(svgUrl(isoCode)).toRx.impure.foreach {
+    Ajax.get(svgUrl(isoCode)).toRx.impure.run {
       case Some(Success(response)) =>
         // Can't scala.xml.Xml.load to get scala.xml.Node instance, instead
         // we bypass mhtml and insert the svg directly into the dom.
@@ -40,7 +40,7 @@ object SelectList extends Example {
 
   def app: Node = {
     val options = Var(List.empty[Country])
-    Ajax.get(countriesUrl).toRx.impure.foreach {
+    Ajax.get(countriesUrl).toRx.impure.run {
       case Some(Success(response)) =>
         options := response.responseText.lines.collect {
           case country(code, name) => Country(name, code)

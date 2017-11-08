@@ -31,7 +31,7 @@ trait Example {
 
   lazy val sourceCode: Rx[String] = {
     val init = Var("Loading...")
-    Ajax.get(rawUrl).toRx.impure.foreach {
+    Ajax.get(rawUrl).toRx.impure.run {
       case Some(Success(x)) =>
         init := x.responseText
       case _ =>

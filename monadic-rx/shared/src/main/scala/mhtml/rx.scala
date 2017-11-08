@@ -154,7 +154,7 @@ case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
    *
    * If you use this in your code, you are probably doing it wrong.
    */
-  def foreach(effect: A => Unit): Cancelable = Rx.run(self)(effect)
+  def run(effect: A => Unit): Cancelable = Rx.run(self)(effect)
 
   /**
     * Memoizes this `Rx` using an internal `Var`. This is only
@@ -186,7 +186,7 @@ object Rx {
   }
 
   /**
-   * The `impure.foreach` interpreter. Traverses the `Rx` tree and registers
+   * The `impure.run` interpreter. Traverses the `Rx` tree and registers
    * callbacks to run the outer most effect according to documented semantics.
    */
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
