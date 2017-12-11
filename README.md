@@ -491,7 +491,7 @@ val fst = snd.map(1.+).merge(source)
 val snd = fst.keepIf(isOdd)(-1)
 ```
 
-The typical *imitate* pattern involves a pair `Rx`/`Var`, `snd` and `sndProxy` in this case, that are later reconsolidated by having `sndProxy` imitating `snd`:
+The typical *imitate* pattern involves a pair `Rx`/`Var`, `snd` and `sndProxy` in this case, that are later consolidated by having `sndProxy` imitating `snd`:
 
 ```
 val sndProxy = Var(1)
