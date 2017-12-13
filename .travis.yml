@@ -1,18 +1,26 @@
 language: scala
-scala: 2.12.4
-jdk: oraclejdk8
 sbt_args: "-J-Xmx2G"
 
 notifications:
   email:
     false
 
-script:
-- sbt clean +test:compile
-- sbt +test
-- sbt 'set scalaJSStage in Global := FullOptStage' test
-- sbt doc
-- grep -Eo "https?://[a-zA-Z0-9./?=_-]+" README.md | while read u; do echo $u; curl -LIs $u | grep "HTTP/1.1 200 OK\|HTTP/2.0 200" || exit 1; done
+matrix:
+  include: 
+  - env: SCALA_VERSION=2.12.4
+    jdk: oraclejdk8
+    script: 
+      - sbt ++$SCALA_VERSION clean test:compile
+      - sbt ++$SCALA_VERSION test
+      - sbt ++$SCALA_VERSION 'set scalaJSStage in Global := FullOptStage' test
+      - sbt doc
+      - grep -Eo "https?://[a-zA-Z0-9./?=_-]+" README.md | while read u; do echo $u; curl -LIs $u | grep "HTTP/1.1 200 OK\|HTTP/2.0 200" || exit 1; done
+  - env: SCALA_VERSION=2.11.12
+    jdk: oraclejdk8
+    script:
+      - sbt ++$SCALA_VERSION clean test:compile
+      - sbt ++$SCALA_VERSION test
+      - sbt ++$SCALA_VERSION 'set scalaJSStage in Global := FullOptStage' test   
 
 # Taken from https://github.com/travis-ci/travis-ci/issues/3225#issuecomment-200965782
 before_install:
