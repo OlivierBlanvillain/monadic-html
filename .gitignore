@@ -21,3 +21,7 @@ project/plugins/project/
 # ENSIME specific
 .ensime_cache/
 .ensime
+
+# scala.js + node.js
+/node_modules
+/package-lock.json

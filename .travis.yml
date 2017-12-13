@@ -5,6 +5,9 @@ notifications:
   email:
     false
 
+before_script:
+  - npm install jsdom
+
 matrix:
   include: 
   - env: SCALA_VERSION=2.12.4

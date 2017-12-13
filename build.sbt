@@ -72,7 +72,7 @@ organization in ThisBuild := "in.nvilla"
 lazy val testSettings = Seq(
   testOptions  in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"),
   scalaJSStage in Test := FastOptStage,
-  jsEnv        in Test := PhantomJSEnv().value)
+  jsEnv        in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv())
 
 lazy val publishSettings = Seq(
   publishMavenStyle := true,
