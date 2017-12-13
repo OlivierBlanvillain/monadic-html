@@ -1,5 +1,5 @@
 language: scala
-scala: 2.12.0
+scala: 2.12.4
 jdk: oraclejdk8
 sbt_args: "-J-Xmx2G"
 
@@ -29,6 +29,7 @@ cache:
   - $HOME/.sbt/0.13/dependency
   - $HOME/.sbt/boot/scala*
   - $HOME/.sbt/launchers
+  - $HOME/.coursier
   - $HOME/.ivy2/cache
   - $HOME/.nvm
 
