@@ -187,7 +187,8 @@ However, if we instead return something that is a `foldp`, we can no longer shar
     // foldedFm1    => •1 3 4  5 8 ...
     // foldedFm2    =>      •1 2 5 ...  
     ```
-
+Note that due to referential transparency of `foldp`, the same result can be 
+expected if done in this way:
 
 * `flatMap` always-shareable when returning a previously defined `Rx`
 
@@ -195,16 +196,9 @@ However, if we instead return something that is a `foldp`, we can no longer shar
     val numbers: Rx[Int]
     val folded: Rx[Int] = numbers.foldp(0)(_ + _)
     val foldedFm: Rx[Int] = numbers.flatMap(x => folded)
-    // numbers      => 1  2 1  1 3 ...
-    // folded       => •1 3 4  5 8 ...
-    // foldedFm1    => •1 3 4  5 8 ...
-    // foldedFm2    =>      •4 5 8 ...  
     ```
 
-This suggests we should check to see if an `Rx` is defined (**how?**) as this 
-confers always-shareability. This is essentially what `rx.sharing` is doing already,
-as it creates a shared `Var` internally.
-    
+
 ### Composition
 
 It's interesting to think how this shareability properties compose. 
