@@ -35,7 +35,8 @@ Developing a bit on this idea, it's possible to categorize the current API in th
 
 * always shareable = map, zip, sampleOn, imitate, dropRepeats
 * tail shareable = keepIf, merge
-* never shareable = foldp, flatMap    
+* never shareable = foldp
+* dependently shareable = flatMap
 
 We will run through some examples, taking the simplest case of always shareable first. 
 In all of the following marble diagrams, "•" represents the registration point.
@@ -138,6 +139,7 @@ tail-shareable.
     // merged2 =>   •1 8 4 3 3 ...
     ```
 
+`foldp` is never-shareable, as can be seen from an extremely simple case:
 
 * `foldp`
 
@@ -150,10 +152,10 @@ tail-shareable.
     ```
 
 
-(TODO: I think flatMap can be made more precise by saying that it "inherits" the 
-shareability of whatever is returned by its function. 
-For instance, flatMapping on something that always returns a Rx made of map and zip 
-results in something always shareable.)
+`flatMap` is dependently shareable; it "inherits" the shareability of whatever 
+is returned by its function. For instance, flatMapping on something that always 
+returns an Rx made of `map`, `zip`, or any other always-shareable `Rx` results in 
+something always shareable:
 
 * `flatMap` basic case (always shareable)
 
@@ -169,12 +171,49 @@ results in something always shareable.)
     // flip2     =>      •5 6 9 ...
     ```
 
-//TODO: other `flatMap` cases
+However, if we instead return something that is a `foldp`, we can no longer share:
 
-It's then interesting to think how this shareability properties compose. 
-I have the intuition than if a Rx is only composed of always shareable parts it 
+* `flatMap` never-shareable when returning a never-shareable `Rx`
+
+    ```scala
+    val numbers: Rx[Int]
+    def makeFolded: Rx[Int] = numbers.foldp(0)(_ + _)
+    val foldedFm: Rx[Int] = numbers.flatMap(x => makeFolded)
+    // numbers      => 1  2 1  1 3 ...
+    // foldedFm1    => •1 3 4  5 8 ...
+    // foldedFm2    =>      •1 2 5 ...  
+    ```
+
+
+* `flatMap` always-shareable when returning a previously defined `Rx`
+
+    ```scala
+    val numbers: Rx[Int]
+    val folded: Rx[Int] = numbers.foldp(0)(_ + _)
+    val foldedFm: Rx[Int] = numbers.flatMap(x => folded)
+    // numbers      => 1  2 1  1 3 ...
+    // folded       => •1 3 4  5 8 ...
+    // foldedFm1    => •1 3 4  5 8 ...
+    // foldedFm2    =>      •4 5 8 ...  
+    ```
+
+This suggests we should check to see if an `Rx` is defined (**how?**) as this 
+confers always-shareability. This is essentially what `rx.sharing` is doing already,
+as it creates a shared `Var` internally.
+    
+### Composition
+
+It's interesting to think how this shareability properties compose. 
+If an `Rx` is only composed of always shareable parts it 
 is itself always shareable, while containing any never shareable component makes 
-the entire Rx non shareable. It gets funny when mixing always shareable and 
+the entire Rx non shareable. For this later case, simply consider
+`someRx.foldp(0)(_ + _).map(x => x)`; this is an identity map appended to the end,
+so nothing changes from the `foldp` example above: it is still never-shareable.
+This implies that, when possible, using `foldp` should be delayed as late as possible
+in the call graph, and avoided altogether if possible. 
+ 
+ 
+It gets funny when mixing always shareable and 
 tail shareable components, it seams that the result is not just tail shareable, 
 but something stronger where each of the intermediate streams have emitted at
 least one element. As an example, consider 
@@ -186,8 +225,3 @@ or to have each "leaf" Var to emit several values without reaching shareability
 
 ## Algorithmic Considerations
 
-**Question**: since we already have asserted that:
-> When combined with a `fold` operator, `flatMap` is problematic: 
-it either leaks memory or breaks referential transparency.
-
-should we detect this and either warn or throw an error?
