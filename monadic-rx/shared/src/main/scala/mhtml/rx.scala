@@ -198,10 +198,10 @@ object Rx {
 
     case FlatMap(self, f) =>
       var c1 = Cancelable.empty
-      val c2 = run(self) { b =>
-        val fa = f(b)
+      val c2 = run(self) { a =>
+        val rxb = f(a)
         c1.cancel
-        c1 = run(fa)(effect)
+        c1 = run(rxb)(effect)
       }
       Cancelable { () => c1.cancel; c2.cancel }
 

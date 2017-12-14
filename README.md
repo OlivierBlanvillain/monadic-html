@@ -508,7 +508,7 @@ This blog post presents several existing solutions to handle mutable state in us
 
 [*Controlling Time and Space: understanding the many formulations of FRP*](https://www.youtube.com/watch?v=Agu6jipKfYw) by Evan Czaplicki (author of [Elm](http://elm-lang.org))
 
-This presentation gives an overview of various formulations of FRP. The talked is focused on how different systems deal with the `flatMap` operator. When combined with a `fold` operator, `flatMap` is problematic: it either leaks memory or breaks referential transparency. Elm solution is to simply avoid the `flatMap` operator altogether (programs can exclusively be written in applicative style).
+This presentation gives an overview of various formulations of FRP. The talked is focused on how different systems deal with the `flatMap` operator. When combined with a `fold` operator, `flatMap` is problematic: it either leaks memory or breaks referential transparency. Elm's solution is to simply avoid the `flatMap` operator altogether (programs can exclusively be written in applicative style); this is not necessary in monadic-html since its `flatMap` is both memory safe and referentially transparent.
 
 [*Breaking down FRP*](https://blogs.janestreet.com/breaking-down-frp/) by Yaron Minsky
 
