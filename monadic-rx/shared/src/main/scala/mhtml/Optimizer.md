@@ -47,8 +47,8 @@ In all of the following marble diagrams, "•" represents the registration point
     val numbers: Rx[Int]
     val even: Rx[Int] = numbers.map(_ * 2)
     // numbers =>    0       0   3   4        5   6  ...
-    // even1   =>        •   0   6   8        10  12 ...  
-    // even2   =>                         •   10  12 ...      
+    // even1   =>        •0  0   6   8        10  12 ...  
+    // even2   =>                         •8  10  12 ...      
     ```
     
 In this case we can see that `even2` can directly be implemented in terms of `even1`,
@@ -92,7 +92,7 @@ Similarly for the remaining *always shareable* operations:
     // fst        =>  1 2     6     7   8
     // snd        =>   1             7
     // imitating1 =>   •1            7
-    // imitating2 =>         •       7  
+    // imitating2 =>         •1      7  
     ```
 
 * `dropRepeats`
@@ -123,21 +123,25 @@ shared between the two streams. In other words, we cannot simply implement `odd2
 "hooking" into `odd1` upon registration, since this would instead give the emission 
 sequence 3, 5. But we could do that after the 5 is emitted! 
 
-A similar argument can be used to show that merge is not always shareable but only 
-tail-shareable.
-    
-//TODO:    
-* `merge`
-    
-    ```scala
-    val r1: Rx[Int]
-    val r2: Rx[Int]
-    val merged: Rx[Int] = r1.merge(r2)
-    // r1      => 0    8     3 ...
-    // r2      => 1      4 3   ...
-    // merged1 => •0 1 8 4 3 3 ...
-    // merged2 =>   •1 8 4 3 3 ...
-    ```
+A similar argument can be used to show that `merge` is not always shareable but only 
+tail-shareable, where the problem with `merge` comes from the fact that it 
+always uses the latest value from the left hand side `Rx` as its first emitted value. 
+For instance, in this example, `merged2` is registered after `r2` emitted 4 but 
+will start with 8, the latest value from `r1`.
+
+```scala
+val r1: Rx[Int]
+val r2: Rx[Int]
+val merged: Rx[Int] = r1.merge(r2)
+// r1      =>  0    8        3 ...
+// r2      =>  1      4    3   ...
+// merged1 =>    •0 8 4    3 3 ...
+// merged2 =>           •8 3 3 ...
+```
+
+You can see that `8 3 3` is not a sub sequence of `0 8 4 3 3`, but `3 3` 
+is, so merge is tail sharable.
+
 
 `foldp` is never-shareable, as can be seen from an extremely simple case:
 
