@@ -2,7 +2,7 @@ val scalajsdom = "0.9.1"
 val scalatest  = "3.0.1"
 val cats       = "0.9.0"
 
-crossScalaVersions in ThisBuild := Seq("2.12.1", "2.11.8")
+crossScalaVersions in ThisBuild := Seq("2.12.4", "2.11.12")
 scalaVersion       in ThisBuild := crossScalaVersions.value.head
 
 lazy val root = project.in(file("."))
@@ -101,7 +101,7 @@ lazy val publishSettings = Seq(
 )
 
 lazy val noPublishSettings = Seq(
-  publish := (),
-  publishLocal := (),
+  publish := {},
+  publishLocal := {},
   publishArtifact := false
 )
