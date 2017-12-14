@@ -139,7 +139,7 @@ tail-shareable.
     ```
 
 
-* `fold`
+* `foldp`
 
     ```scala
     val numbers: Rx[Int]
@@ -151,7 +151,9 @@ tail-shareable.
 
 
 (TODO: I think flatMap can be made more precise by saying that it "inherits" the 
-shareability of whatever is returned by its function. For instance, flatMapping on something that always returns a Rx made of map and zip results in something always shareable.)
+shareability of whatever is returned by its function. 
+For instance, flatMapping on something that always returns a Rx made of map and zip 
+results in something always shareable.)
 
 * `flatMap` basic case (always shareable)
 
