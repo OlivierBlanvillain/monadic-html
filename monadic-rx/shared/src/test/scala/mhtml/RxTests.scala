@@ -126,9 +126,9 @@ class RxTests extends FunSuite {
     assert(b.impure.value == 2)
     assert(a.foldp(0)(2*_ + 2*_).impure.value == 2)
     a := 1
-    // Should be:  2*2 + 2*1 == 6
-    assert(b.impure.value == 6)
-    assert(a.foldp(0)(2*_ + 2*_).impure.value == 6)
+    // Should be:  2*0 + 2*1 == 2
+    assert(b.impure.value == 2)
+    assert(a.foldp(0)(2*_ + 2*_).impure.value == 2)
 
     assert(a.isCold)
   }
