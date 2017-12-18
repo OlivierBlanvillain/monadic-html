@@ -156,7 +156,7 @@ is, so merge is tail sharable.
     ```
 
 
-`flatMap` is dependently shareable; it "inherits" the shareability of whatever 
+`flatMap` is *dependently-shareable*; it "inherits" the shareability of whatever 
 is returned by its function. For instance, flatMapping on something that always 
 returns an Rx made of `map`, `zip`, or any other always-shareable `Rx` results in 
 something always shareable:
@@ -201,10 +201,10 @@ expected if done in this way:
 
 ### Composition
 
-It's interesting to think how this shareability properties compose. 
+It's interesting to consider how these shareability properties compose. 
 If an `Rx` is only composed of always shareable parts it 
 is itself always shareable, while containing any never shareable component makes 
-the entire Rx non shareable. For this later case, simply consider
+the entire Rx never-shareable. For this later case, simply consider
 `someRx.foldp(0)(_ + _).map(x => x)`; this is an identity map appended to the end,
 so nothing changes from the `foldp` example above: it is still never-shareable.
 This implies that, when possible, using `foldp` should be delayed as late as possible
@@ -212,13 +212,37 @@ in the call graph, and avoided altogether if possible.
  
  
 It gets funny when mixing always shareable and 
-tail shareable components, it seams that the result is not just tail shareable, 
+tail shareable components; it seems that the result is not just tail shareable, 
 but something stronger where each of the intermediate streams have emitted at
 least one element. As an example, consider 
 `val out = rx1.dropIf(_ % 2 == 0)(-1).merge(rx2.dropIf(_ % 2 == 0)(-1))`. 
 It is possible to have out emit several values without reaching shareability, 
 or to have each "leaf" Var to emit several values without reaching shareability 
 (the diagrams get a bit messy to draw, but I have have them on a white board .
+
+
+* dual-dropIf into merge
+
+* `flatMap` always-shareable when returning a previously defined `Rx`
+
+    ```scala
+    val numbers1: Rx[Int]
+    val numbers2: Rx[Int]
+    val drop1 = numbers1.dropIf(_ % 2 == 0)(-1)
+    val drop2 = numbers2.dropIf(_ % 2 == 0)(-1)
+    val merged = drop1.merge(drop2)
+    // numbers1 =>    0       0   3         4        5   6 ...
+    // numbers2 =>    11   8  6         5       3    2   1 ...
+    //  
+    // drop1A   =>      •-1       3                  5     ...
+    // drop2A   =>      •-1             5       3        1 ...
+    // mergeA   =>      •-1       3     5       3    5   1 ...
+    //
+    // drop1B   =>                  •-1              5     ...
+    // drop2B   =>                  •-1 5       3        1 ...
+    // mergeB   =>                  •-1 5       3    5   1 ...
+    //
+    ```
 
 
 ## Algorithmic Considerations
