@@ -140,7 +140,9 @@ val merged: Rx[Int] = r1.merge(r2)
 ```
 
 You can see that `8 3 3` is not a sub sequence of `0 8 4 3 3`, but `3 3` 
-is, so merge is tail sharable.
+is, so merge is tail sharable. A demonstration in code of this 
+diagram can be found in the test  "merge registrations are 
+tail-shareable" in the test class `RxJsTests`.
 
 
 `foldp` is never-shareable, as can be seen from an extremely simple case:
@@ -211,15 +213,9 @@ This implies that, when possible, using `foldp` should be delayed as late as pos
 in the call graph, and avoided altogether if possible. 
  
  
-It gets funny when mixing always shareable and 
-tail shareable components; it seems that the result is not just tail shareable, 
-but something stronger where each of the intermediate streams have emitted at
-least one element. As an example, consider 
-`val out = rx1.dropIf(_ % 2 == 0)(-1).merge(rx2.dropIf(_ % 2 == 0)(-1))`. 
-It is possible to have out emit several values without reaching shareability, 
-or to have each "leaf" Var to emit several values without reaching shareability 
-(the diagrams get a bit messy to draw, but I have have them on a white board .
-
+Composition of tail-shareable rxs may require further exploration. 
+As an example, consider  `val out = rx1.dropIf(_ % 2 == 0)(-1).merge(rx2.dropIf(_ % 2 == 0)(-1))`. 
+It seems this composition is still tail-shareable:
 
 * dual-dropIf into merge
 
