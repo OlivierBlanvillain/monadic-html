@@ -5,6 +5,9 @@ notifications:
   email:
     false
 
+before_script:
+  - npm install jsdom
+
 matrix:
   include: 
   - env: SCALA_VERSION=2.12.4
@@ -22,18 +25,9 @@ matrix:
       - sbt ++$SCALA_VERSION test
       - sbt ++$SCALA_VERSION 'set scalaJSStage in Global := FullOptStage' test   
 
-# Taken from https://github.com/travis-ci/travis-ci/issues/3225#issuecomment-200965782
-before_install:
-  - "export PATH=$PWD/travis_phantomjs/phantomjs-2.1.1-linux-x86_64/bin:$PATH"
-  - "if [ $(phantomjs --version) != '2.1.1' ]; then rm -rf $PWD/travis_phantomjs; mkdir -p $PWD/travis_phantomjs; fi"
-  - "if [ $(phantomjs --version) != '2.1.1' ]; then wget https://assets.membergetmember.co/software/phantomjs-2.1.1-linux-x86_64.tar.bz2 -O $PWD/travis_phantomjs/phantomjs-2.1.1-linux-x86_64.tar.bz2; fi"
-  - "if [ $(phantomjs --version) != '2.1.1' ]; then tar -xvf $PWD/travis_phantomjs/phantomjs-2.1.1-linux-x86_64.tar.bz2 -C $PWD/travis_phantomjs; fi"
-  - "phantomjs --version"
-
 # Taken from https://github.com/typelevel/cats/blob/master/.travis.yml
 cache:
   directories:
-  - "travis_phantomjs"
   - $HOME/.sbt/0.13/dependency
   - $HOME/.sbt/boot/scala*
   - $HOME/.sbt/launchers

@@ -259,9 +259,9 @@ class HtmlTests extends FunSuite {
     assert(div.innerHTML.filterNot(_.isWhitespace) == start + "<div></div><div></div><div></div></div>")
     assert(div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].innerHTML == "Click Me!")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
-    assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><div></div><div></div><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
+    assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><div></div><div></div><imgstyle="width:100px;"src="http://doge2048.com/meta/doge-600.png"></div>""")
     div.firstChild.firstChild.nextSibling.asInstanceOf[dom.html.Button].click()
-    assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><div></div><div></div><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"><imgsrc="http://doge2048.com/meta/doge-600.png"style="width:100px;"></div>""")
+    assert(div.innerHTML.filterNot(_.isWhitespace) == start + """<h2>WOW!!!</h2><div></div><div></div><imgstyle="width:100px;"src="http://doge2048.com/meta/doge-600.png"><imgstyle="width:100px;"src="http://doge2048.com/meta/doge-600.png"></div>""")
 
     def myCounter(): (xml.Node, Rx[Int]) = {
       val fugitive: Var[Int] = Var[Int](0) // It won't escape it's scope!
