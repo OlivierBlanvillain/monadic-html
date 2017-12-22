@@ -1,6 +1,8 @@
 package mhtml
 
 import org.scalajs.dom
+import org.scalajs.dom.{MouseEvent, Node => DomNode}
+import org.scalajs.dom.raw.HTMLElement
 import org.scalatest.FunSuite
 
 import scala.xml.{Elem, Group}
@@ -228,6 +230,60 @@ class HtmlTests extends FunSuite {
     div.firstChild.asInstanceOf[dom.html.Button].click()
     assert(ext == 1)
     assert(div.innerHTML == """<button class="c" id="1">Click Me!</button>""")
+  }
+
+  /**
+    * This test demonstrates how to make a collapsible field
+    */
+  test("style and class change onClick") {
+    val classNoClick = "glyphicon-menu-right"
+    val classClick = "glyphicon-menu-down"
+    val styleNoClick = "visibility:none;"
+    val styleClick =  "visibility:block;"
+
+    val glyphClicked: Var[Boolean] = Var(false)
+    val glyphClass: Rx[String] = glyphClicked.map {
+      case false => classNoClick
+      case true => classClick
+    }
+    val showStyle: Rx[String] = glyphClicked.map {
+      case false => styleNoClick
+      case true  => styleClick
+    }
+
+    def mouseClick(hTMLElement: HTMLElement) = {
+      val evt = dom.document.createEvent("MouseEvents").asInstanceOf[MouseEvent]
+      evt.initMouseEvent("click", true, true, dom.window,
+        0, 0, 0, 0, 0, false, false, false, false, 0, null)
+      hTMLElement.dispatchEvent(evt)
+    }
+
+    val innerDiv  = <div>
+      { glyphClass.map{ gclass =>
+        <a class={s"glyphicon $gclass"}
+           onclick={ (ev: dom.Event) => {
+             glyphClicked.update(click => !click) }
+           } >
+          Click Me
+        </a>
+      }}
+
+      <div id={ "some-detail" } style={ showStyle }>
+        <p> You clicked me! </p>
+      </div>
+    </div>
+    val div = dom.document.createElement("div")
+    mount(div, innerDiv)
+    val domInnerDiv = div.firstChild.asInstanceOf[dom.html.Div]
+    println(s"dominner is ${domInnerDiv.outerHTML}")
+    println(s"dom inner children: ${(0 until domInnerDiv.childElementCount).map{chi =>
+      (chi, domInnerDiv.childNodes{chi})
+    }}")
+    val domLink = domInnerDiv.firstChild.asInstanceOf[dom.html.Anchor]
+    //println(s"domlink is ${domLink.outerHTML}")
+    //assert(domInnerDiv.innerHTML.contains(classNoClick))
+    mouseClick(domLink)
+    //assert(domInnerDiv.innerHTML.contains(classClick))
   }
 
   test("README examples") {
