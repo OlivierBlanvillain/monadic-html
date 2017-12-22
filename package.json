@@ -1,0 +1,30 @@
+{
+  "name": "monadic-html",
+  "version": "0.4.0",
+  "description": "Tiny DOM binding library for Scala.js",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "dependencies": {
+    "jsdom": "^11.5.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OlivierBlanvillain/monadic-html.git"
+  },
+  "keywords": [
+    "scala.js",
+    "rx"
+  ],
+  "author": "Olivier Blanvillain",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/OlivierBlanvillain/monadic-html/issues"
+  },
+  "homepage": "https://github.com/OlivierBlanvillain/monadic-html#readme"
+}
