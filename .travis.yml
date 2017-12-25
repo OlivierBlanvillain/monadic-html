@@ -6,7 +6,7 @@ notifications:
     false
 
 before_script:
-  - npm install jsdom
+  - npm install
 
 matrix:
   include: 
