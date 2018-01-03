@@ -274,6 +274,15 @@ class HtmlTests extends FunSuite {
     }
   }
 
+  test("style string unchanged") {
+    val displayStyle = "display:none;"
+    val innerDiv = <div style={ displayStyle }></div>
+    val div = dom.document.createElement("div")
+    mount(div, innerDiv)
+    val domInnerDiv = div.firstChild.asInstanceOf[dom.html.Div]
+    assert(domInnerDiv.outerHTML.contains(displayStyle))
+  }
+
   test("setUnsafeRawHTML") {
     val va: Var[String] = Var("")
     val ra = va.map(a => <div mhtml-onmount={ setUnsafeRawHTML(a) _ }></div>)
