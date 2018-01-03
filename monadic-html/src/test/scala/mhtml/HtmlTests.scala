@@ -277,8 +277,10 @@ class HtmlTests extends FunSuite {
     val domInnerDiv = div.firstChild.asInstanceOf[dom.html.Div]
     val domLink = domInnerDiv.children.item(0).asInstanceOf[dom.html.Anchor]
     assert(domInnerDiv.innerHTML.contains(classNoClick))
+    assert(domInnerDiv.innerHTML.contains(styleNoClick))
     mouseClick(domLink)
     assert(domInnerDiv.innerHTML.contains(classClick))
+    assert(domInnerDiv.innerHTML.contains(styleClick))
   }
 
   test("README examples") {
