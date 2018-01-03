@@ -236,8 +236,8 @@ class HtmlTests extends FunSuite {
     * This test demonstrates how to make a collapsible field
     */
   test("style and class change onClick") {
-    val classNoClick = "glyphicon-menu-right"
-    val classClick = "glyphicon-menu-down"
+    val classNoClick = "glyphicon glyphicon-menu-right"
+    val classClick = "glyphicon glyphicon-menu-down"
     val styleNoClick = "visibility: none;"
     val styleClick =  "visibility: block;"
 
@@ -259,14 +259,12 @@ class HtmlTests extends FunSuite {
     }
 
     val innerDiv  = <div>
-      { glyphClass.map{ gclass =>
-        <a class={s"glyphicon $gclass"}
-           onclick={ (ev: dom.Event) => {
-             glyphClicked.update(click => !click) }
-           } >
-          Click Me
-        </a>
-      }}
+      <a class={ glyphClass }
+         onclick={ (ev: dom.Event) => {
+           glyphClicked.update(click => !click) }
+         } >
+        Click Me
+      </a>
 
       <div id={ "some-detail" } style={ showStyle }>
         <p> You clicked me! </p>
