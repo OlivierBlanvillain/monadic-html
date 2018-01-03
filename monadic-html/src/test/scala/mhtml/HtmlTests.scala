@@ -238,8 +238,8 @@ class HtmlTests extends FunSuite {
   test("style and class change onClick") {
     val classNoClick = "glyphicon-menu-right"
     val classClick = "glyphicon-menu-down"
-    val styleNoClick = "visibility:none;"
-    val styleClick =  "visibility:block;"
+    val styleNoClick = "visibility: none;"
+    val styleClick =  "visibility: block;"
 
     val glyphClicked: Var[Boolean] = Var(false)
     val glyphClass: Rx[String] = glyphClicked.map {
