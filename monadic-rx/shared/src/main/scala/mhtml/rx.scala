@@ -183,7 +183,7 @@ object Rx {
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
   final case class Sharing [A]        (self: Rx[A])                                 extends Rx[A] {
     // Should be Var[A], but gives GADT Skolem bug:
-    protected[Rx] val sharingMemo: Var[Any] = Var(None)
+    protected[Rx] val sharingMemo: Var[Any] = new Var(None, _ => Cancelable.empty)
     protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
     protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
   }
@@ -193,8 +193,26 @@ object Rx {
    * callbacks to run the outer most effect according to documented semantics.
    */
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
-    case Map(self, f) =>
-      run(self)(x => effect(f(x)))
+    case rx @ Map(self, f) => {
+      var refCount = 0
+      var shareRxMaybe: Option[Rx[A]] = None
+      var ccSharing = Cancelable.empty
+      val ccMap = run(self) { x =>
+        refCount += 1
+        if (refCount < 2) {
+          effect(f(x))
+        }
+        else {
+          val shareRx = shareRxMaybe.getOrElse{
+            val srx: Rx[A] = rx.impure.sharing
+            shareRxMaybe = Some(srx)
+            srx
+          }
+          ccSharing = run(shareRx)(effect)
+        }
+      }
+      Cancelable { () => ccSharing.cancel; ccMap.cancel }
+    }
 
     case FlatMap(self, f) =>
       var c1 = Cancelable.empty
