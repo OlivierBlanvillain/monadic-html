@@ -60,8 +60,10 @@ class RxTests extends FunSuite {
     a := 2
     assert(b.impure.value == 2)
     assert(a.map(identity).impure.value == 2)
-    assert(lista == List(0,1,2))
-    assert(listb == List(0,1,2))
+    a := 3
+    a := 4
+    assert(lista == List(0,1,2,3,4))
+    assert(listb == List(0,1,2,3,4))
     cca.cancel
     ccb.cancel
     assert(a.isCold)
