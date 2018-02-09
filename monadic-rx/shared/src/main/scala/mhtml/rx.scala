@@ -15,6 +15,7 @@ sealed trait Rx[+A] { self =>
    * ```
    */
   def map[B](f: A => B): Rx[B] = Map[A, B](this, f)
+  private[mhtml] def mapProto[B](f: A => B): Rx[B] = MapProto[A, B](this, f)
 
   /**
    * Dynamically switch between different `Rx`s according to the given
@@ -173,6 +174,7 @@ object Rx {
   def apply[A](v: A): Rx[A] = Var.create(v)(_ => Cancelable.empty)
 
   final case class Map     [A, B]     (self: Rx[A], f: A => B)                      extends Rx[B]
+  final case class MapProto[A, B]     (self: Rx[A], f: A => B)                      extends Rx[B]
   final case class FlatMap [A, B]     (self: Rx[A], f: A => Rx[B])                  extends Rx[B]
   final case class Zip     [A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[(A, B)]
   final case class DropRep [A]        (self: Rx[A])                                 extends Rx[A]
@@ -193,21 +195,28 @@ object Rx {
    * callbacks to run the outer most effect according to documented semantics.
    */
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
-    case rx @ Map(self, f) => {
+    case MapProto(self, f) =>
+      run(self)(x => effect(f(x)))
+
+    case Map(self: Rx[A], f) => {
       var refCount = 0
       var shareRxMaybe: Option[Rx[A]] = None
+      var mapInitRx: Rx[A] = null
+      var ccMapInit = Cancelable.empty
       var ccSharing = Cancelable.empty
       val ccMap = run(self) { x =>
         refCount += 1
         if (refCount < 2) {
-          effect(f(x))
+          mapInitRx = self.mapProto(x => f(x))
+          ccMapInit = run(mapInitRx)(effect)
         }
         else {
           val shareRx = shareRxMaybe.getOrElse{
-            val srx: Rx[A] = rx.impure.sharing
+            val srx: Rx[A] = mapInitRx.impure.sharing
             shareRxMaybe = Some(srx)
             srx
           }
+          ccMapInit.cancel
           ccSharing = run(shareRx)(effect)
         }
       }
