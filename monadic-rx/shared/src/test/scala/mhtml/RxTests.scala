@@ -262,7 +262,7 @@ class RxTests extends FunSuite {
       val rx1: Var[Int] = Var(1)
       val rx2: Var[Int] = Var(2)
       val rx3: Rx[Int] =
-        { // That's a nice oneliner with cats' |@|
+        { // That's a nice oneliner with cats' mapN
           (rx1: Rx[Int]) zip
           rx1 zip
           rx1 zip

@@ -1,7 +1,8 @@
 package mhtml
 package implicits
 
-import _root_.cats.{Monad, Semigroup}
+import _root_.cats.{Monad, Semigroup, Semigroupal}
+
 import scala.language.implicitConversions
 
 object cats {
@@ -297,10 +298,11 @@ object cats {
     }
 
   // Custom syntax instances for Vars. Without these, users would have to
-  // manually upcast their `Var`s as `Rx`s to be able to use `|@|` and `|+|`.
+  // manually upcast their `Var`s as `Rx`s to be able to use `mapN` and `|+|`.
 
   implicit def mhtmlVarSyntaxCartesian[A](fa: Var[A]) =
-    new _root_.cats.syntax.CartesianOps[Rx, A] {
+    new _root_.cats.syntax.SemigroupalOps[Rx, A] {
+      type TypeClassType = Monad[Rx]
       val self = fa
       val typeClassInstance = mhtmlRxMonadIntstance
     }

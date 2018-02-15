@@ -42,7 +42,7 @@ sealed trait Rx[+A] { self =>
    * ```
    *
    * This method, together with `Rx.apply`, forms am `Applicative`.
-   * `|@|` syntax is available via the `monadic-rx-cats` package.
+   * `mapN` syntax is available via the `monadic-rx-cats` package.
    */
   def zip[B](other: Rx[B]): Rx[(A, B)] = Zip[A, B](this, other)
 

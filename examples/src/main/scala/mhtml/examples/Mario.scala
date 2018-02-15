@@ -67,7 +67,7 @@ object Mario extends Example {
 
   val deltas: Rx[Double] = InputLib.fps(60).map(_ / 10)
   val keys: Rx[Keys] = InputLib.arrows.map(tupled(Keys))
-  val inputs: Rx[(Double, Keys)] = (deltas |@| keys).tupled.sampleOn(deltas)
+  val inputs: Rx[(Double, Keys)] = (deltas, keys).tupled.sampleOn(deltas)
 
   val mari0 = Model(x = 0, y = 0, vx = 0, vy = 0, dir = Right)
   def step0(m: Model, i: (Double, Keys)): Model = tupled(step _)(i)(m)
