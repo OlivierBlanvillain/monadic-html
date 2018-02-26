@@ -173,7 +173,7 @@ object Rx {
   /** Creates a constant `Rx`. */
   def apply[A](v: A): Rx[A] = Var.create(v)(_ => Cancelable.empty)
 
-  trait Share[A] {
+  trait Share[-A] {
     // Should be Var[A], but gives GADT Skolem bug:
     protected[Rx] val sharingMemo: Var[Any] = new Var(None, _ => Cancelable.empty)
     protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
@@ -200,19 +200,7 @@ object Rx {
     case MapProto(self, f) =>
       run(self)(x => effect(f(x)))
 
-    case rx @ Map(self: Rx[A], f) =>
-      val mapInitRx = self.mapProto(x => f(x))
-      if (!rx.isSharing) {
-        rx.sharingCancelable = run(mapInitRx)(rx.sharingMemo.:=)
-      }
-      val foreachCancelable = rx.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
-      Cancelable { () =>
-        foreachCancelable.cancel
-        if (rx.sharingMemo.subscribers.isEmpty) {
-          rx.sharingCancelable.cancel
-          rx.sharingCancelable = Cancelable.empty
-        }
-      }
+    case rx @ Map(self, f) => share[A](rx, self.mapProto(x => f(x)), effect)
 
     case FlatMap(self, f) =>
       var c1 = Cancelable.empty
@@ -286,24 +274,28 @@ object Rx {
         Cancelable { () => cc.cancel; self.imitating = false }
       } else run(other)(effect)
 
-    case rx @ Sharing(self) =>
-      if (!rx.isSharing) {
-        rx.sharingCancelable = run(self)(rx.sharingMemo.:=)
-      }
-      val foreachCancelable = rx.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
-      Cancelable { () =>
-        foreachCancelable.cancel
-        if (rx.sharingMemo.subscribers.isEmpty) {
-          rx.sharingCancelable.cancel
-          rx.sharingCancelable = Cancelable.empty
-        }
-      }
+    case rx @ Sharing(self) => share[A](rx.asInstanceOf[Share[A]], self, effect)
 
     case leaf: Var[A] =>
       leaf.foreach(effect)
 
     case null => throw new NullPointerException("null is not a valid Rx!")
   }
+
+  protected def share[A](rx: Share[A], protoRx: Rx[A], effect: A => Unit) = {
+    if (!rx.isSharing) {
+      rx.sharingCancelable = run(protoRx)(rx.sharingMemo.:=)
+    }
+    val foreachCancelable = rx.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
+    Cancelable { () =>
+      foreachCancelable.cancel
+      if (rx.sharingMemo.subscribers.isEmpty) {
+        rx.sharingCancelable.cancel
+        rx.sharingCancelable = Cancelable.empty
+      }
+    }
+  }
+
 }
 
 /** A smart variable that can be set manually. */
