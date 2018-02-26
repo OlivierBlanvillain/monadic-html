@@ -173,14 +173,30 @@ object Rx {
   /** Creates a constant `Rx`. */
   def apply[A](v: A): Rx[A] = Var.create(v)(_ => Cancelable.empty)
 
-  trait Share[-A] {
+  class Share[A](rxProto: Rx[A]) {
+    var refCount = 0
     // Should be Var[A], but gives GADT Skolem bug:
     protected[Rx] val sharingMemo: Var[Any] = new Var(None, _ => Cancelable.empty)
     protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
     protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
+
+    protected[mhtml] def share(effect: A => Unit) = {
+      if (!this.isSharing) {
+        this.sharingCancelable = run(rxProto)(this.sharingMemo.:=)
+      }
+      val foreachCancelable = this.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
+      Cancelable { () =>
+        foreachCancelable.cancel
+        if (this.sharingMemo.subscribers.isEmpty) {
+          this.sharingCancelable.cancel
+          this.sharingCancelable = Cancelable.empty
+        }
+      }
+    }
   }
 
-  final case class Map     [A, B]     (self: Rx[A], f: A => B)                      extends Rx[B] with Share[A]
+  final case class Map     [A, B]     (self: Rx[A], f: A => B)
+    extends Share[B](self.mapProto(x => f(x))) with Rx[B]
   final case class MapProto[A, B]     (self: Rx[A], f: A => B)                      extends Rx[B]
   final case class FlatMap [A, B]     (self: Rx[A], f: A => Rx[B])                  extends Rx[B]
   final case class Zip     [A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[(A, B)]
@@ -190,7 +206,8 @@ object Rx {
   final case class Collect [A, B]     (self: Rx[A], f: PartialFunction[A, B], b: B) extends Rx[B]
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
-  final case class Sharing [A]        (self: Rx[A])                                 extends Rx[A] with Share[A]
+  final case class Sharing [A]        (self: Rx[A])
+    extends Share[A](self) with Rx[A]
 
   /**
    * The `impure.run` interpreter. Traverses the `Rx` tree and registers
@@ -200,7 +217,7 @@ object Rx {
     case MapProto(self, f) =>
       run(self)(x => effect(f(x)))
 
-    case rx @ Map(self, f) => share[A](rx, self.mapProto(x => f(x)), effect)
+    case rx @ Map(self, f) => rx.share(effect.asInstanceOf[Any => Unit])
 
     case FlatMap(self, f) =>
       var c1 = Cancelable.empty
@@ -274,26 +291,12 @@ object Rx {
         Cancelable { () => cc.cancel; self.imitating = false }
       } else run(other)(effect)
 
-    case rx @ Sharing(self) => share[A](rx.asInstanceOf[Share[A]], self, effect)
+    case rx @ Sharing(self) => rx.share(effect)
 
     case leaf: Var[A] =>
       leaf.foreach(effect)
 
     case null => throw new NullPointerException("null is not a valid Rx!")
-  }
-
-  protected def share[A](rx: Share[A], protoRx: Rx[A], effect: A => Unit) = {
-    if (!rx.isSharing) {
-      rx.sharingCancelable = run(protoRx)(rx.sharingMemo.:=)
-    }
-    val foreachCancelable = rx.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
-    Cancelable { () =>
-      foreachCancelable.cancel
-      if (rx.sharingMemo.subscribers.isEmpty) {
-        rx.sharingCancelable.cancel
-        rx.sharingCancelable = Cancelable.empty
-      }
-    }
   }
 
 }
