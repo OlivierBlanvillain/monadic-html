@@ -209,6 +209,7 @@ object Rx {
         if (refCount < 2) {
           mapInitRx = self.mapProto(x => f(x))
           ccMapInit = run(mapInitRx)(effect)
+          ccMapInit.cancel
         }
         else {
           val shareRx = shareRxMaybe.getOrElse{
@@ -216,11 +217,11 @@ object Rx {
             shareRxMaybe = Some(srx)
             srx
           }
-          ccMapInit.cancel
           ccSharing = run(shareRx)(effect)
+          ccSharing.cancel
         }
       }
-      Cancelable { () => ccSharing.cancel; ccMap.cancel }
+      Cancelable { () => ccMap.cancel }
     }
 
     case FlatMap(self, f) =>

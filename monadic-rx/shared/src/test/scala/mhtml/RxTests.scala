@@ -7,7 +7,6 @@ class RxTests extends FunSuite {
     def value: A = {
       var v: Option[A] = None
       val cc = impure.run{a =>
-        println(s"WHY AM I NOT PRINTED? a is ${a}")
         v = Some(a)
       }
       // This can never happen if using the default Rx/Var constructors and
