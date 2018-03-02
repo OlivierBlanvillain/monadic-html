@@ -173,14 +173,14 @@ object Rx {
   /** Creates a constant `Rx`. */
   def apply[A](v: A): Rx[A] = Var.create(v)(_ => Cancelable.empty)
 
-  class Share[A](rxProto: Rx[A]) extends Rx[A] {
+  class Share[A](rxProto: Rx[A]) {
     var refCount = 0
     // Should be Var[A], but gives GADT Skolem bug:
     protected[Rx] val sharingMemo: Var[Any] = new Var(None, _ => Cancelable.empty)
     protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
     protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
 
-    protected[mhtml] def share(effect: A => Unit): Cancelable = {
+    protected[mhtml] def share(effect: A => Unit) = {
       if (!this.isSharing) {
         this.sharingCancelable = run(rxProto)(this.sharingMemo.:=)
       }
@@ -196,7 +196,7 @@ object Rx {
   }
 
   final case class Map     [A, B]     (self: Rx[A], f: A => B)
-    extends Share[B](self.mapProto(x => f(x)))
+    extends Share[B](self.mapProto(x => f(x))) with Rx[B]
   final case class MapProto[A, B]     (self: Rx[A], f: A => B)                      extends Rx[B]
   final case class FlatMap [A, B]     (self: Rx[A], f: A => Rx[B])                  extends Rx[B]
   final case class Zip     [A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[(A, B)]
@@ -207,7 +207,7 @@ object Rx {
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
   final case class Sharing [A]        (self: Rx[A])
-    extends Share[A](self)
+    extends Share[A](self) with Rx[A]
 
   /**
    * The `impure.run` interpreter. Traverses the `Rx` tree and registers
@@ -215,30 +215,9 @@ object Rx {
    */
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
     case MapProto(self, f) =>
-
       run(self)(x => effect(f(x)))
 
-    case rx @ Map(self, f) => {
-      var mapInitRx: Rx[A] = null
-      var ccMapInit = Cancelable.empty
-      var ccShare: Option[Cancelable] = None
-      val ccMap = run(self) { x =>
-        rx.refCount += 1
-        if (rx.refCount < 2) {
-          mapInitRx = self.mapProto(x => f(x))
-          ccMapInit = run(mapInitRx)(effect)
-          ccMapInit.cancel
-        }
-        else {
-          ccShare.getOrElse {
-            val ccs = rx.share(effect.asInstanceOf[Any => Unit])
-            ccShare = Some(ccs)
-            ccs
-          }
-        }
-      }
-      Cancelable { () => ccShare.getOrElse(Cancelable.empty).cancel; ccMap.cancel }
-    }
+    case rx @ Map(self, f) => rx.share(effect.asInstanceOf[Any => Unit])
 
     case FlatMap(self, f) =>
       var c1 = Cancelable.empty
