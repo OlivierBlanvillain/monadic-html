@@ -174,7 +174,6 @@ object Rx {
   def apply[A](v: A): Rx[A] = Var.create(v)(_ => Cancelable.empty)
 
   class Share[A](rxProto: Rx[A]) {
-    var refCount = 0
     // Should be Var[A], but gives GADT Skolem bug:
     protected[Rx] val sharingMemo: Var[Any] = new Var(None, _ => Cancelable.empty)
     protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
@@ -214,8 +213,7 @@ object Rx {
    * callbacks to run the outer most effect according to documented semantics.
    */
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
-    case MapProto(self, f) =>
-      run(self)(x => effect(f(x)))
+    case MapProto(self, f) => run(self)(x => effect(f(x)))
 
     case rx @ Map(self, f) => rx.share(effect.asInstanceOf[Any => Unit])
 
