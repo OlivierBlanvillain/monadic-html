@@ -83,12 +83,11 @@ class RxTests extends FunSuite {
     var list_noshare: List[Int] = Nil
     val cc_ns1 = noshare1.impure.run(n => list_noshare = list_noshare :+ n)
     val cc_ns2 = noshare2.impure.run(_ => ())
-    // Now that sharing is included, this should be the same as explicit sharing:
-    assert(count == 1)
+    assert(count == 2)
     assert(noshare1.impure.value == 0)
     sourceVar := 1
     assert(noshare1.impure.value == 1)
-    assert(count == 2) // Note: impure.value calls increment also
+    assert(count == 3) // Note: impure.value calls increment also //FIXME: should be 2 now?
     cc_ns1.cancel
     cc_ns2.cancel
 

@@ -5,6 +5,15 @@ sealed trait Rx[+A] { self =>
   import Rx._
 
   /**
+    * Used to decide if sharing is needec.
+    */
+  protected var refCount: Int = 0
+
+
+  protected var sharedRx: Option[Rx[Any]] = None
+  protected var ccShareRx: Cancelable = Cancelable.empty
+
+  /**
    * Apply a function to each element of this `Rx`.
    *
    * ```
@@ -15,7 +24,7 @@ sealed trait Rx[+A] { self =>
    * ```
    */
   def map[B](f: A => B): Rx[B] = Map[A, B](this, f)
-  private[mhtml] def mapProto[B](f: A => B): Rx[B] = MapProto[A, B](this, f)
+  private[mhtml] def mapShare[B](f: A => B): Rx[B] = MapShare[A, B](this, f)
 
   /**
    * Dynamically switch between different `Rx`s according to the given
@@ -179,7 +188,7 @@ object Rx {
     protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
     protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
 
-    protected[mhtml] def share(effect: A => Unit) = {
+    protected[mhtml] def share(effect: A => Unit): Cancelable = {
       if (!this.isSharing) {
         this.sharingCancelable = run(rxProto)(this.sharingMemo.:=)
       }
@@ -194,9 +203,9 @@ object Rx {
     }
   }
 
-  final case class Map     [A, B]     (self: Rx[A], f: A => B)
-    extends Share[B](self.mapProto(x => f(x))) with Rx[B]
-  final case class MapProto[A, B]     (self: Rx[A], f: A => B)                      extends Rx[B]
+  final case class MapShare     [A, B]     (self: Rx[A], f: A => B)
+    extends Share[B](self.map(x => f(x))) with Rx[B]
+  final case class Map[A, B]     (self: Rx[A], f: A => B)                           extends Rx[B]
   final case class FlatMap [A, B]     (self: Rx[A], f: A => Rx[B])                  extends Rx[B]
   final case class Zip     [A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[(A, B)]
   final case class DropRep [A]        (self: Rx[A])                                 extends Rx[A]
@@ -213,9 +222,27 @@ object Rx {
    * callbacks to run the outer most effect according to documented semantics.
    */
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
-    case MapProto(self, f) => run(self)(x => effect(f(x)))
 
-    case rx @ Map(self, f) => rx.share(effect.asInstanceOf[Any => Unit])
+      //TODO: we could potentially make two variants of `Map`, and then match on Shared or not
+    case rx @ Map(self, f) => {
+      rx.refCount += 1
+      var cc = Cancelable.empty
+      cc = run(self){x =>
+        if (rx.refCount > 1) {
+          cc.cancel
+          val sharedRx: Rx[A] with Share[A]= rx.sharedRx.getOrElse{
+            val srx = self.mapShare(x => f(x))
+            rx.sharedRx = Some(srx.asInstanceOf[Rx[Any]])
+            srx
+          }.asInstanceOf[Rx[A] with Share[A]]
+          cc = sharedRx.share(effect.asInstanceOf[Any => Unit])
+        }
+        else effect(f(x))
+      }
+      cc
+    }
+
+    //case rx @ MapShare(self, f) => rx.share(effect.asInstanceOf[Any => Unit])
 
     case FlatMap(self, f) =>
       var c1 = Cancelable.empty
