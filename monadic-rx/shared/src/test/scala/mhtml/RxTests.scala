@@ -64,6 +64,8 @@ class RxTests extends FunSuite {
     assert(b.impure.value == 2)
     assert(a.map(identity).impure.value == 2)
     a := 3
+    assert(b.impure.value == 3)
+    assert(a.map(identity).impure.value == 3)
     a := 4
     assert(lista == List(0,1,2,3,4))
     assert(listb == List(0,1,2,3,4))
@@ -83,11 +85,11 @@ class RxTests extends FunSuite {
     var list_noshare: List[Int] = Nil
     val cc_ns1 = noshare1.impure.run(n => list_noshare = list_noshare :+ n)
     val cc_ns2 = noshare2.impure.run(_ => ())
-    assert(count == 2)
+    assert(count == 1)
     assert(noshare1.impure.value == 0)
     sourceVar := 1
     assert(noshare1.impure.value == 1)
-    assert(count == 3) // Note: impure.value calls increment also //FIXME: should be 2 now?
+    assert(count == 2) // Note: impure.value calls increment also //FIXME: should be 2 now?
     cc_ns1.cancel
     cc_ns2.cancel
 
@@ -110,7 +112,7 @@ class RxTests extends FunSuite {
     cc_s1.cancel
     cc_s2.cancel
 
-    assert(sourceVar.isCold)
+   assert(sourceVar.isCold)
   }
 
   test("max using foldp") {
