@@ -11,7 +11,7 @@ sealed trait Rx[+A] { self =>
 
 
   protected var sharedRx: Option[Rx[Any]] = None
-  protected var ccShareRx: Cancelable = Cancelable.empty
+  protected var ccShareRx: Option[Cancelable] = None
 
   /**
    * Apply a function to each element of this `Rx`.
@@ -223,14 +223,14 @@ object Rx {
    */
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
 
-      //TODO: we could potentially make two variants of `Map`, and then match on Shared or not
     case rx @ Map(self, f) =>
       rx.refCount += 1
-      var cc = Cancelable.empty
-      if (rx.refCount == 1)  {
-        cc = run(self)(x => effect(f(x)))
+      val cc = rx.ccShareRx.getOrElse{
+        val cctmp = run(self)(x => effect(f(x)))
+        rx.ccShareRx = Some(cctmp)
+        cctmp
       }
-      else if (rx.refCount == 2) {
+      if (rx.refCount == 2) {
         cc.cancel
       }
       if (rx.refCount > 1) {
@@ -239,9 +239,9 @@ object Rx {
           rx.sharedRx = Some(srx.asInstanceOf[Rx[Any]])
           srx
         }.asInstanceOf[Rx[A] with Share[A]]
-        cc = sharedRx.share(effect.asInstanceOf[Any => Unit])
+        rx.ccShareRx = Some(sharedRx.share(effect.asInstanceOf[Any => Unit]))
       }
-      cc
+      rx.ccShareRx.getOrElse{throw new RuntimeException("Logic error"); Cancelable.empty}
 
 
     //case rx @ MapShare(self, f) => rx.share(effect.asInstanceOf[Any => Unit])

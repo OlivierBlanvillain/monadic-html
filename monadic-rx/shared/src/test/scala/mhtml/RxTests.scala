@@ -83,11 +83,11 @@ class RxTests extends FunSuite {
     var list_noshare: List[Int] = Nil
     val cc_ns1 = noshare1.impure.run(n => list_noshare = list_noshare :+ n)
     val cc_ns2 = noshare2.impure.run(_ => ())
-    assert(count == 1)
+    assert(count == 2)
     assert(noshare1.impure.value == 0)
     sourceVar := 1
     assert(noshare1.impure.value == 1)
-    assert(count == 2)
+    assert(count == 3)
     cc_ns1.cancel
     cc_ns2.cancel
 
