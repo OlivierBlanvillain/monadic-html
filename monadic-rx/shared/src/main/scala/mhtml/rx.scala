@@ -224,23 +224,25 @@ object Rx {
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
 
       //TODO: we could potentially make two variants of `Map`, and then match on Shared or not
-    case rx @ Map(self, f) => {
+    case rx @ Map(self, f) =>
       rx.refCount += 1
       var cc = Cancelable.empty
-      cc = run(self){x =>
-        if (rx.refCount > 1) {
-          cc.cancel
-          val sharedRx: Rx[A] with Share[A]= rx.sharedRx.getOrElse{
-            val srx = self.mapShare(x => f(x))
-            rx.sharedRx = Some(srx.asInstanceOf[Rx[Any]])
-            srx
-          }.asInstanceOf[Rx[A] with Share[A]]
-          cc = sharedRx.share(effect.asInstanceOf[Any => Unit])
-        }
-        else effect(f(x))
+      if (rx.refCount == 1)  {
+        cc = run(self)(x => effect(f(x)))
+      }
+      else if (rx.refCount == 2) {
+        cc.cancel
+      }
+      if (rx.refCount > 1) {
+        val sharedRx: Rx[A] with Share[A]= rx.sharedRx.getOrElse{
+          val srx = self.mapShare(x => f(x))
+          rx.sharedRx = Some(srx.asInstanceOf[Rx[Any]])
+          srx
+        }.asInstanceOf[Rx[A] with Share[A]]
+        cc = sharedRx.share(effect.asInstanceOf[Any => Unit])
       }
       cc
-    }
+
 
     //case rx @ MapShare(self, f) => rx.share(effect.asInstanceOf[Any => Unit])
 
