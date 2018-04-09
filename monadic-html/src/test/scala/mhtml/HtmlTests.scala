@@ -180,7 +180,6 @@ class HtmlTests extends FunSuite {
   }
 
   test("CustomAttribute") {
-    var w: List[String] = Nil
     def hr = <hr data:custom-key="value"/>
     val div = dom.document.createElement("div")
     mount(div, hr)
@@ -272,6 +271,8 @@ class HtmlTests extends FunSuite {
         </div>
       (node, fugitive)
     }
+
+    val (n, r) = myCounter
   }
 
   test("setUnsafeRawHTML") {
