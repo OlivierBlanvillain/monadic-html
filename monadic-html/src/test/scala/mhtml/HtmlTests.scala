@@ -371,7 +371,7 @@ class HtmlTests extends FunSuite {
     trait TimeAction extends Action
 
     // A single State => Html function for the entire page:
-    def view(state: Rx[State]): xml.Node = <div></div>
+    def view(state: State): xml.Node = <div></div>
 
     // Probably implemented with Var, but we can look at them as Rx. Note that the
     // type can easily me made more precise by using <: Action instead:
@@ -397,7 +397,7 @@ class HtmlTests extends FunSuite {
 
     // Tie everything together:
     val root = dom.document.createElement("div")
-    mount(root, view(store))
+    mount(root, store.map(view))
   }
 
   test("toString on xml node") {
