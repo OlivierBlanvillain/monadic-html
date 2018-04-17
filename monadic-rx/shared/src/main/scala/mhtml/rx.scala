@@ -241,12 +241,22 @@ object Rx {
     case Collect(self, f, fallback) =>
       var first = true
       run(self) { a =>
-        val out =
-          if (f.isDefinedAt(a))
-            effect(f(a))
-          else if(first)
-            effect(fallback)
-          else ()
+        // Semantically:
+        // if (f.isDefinedAt(a))
+        //   effect(f(a))
+        // else if(first)
+        //   effect(fallback)
+        // else ()
+        //
+        // But we have to use applyOrElse to prevent double evaluation:
+        var isDefinedAt = true
+        val fa = {
+          f.applyOrElse(a, (_: Any) => {
+            isDefinedAt = false
+            fallback
+          })
+        }
+        val out = if (isDefinedAt | first) effect(fa) else ()
         first = false
         out
       }
