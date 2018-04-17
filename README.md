@@ -425,7 +425,7 @@ sealed trait Action
 ...
 
 // A single State => Html function for the entire page:
-def view(state: Rx[State]): xml.Node =
+def view(state: State): xml.Node =
   ...
 
 // Probably implemented with Var, but we can look at them as Rx. Note that the
@@ -451,7 +451,7 @@ def reducer(previousState: State, action: Action): State = ...
 val store: Rx[State] = allActions.foldp(State.empty)(reducer)
 
 // Tie everything together:
-mount(root, view(store))
+mount(root, store.map(view))
 ```
 
 If you're really into *globally mutable state*™, you can also give up on purity and type safety by making allActions a `Var[Action]` and calling `:=` all around your code.
