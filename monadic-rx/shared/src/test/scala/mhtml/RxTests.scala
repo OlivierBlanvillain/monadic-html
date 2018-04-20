@@ -411,4 +411,25 @@ class RxTests extends FunSuite {
     assert(sndList == List(-101, 1, 7))
     assert(source.isCold && sndProxy.isCold)
   }
+
+  test("no double checks with keepIf (#101)") {
+    val a = Var(0)
+    var checkCount = 0
+    val foo = a.keepIf { i =>
+      checkCount += 1
+      i > 0
+    }(0)
+
+    val cc = foo.impure.run(_ => ())
+
+    a := 1
+    a := 2
+    a := 3
+    a := 4
+
+    cc.cancel
+
+    assert(checkCount == 5)
+    assert(a.isCold)
+  }
 }
