@@ -209,6 +209,19 @@ class HtmlTests extends FunSuite {
     assert(div.innerHTML == """<button class="c" id="1">Click Me!</button>""")
   }
 
+  test("onClick = Function1 rx") {
+    var clicked = false
+    def handler(e: dom.MouseEvent): Rx[Unit] = Rx({clicked = true})
+    val button  = <button class="c" onclick={handler _} id="1">Click Me!</button>
+    val div = dom.document.createElement("div")
+    mount(div, button)
+    assert(!clicked)
+    div.firstChild.asInstanceOf[dom.html.Button].click()
+    assert(clicked)
+    assert(div.innerHTML == """<button class="c" id="1">Click Me!</button>""")
+  }
+
+
   test("onClick = Var[Function0]") {
     var ext = 0
     def handler1(e: dom.MouseEvent): Unit = ext = 1
