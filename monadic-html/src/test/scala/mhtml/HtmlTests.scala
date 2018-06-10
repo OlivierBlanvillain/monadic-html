@@ -1,6 +1,8 @@
 package mhtml
 
 import org.scalajs.dom
+import org.scalajs.dom.{MouseEvent, Node => DomNode}
+import org.scalajs.dom.raw.HTMLElement
 import org.scalatest.FunSuite
 
 import scala.xml.{Elem, Group}
@@ -227,6 +229,55 @@ class HtmlTests extends FunSuite {
     div.firstChild.asInstanceOf[dom.html.Button].click()
     assert(ext == 1)
     assert(div.innerHTML == """<button class="c" id="1">Click Me!</button>""")
+  }
+
+  /**
+    * This test demonstrates how to make a collapsible field
+    */
+  test("style and class change onClick") {
+    val classNoClick = "glyphicon glyphicon-menu-right"
+    val classClick = "glyphicon glyphicon-menu-down"
+    val styleNoClick = "display: none;"
+    val styleClick =  "display: block;"
+
+    val glyphClicked: Var[Boolean] = Var(false)
+    val glyphClass: Rx[String] = glyphClicked.map {
+      case false => classNoClick
+      case true => classClick
+    }
+    val showStyle: Rx[String] = glyphClicked.map {
+      case false => styleNoClick
+      case true  => styleClick
+    }
+
+    def mouseClick(hTMLElement: HTMLElement) = {
+      val evt = dom.document.createEvent("MouseEvents").asInstanceOf[MouseEvent]
+      evt.initMouseEvent("click", true, true, dom.window,
+        0, 0, 0, 0, 0, false, false, false, false, 0, null)
+      hTMLElement.dispatchEvent(evt)
+    }
+
+    val innerDiv  = <div>
+      <a class={ glyphClass }
+         onclick={ (ev: dom.Event) => {
+           glyphClicked.update(click => !click) }
+         } >
+        Click Me
+      </a>
+
+      <div id={ "some-detail" } style={ showStyle }>
+        <p> You clicked me! </p>
+      </div>
+    </div>
+    val div = dom.document.createElement("div")
+    mount(div, innerDiv)
+    val domInnerDiv = div.firstChild.asInstanceOf[dom.html.Div]
+    val domLink = domInnerDiv.children.item(0).asInstanceOf[dom.html.Anchor]
+    assert(domInnerDiv.innerHTML.contains(classNoClick))
+    assert(domInnerDiv.innerHTML.contains(styleNoClick))
+    mouseClick(domLink)
+    assert(domInnerDiv.innerHTML.contains(classClick))
+    assert(domInnerDiv.innerHTML.contains(styleClick))
   }
 
   test("README examples") {
