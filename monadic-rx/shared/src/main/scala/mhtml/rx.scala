@@ -5,6 +5,15 @@ sealed trait Rx[+A] { self =>
   import Rx._
 
   /**
+    * Used to decide if sharing is needec.
+    */
+  protected var refCount: Int = 0
+
+
+  protected var sharedRx: Option[Rx[Any]] = None
+  protected var ccShareRx: Option[Cancelable] = None
+
+  /**
    * Apply a function to each element of this `Rx`.
    *
    * ```
@@ -15,6 +24,7 @@ sealed trait Rx[+A] { self =>
    * ```
    */
   def map[B](f: A => B): Rx[B] = Map[A, B](this, f)
+  private[mhtml] def mapShare[B](f: A => B): Rx[B] = MapShare[A, B](this, f)
 
   /**
    * Dynamically switch between different `Rx`s according to the given
@@ -172,7 +182,30 @@ object Rx {
   /** Creates a constant `Rx`. */
   def apply[A](v: A): Rx[A] = Var.create(v)(_ => Cancelable.empty)
 
-  final case class Map     [A, B]     (self: Rx[A], f: A => B)                      extends Rx[B]
+  class Share[A](rxProto: Rx[A]) {
+    // Should be Var[A], but gives GADT Skolem bug:
+    protected[Rx] val sharingMemo: Var[Any] = new Var(None, _ => Cancelable.empty)
+    protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
+    protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
+
+    protected[mhtml] def share(effect: A => Unit): Cancelable = {
+      if (!this.isSharing) {
+        this.sharingCancelable = run(rxProto)(this.sharingMemo.:=)
+      }
+      val foreachCancelable = this.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
+      Cancelable { () =>
+        foreachCancelable.cancel
+        if (this.sharingMemo.subscribers.isEmpty) {
+          this.sharingCancelable.cancel
+          this.sharingCancelable = Cancelable.empty
+        }
+      }
+    }
+  }
+
+  final case class MapShare     [A, B]     (self: Rx[A], f: A => B)
+    extends Share[B](self.map(x => f(x))) with Rx[B]
+  final case class Map[A, B]     (self: Rx[A], f: A => B)                           extends Rx[B]
   final case class FlatMap [A, B]     (self: Rx[A], f: A => Rx[B])                  extends Rx[B]
   final case class Zip     [A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[(A, B)]
   final case class DropRep [A]        (self: Rx[A])                                 extends Rx[A]
@@ -181,20 +214,37 @@ object Rx {
   final case class Collect [A, B]     (self: Rx[A], f: PartialFunction[A, B], b: B) extends Rx[B]
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
-  final case class Sharing [A]        (self: Rx[A])                                 extends Rx[A] {
-    // Should be Var[A], but gives GADT Skolem bug:
-    protected[Rx] val sharingMemo: Var[Any] = Var(None)
-    protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
-    protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
-  }
+  final case class Sharing [A]        (self: Rx[A])
+    extends Share[A](self) with Rx[A]
 
   /**
    * The `impure.run` interpreter. Traverses the `Rx` tree and registers
    * callbacks to run the outer most effect according to documented semantics.
    */
   def run[A](rx: Rx[A])(effect: A => Unit): Cancelable = rx match {
-    case Map(self, f) =>
-      run(self)(x => effect(f(x)))
+
+    case rx @ Map(self, f) =>
+      rx.refCount += 1
+      val cc = rx.ccShareRx.getOrElse{
+        val cctmp = run(self)(x => effect(f(x)))
+        rx.ccShareRx = Some(cctmp)
+        cctmp
+      }
+      if (rx.refCount == 2) {
+        cc.cancel
+      }
+      if (rx.refCount > 1) {
+        val sharedRx: Rx[A] with Share[A]= rx.sharedRx.getOrElse{
+          val srx = self.mapShare(x => f(x))
+          rx.sharedRx = Some(srx.asInstanceOf[Rx[Any]])
+          srx
+        }.asInstanceOf[Rx[A] with Share[A]]
+        rx.ccShareRx = Some(sharedRx.share(effect.asInstanceOf[Any => Unit]))
+      }
+      rx.ccShareRx.getOrElse{throw new RuntimeException("Logic error"); Cancelable.empty}
+
+
+    //case rx @ MapShare(self, f) => rx.share(effect.asInstanceOf[Any => Unit])
 
     case FlatMap(self, f) =>
       var c1 = Cancelable.empty
@@ -278,24 +328,14 @@ object Rx {
         Cancelable { () => cc.cancel; self.imitating = false }
       } else run(other)(effect)
 
-    case rx @ Sharing(self) =>
-      if (!rx.isSharing) {
-        rx.sharingCancelable = run(self)(rx.sharingMemo.:=)
-      }
-      val foreachCancelable = rx.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
-      Cancelable { () =>
-        foreachCancelable.cancel
-        if (rx.sharingMemo.subscribers.isEmpty) {
-          rx.sharingCancelable.cancel
-          rx.sharingCancelable = Cancelable.empty
-        }
-      }
+    case rx @ Sharing(self) => rx.share(effect)
 
     case leaf: Var[A] =>
       leaf.foreach(effect)
 
     case null => throw new NullPointerException("null is not a valid Rx!")
   }
+
 }
 
 /** A smart variable that can be set manually. */

@@ -6,12 +6,15 @@ class RxTests extends FunSuite {
   implicit class MoreImpureStuff[A](impure: RxImpureOps[A]) {
     def value: A = {
       var v: Option[A] = None
-      impure.run(a => v = Some(a)).cancel
+      val cc = impure.run{a =>
+        v = Some(a)
+      }
       // This can never happen if using the default Rx/Var constructors and
       // methods. The proof is a simple case analysis showing that every method
       // preserves non emptiness. Var created with unsafeCreate Messing up with
       // Var unsafe constructor or internal could lead to this exception.
       def error = new NoSuchElementException("Requesting value of an empty Rx.")
+      cc.cancel
       v.getOrElse(throw error)
     }
   }
@@ -48,6 +51,10 @@ class RxTests extends FunSuite {
   test("Referential transparency with map") {
     val a: Var[Int] = Var(0)
     val b: Rx[Int] = a.map(identity)
+    var lista: List[Int] = Nil
+    val cca = a.impure.run(n => lista = lista :+ n)
+    var listb: List[Int] = Nil
+    val ccb = b.impure.run(n => listb = listb :+ n)
     assert(b.impure.value == 0)
     assert(a.map(identity).impure.value == 0)
     a := 1
@@ -56,6 +63,12 @@ class RxTests extends FunSuite {
     a := 2
     assert(b.impure.value == 2)
     assert(a.map(identity).impure.value == 2)
+    a := 3
+    a := 4
+    assert(lista == List(0,1,2,3,4))
+    assert(listb == List(0,1,2,3,4))
+    cca.cancel
+    ccb.cancel
     assert(a.isCold)
   }
 
@@ -67,13 +80,14 @@ class RxTests extends FunSuite {
     val source: Rx[Int] = sourceVar.map{x => count +=1; x}
     val noshare1: Rx[Int] = source.map(identity)
     val noshare2: Rx[Int] = source.map(identity)
-    val cc_ns1 = noshare1.impure.run(_ => ())
+    var list_noshare: List[Int] = Nil
+    val cc_ns1 = noshare1.impure.run(n => list_noshare = list_noshare :+ n)
     val cc_ns2 = noshare2.impure.run(_ => ())
     assert(count == 2)
     assert(noshare1.impure.value == 0)
     sourceVar := 1
     assert(noshare1.impure.value == 1)
-    assert(count == 6) // Note: impure.value calls increment also
+    assert(count == 3)
     cc_ns1.cancel
     cc_ns2.cancel
 
@@ -84,12 +98,14 @@ class RxTests extends FunSuite {
     assert(count == 0)
     val share1: Rx[Int] = sharedSource.map(identity)
     val share2: Rx[Int] = sharedSource.map(identity)
-    val cc_s1 = share1.impure.run(_ => ())
+    var list_share: List[Int] = Nil
+    val cc_s1 = share1.impure.run(n => list_share = list_share :+ n)
     val cc_s2 = share2.impure.run(_ => ())
     assert(count == 1)
     assert(share1.impure.value == 0)
     sourceVar := 1
     assert(share1.impure.value == 1)
+    assert(list_noshare == list_share)
     assert(count == 2)
     cc_s1.cancel
     cc_s2.cancel
