@@ -182,8 +182,7 @@ object Rx {
   final case class SampleOn[A, B]     (self: Rx[A], other: Rx[B])                   extends Rx[A]
   final case class Imitate [A]        (self: Var[A], other: Rx[A])                  extends Rx[A]
   final case class Sharing [A]        (self: Rx[A])                                 extends Rx[A] {
-    // Should be Var[A], but gives GADT Skolem bug:
-    protected[Rx] val sharingMemo: Var[Any] = Var(None)
+    protected[Rx] val sharingMemo: Var[Option[A]] = Var(None)
     protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
     protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
   }
@@ -229,11 +228,11 @@ object Rx {
       val c2 = run(other)(effect)
       Cancelable { () => c1.cancel; c2.cancel }
 
-    case Foldp(self, seed, step) =>
+    // Workaround required because otherwise scalac messes up GADT skolems. Note: dotty doesn't need it.
+    case rx: Foldp[t,A] => val Foldp(self, seed, step) = rx
       var b = seed
       run(self) { a =>
-        // This is a GADT skolem. I'm sober. scalac is drunk; works in dotty
-        val next = step.asInstanceOf[(Any, Any) => A](b, a)
+        val next = step(b, a)
         b = next
         effect(next)
       }
@@ -267,22 +266,21 @@ object Rx {
       val cb = run(other)(_ => effect(currentA))
       Cancelable { () => ca.cancel; cb.cancel }
 
-    case Imitate(self, other) =>
+    case im: Imitate[A] => val Imitate(self, other) = im
       if (!self.imitating) {
         self.imitating = true
-        val cc = run(other) { a =>
-          // self: Var[A] and a: A, pattern matching is fucked up...
-          self.asInstanceOf[Var[Any]] := a
+        val cc = run(other) { case a =>
+          self := a
           effect(a)
         }
         Cancelable { () => cc.cancel; self.imitating = false }
       } else run(other)(effect)
 
-    case rx @ Sharing(self) =>
+    case rx: Sharing[A] => val Sharing(self) = rx
       if (!rx.isSharing) {
-        rx.sharingCancelable = run(self)(rx.sharingMemo.:=)
+        rx.sharingCancelable = run(self)(rx.sharingMemo := Some(_))
       }
-      val foreachCancelable = rx.sharingMemo.foreach(x => effect(x.asInstanceOf[A]))
+      val foreachCancelable = rx.sharingMemo.foreach(_.foreach(effect))
       Cancelable { () =>
         foreachCancelable.cancel
         if (rx.sharingMemo.subscribers.isEmpty) {
