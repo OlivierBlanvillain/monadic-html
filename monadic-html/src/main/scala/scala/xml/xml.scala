@@ -1,7 +1,8 @@
 package scala.xml
 
-import language.higherKinds
+import mhtml.Rx
 
+import language.higherKinds
 import scala.annotation.implicitNotFound
 
 // XML Nodes ------------------------------------------------------------------
@@ -146,20 +147,23 @@ The following types are supported:
 - String
 - Boolean (false → remove attribute, true → empty attribute)
 - () => Unit, T => Unit event handler. Note: The return type needs to be Unit!
+- () => Rx[Unit], T => Rx[Unit] event handler, similar to the above.
 - mhtml.Var[T], mhtml.Rx[T] where T is XmlAttributeEmbeddable
 - Option[T] where T is XmlAttributeEmbeddable (None → remove from the DOM)
 """)
 trait XmlAttributeEmbeddable[T]
 object XmlAttributeEmbeddable {
   type XA[T] = XmlAttributeEmbeddable[T]
-  @inline implicit def noneAttributeEmbeddable:                             XA[None.type]    = null
-  @inline implicit def booleanAttributeEmbeddable:                          XA[Boolean]      = null
-  @inline implicit def stringAttributeEmbeddable:                           XA[String]       = null
-  @inline implicit def textNodeAttributeEmbeddable:                         XA[Text]         = null
-  @inline implicit def function0AttributeEmbeddable:                        XA[() => Unit]   = null
-  @inline implicit def function1AttributeEmbeddable[T]:                     XA[T => Unit]    = null
-  @inline implicit def optionAttributeEmbeddable[C[x] <: Option[x], T: XA]: XA[C[T]]         = null
-  @inline implicit def rxAttributeEmbeddable[C[x] <: mhtml.Rx[x], T: XA]:   XA[C[T]]         = null
+  @inline implicit def noneAttributeEmbeddable:                             XA[None.type]      = null
+  @inline implicit def booleanAttributeEmbeddable:                          XA[Boolean]        = null
+  @inline implicit def stringAttributeEmbeddable:                           XA[String]         = null
+  @inline implicit def textNodeAttributeEmbeddable:                         XA[Text]           = null
+  @inline implicit def function0AttributeEmbeddable:                        XA[() => Unit]     = null
+  @inline implicit def function1AttributeEmbeddable[T]:                     XA[T => Unit]      = null
+  @inline implicit def function0AttributeEmbeddableRx:                      XA[() => Rx[Unit]] = null
+  @inline implicit def function1AttributeEmbeddableRx[T]:                   XA[T => Rx[Unit]]  = null
+  @inline implicit def optionAttributeEmbeddable[C[x] <: Option[x], T: XA]: XA[C[T]]           = null
+  @inline implicit def rxAttributeEmbeddable[C[x] <: mhtml.Rx[x], T: XA]:   XA[C[T]]           = null
 }
 
 /** Evidence that T can be embedded in xml element position. */
