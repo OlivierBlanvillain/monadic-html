@@ -7,8 +7,6 @@ import org.scalajs.dom.ext.KeyCode
 import scala.xml.Node
 import Function.tupled
 import mhtml._
-import mhtml.implicits.cats._
-import cats.implicits._
 
 /** mhtml port of http://elm-lang.org:1234/examples/mario */
 object Mario extends Example {
@@ -65,7 +63,7 @@ object Mario extends Example {
 
   val deltas: Rx[Double] = InputLib.fps(60).map(_ / 10)
   val keys: Rx[Keys] = InputLib.arrows.map(tupled(Keys))
-  val inputs: Rx[(Double, Keys)] = (deltas, keys).tupled.sampleOn(deltas)
+  val inputs: Rx[(Double, Keys)] = deltas.zip(keys).sampleOn(deltas)
 
   val mari0 = Model(x = 0, y = 0, vx = 0, vy = 0, dir = Right)
   def step0(m: Model, i: (Double, Keys)): Model = tupled(step _)(i)(m)

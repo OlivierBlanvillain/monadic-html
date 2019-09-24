@@ -377,7 +377,7 @@ class RxTests extends FunSuite {
           Collect(
             Map(Var(2), <function1>), <function1>, 0)
         )
-      """.lines.mkString("").filterNot(' '.==)
+      """.linesIterator.mkString("").filterNot(' '.==)
     )
   }
 

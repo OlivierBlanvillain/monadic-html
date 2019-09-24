@@ -1,7 +1,7 @@
 package mhtml
 
 import org.scalajs.dom
-import org.scalajs.dom.{MouseEvent, Node => DomNode}
+import org.scalajs.dom.MouseEvent
 import org.scalajs.dom.raw.HTMLElement
 import org.scalatest.FunSuite
 
@@ -454,7 +454,7 @@ class HtmlTests extends FunSuite {
 
   test("toString on xml node") {
     val node = <button class="c" id="1">Click Me!</button>
-    val makeMeDream = """Elem(None,button,UnprefixedAttribute(xmlns,null,UnprefixedAttribute(class,Text(c),UnprefixedAttribute(id,Text(1),Null))),Some(TopScope),ArrayBuffer(Text(Click Me!)))"""
+    val makeMeDream = """Elem(None,button,UnprefixedAttribute(xmlns,null,UnprefixedAttribute(class,Text(c),UnprefixedAttribute(id,Text(1),Null))),Some(TopScope),false,ArrayBuffer(Text(Click Me!)))"""
     assert(node.toString == makeMeDream)
   }
 }

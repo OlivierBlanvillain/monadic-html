@@ -42,7 +42,7 @@ object SelectList extends Example {
     val options = Var(List.empty[Country])
     Ajax.get(countriesUrl).toRx.impure.run {
       case Some(Success(response)) =>
-        options := response.responseText.lines.collect {
+        options := response.responseText.linesIterator.collect {
           case country(code, name) => Country(name, code)
         }.toList
       case Some(Failure(e)) =>

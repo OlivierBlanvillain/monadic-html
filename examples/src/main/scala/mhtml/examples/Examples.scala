@@ -1,6 +1,6 @@
 package examples
 
-import scala.scalajs.js.JSApp
+import scala.scalajs.js.annotation._
 import scala.util.Success
 import scala.xml.Node
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -14,7 +14,13 @@ import org.scalajs.dom.ext.Ajax
 trait Example {
   def app: Node
   def cancel: Unit = ()
-  val name = this.getClass.getSimpleName
+  val name = {
+    val simpleName = this.getClass.getSimpleName
+    if (simpleName.endsWith("$"))
+      simpleName.dropRight(1)
+    else
+      simpleName
+  }
   val url = "#/" + name
 
   private val organization = "OlivierBlanvillain"
@@ -51,7 +57,8 @@ trait Example {
     </div>
 }
 
-object Main extends JSApp {
+@JSExportTopLevel("Main")
+object Main {
   val examples = Seq[Example](
     HelloWorld,
     HelloWorldInteractive,
@@ -91,9 +98,9 @@ object Main extends JSApp {
       {activeExample.map(_.demo)}
     </div>
 
-  def main(): Unit = {
+  @JSExport
+  def main(args: Array[String]): Unit = {
     mount(dom.document.body, mainApp)
     ()
   }
 }
-

@@ -1,7 +1,6 @@
 package scala.xml
 
-import language.higherKinds
-
+import scala.collection.mutable
 import scala.annotation.implicitNotFound
 
 // XML Nodes ------------------------------------------------------------------
@@ -26,9 +25,9 @@ final case class Elem(
   label: String,
   attributes1: MetaData,
   override val scope: Option[Scope],
+  minimizeEmpty: Boolean,
   child: Node*
 ) extends Node {
-  // m, former minimizeEmpty, is now thrown away.
   def this(p: String, l: String, a: MetaData, s: Scope, m: Boolean, c: Node*) =
     this(Option(p), l, {
       // Merges attributes stored in as scope with other metadata
@@ -40,14 +39,7 @@ final case class Elem(
         case _ => acc
       }
       merge(a, s)
-    }, Some(s), c: _*)
-
-  def copy(
-    prefix: Option[String] = this.prefix,
-    label: String = this.label,
-    attributes1: MetaData = this.attributes1,
-    scope: Option[Scope] = this.scope,
-    child: Seq[Node] = this.child): Elem = Elem(prefix, label, attributes1, scope, child: _*)
+    }, Some(s), m, c: _*)
 }
 
 /** XML leaf for comments. */
@@ -193,7 +185,13 @@ object XmlElementEmbeddable {
 trait XmlEntityRefEmbeddable
 
 /** Internal structure used by scalac to create literals */
-class NodeBuffer extends scala.collection.mutable.ArrayBuffer[Node] {
-  def &+(e: Node): NodeBuffer = { super.+=(e); this }
-  def &+[A: XmlElementEmbeddable](e: A): NodeBuffer = { super.+=(new Atom(e)); this }
+class NodeBuffer extends Seq[Node] {
+  private val underlying: mutable.ArrayBuffer[Node] = mutable.ArrayBuffer.empty
+  def iterator: Iterator[Node] = underlying.iterator
+  def apply(i: Int): Node = underlying.apply(i)
+  def length: Int = underlying.length
+  override def toString: String = underlying.toString
+
+  def &+(e: Node): NodeBuffer = { underlying.+=(e); this }
+  def &+[A: XmlElementEmbeddable](e: A): NodeBuffer = { underlying.+=(new Atom(e)); this }
 }
