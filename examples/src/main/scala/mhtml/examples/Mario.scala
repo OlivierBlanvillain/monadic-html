@@ -47,15 +47,17 @@ object Mario extends Example {
 
   // DISPLAY
 
-  def display(mario: Model): Node = {
-    val style = s"margin-top: ${80 - mario.y}px; margin-left: ${mario.x}px;"
-    val verb = if (mario.y   > 0) "jump"
-          else if (mario.vx != 0) "walk"
-          else "stand"
-    val dir = mario.dir.toString.toLowerCase
-    val src = s"http://elm-lang.org:1234/imgs/mario/$verb/$dir.gif"
+  def display(mario: Rx[Model]): Node = {
+    val style = mario.map(m => s"margin-top: ${80 - m.y}px; margin-left: ${m.x}px;")
+    val src = mario.map { m =>
+      val verb = if (m.y   > 0) "jump"
+            else if (m.vx != 0) "walk"
+            else "stand"
+      val dir = m.dir.toString.toLowerCase
+      s"http://elm-lang.org/images/mario/$verb/$dir.gif"
+    }
     <div style="height: 120px">
-      <img width="35" height="35" src={src} style={style} />
+      <img width="35" height="35" src={src.dropRepeats} style={style} />
     </div>
   }
 
@@ -67,7 +69,7 @@ object Mario extends Example {
 
   val mari0 = Model(x = 0, y = 0, vx = 0, vy = 0, dir = Right)
   def step0(m: Model, i: (Double, Keys)): Model = tupled(step _)(i)(m)
-  def app = <div>{inputs.foldp(mari0)(step0).dropRepeats.map(display)}</div>
+  def app = display(inputs.foldp(mari0)(step0))
 }
 
 /** Models time and keyboard events as `Rx`. */
