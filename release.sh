@@ -24,7 +24,7 @@ case $response in
 esac
 
 # Run test:test, if any test fails, the release process is aborted.
-sbt +test
+sbt -mem 2048 +test
 
 # Write version in ThisBuild := "$releaseVersion" to the file version.sbt and also apply this setting to the current build state.
 echo "version in ThisBuild := \"$releaseVersion\"" > version.sbt
@@ -39,7 +39,7 @@ git commit -am "Setting version to $releaseVersion"
 git tag "v$releaseVersion"
 
 # Run publish.
-sbt +publish-signed
+sbt -mem 2048 +publishSigned
 
 # Write version in ThisBuild := "nextVersion" to the file version.sbt and also apply this setting to the current build state.
 echo "version in ThisBuild := \"$nextVersion\"" > version.sbt
@@ -48,7 +48,7 @@ echo "version in ThisBuild := \"$nextVersion\"" > version.sbt
 git commit -am "Setting version to $nextVersion"
 
 # Close and promote all staging repositories
-sbt sonatypeReleaseAll
+sbt -mem 2048 sonatypeReleaseAll
 
 # Push changes to the remote git repository
 git push
