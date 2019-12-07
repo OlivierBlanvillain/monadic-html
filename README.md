@@ -7,7 +7,7 @@ Tiny DOM binding library for Scala.js
 Main Objectives: friendly syntax for frontend developers (XHTML) and fast compilation speeds (no macros).
 
 ```scala
-"in.nvilla" %%% "monadic-html" % "0.4.0-RC1"
+"in.nvilla" %%% "monadic-html" % "0.4.0"
 ```
 
 The core value propagation library is also available separately for both platforms as `monadic-rx`. Integration with [cats](https://github.com/typelevel/cats) is optionally available as `monadic-rx-cats`.
@@ -379,7 +379,7 @@ implicit class SequencingListFFS[A](self: List[Rx[A]]) {
 [Long answer:](https://github.com/typelevel/cats/blob/master/docs/src/main/tut/typeclasses/traverse.md)
 
 ```scala
-"in.nvilla" %%% "monadic-rx-cats" % "0.4.0-RC1"
+"in.nvilla" %%% "monadic-rx-cats" % "0.4.0"
 ```
 
 ```scala
