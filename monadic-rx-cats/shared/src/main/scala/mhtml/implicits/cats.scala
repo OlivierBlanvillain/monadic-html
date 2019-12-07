@@ -1,7 +1,7 @@
 package mhtml
 package implicits
 
-import _root_.cats.{Monad, Semigroup, Semigroupal}
+import _root_.cats.{Monad, Semigroup}
 
 import scala.language.implicitConversions
 

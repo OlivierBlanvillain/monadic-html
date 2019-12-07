@@ -15,13 +15,13 @@ object mount {
 
   private def mountNode(parent: DomNode, child: XmlNode, startPoint: Option[DomNode]): Cancelable =
     child match {
-      case e @ Elem(_, label, metadata, scope, child @ _*) =>
+      case e @ Elem(_, label, metadata, scope, _, _*) =>
         val elemNode = e.namespace match {
           case Some(ns) => dom.document.createElementNS(ns, label)
           case None     => dom.document.createElement(label)
         }
         val cancelMetadata = metadata.map { m => mountMetadata(elemNode, scope, m, m.value) }
-        val cancelChild = child.map(c => mountNode(elemNode, c, None))
+        val cancelChild = e.child.map(c => mountNode(elemNode, c, None))
         parent.mountHere(elemNode, startPoint)
         Cancelable { () => cancelMetadata.foreach(_.cancel); cancelChild.foreach(_.cancel) }
 

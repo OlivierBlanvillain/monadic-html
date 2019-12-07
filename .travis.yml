@@ -9,23 +9,22 @@ before_script:
   - npm install
 
 matrix:
-  include: 
-  - env: SCALA_VERSION=2.12.4
-    jdk: oraclejdk8
-    script: 
+  include:
+  - env: SCALA_VERSION=2.13.1
+    jdk: openjdk8
+    script:
+      - sbt ++$SCALA_VERSION clean test:compile
+      - sbt ++$SCALA_VERSION test
+      - sbt ++$SCALA_VERSION 'set scalaJSStage in Global := FullOptStage' test
+  - env: SCALA_VERSION=2.12.10
+    jdk: openjdk8
+    script:
       - sbt ++$SCALA_VERSION clean test:compile
       - sbt ++$SCALA_VERSION test
       - sbt ++$SCALA_VERSION 'set scalaJSStage in Global := FullOptStage' test
       - sbt doc
-      - grep -Eo "https?://[a-zA-Z0-9./?=_-]+" README.md | while read u; do echo $u; curl -LIs $u | grep "HTTP/1.1 200 OK\|HTTP/2.0 200" || exit 1; done
-  - env: SCALA_VERSION=2.11.12
-    jdk: oraclejdk8
-    script:
-      - sbt ++$SCALA_VERSION clean test:compile
-      - sbt ++$SCALA_VERSION test
-      - sbt ++$SCALA_VERSION 'set scalaJSStage in Global := FullOptStage' test   
+      - grep -Eo "https?://[a-zA-Z0-9./?=_-]+" README.md | while read u; do echo $u; curl -LIs $u | grep "HTTP/1.1 200 OK\|HTTP/2.0 200\|HTTP/2 200" || exit 1; done
 
-# Taken from https://github.com/typelevel/cats/blob/master/.travis.yml
 cache:
   directories:
   - $HOME/.sbt/0.13/dependency
