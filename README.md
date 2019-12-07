@@ -162,7 +162,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
     the subscriptions for the previous outgoing `Rx` and start a new
     subscription on the next `Rx`.
 
-    Together with `Rx#map` and `Rx.apply`, flatMap forms a `Monad`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+    Together with `Rx#map` and `Rx.apply`, flatMap forms a `Monad`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/shared/src/main/scala/mhtml/implicits/cats.scala).
 
 -  `def zip[B](other: Rx[B]): Rx[(A, B)]`
 
@@ -209,7 +209,7 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
     // merged => 0 8 4 3 3 ...
     ```
 
-    With this operation, `Rx` forms a `Semigroup`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/src/main/scala/mhtml/cats.scala).
+    With this operation, `Rx` forms a `Semigroup`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/shared/src/main/scala/mhtml/implicits/cats.scala).
     `|+|` syntax is available via the `monadic-rx-cats` package.
 
 -  `def foldp[B](seed: B)(step: (B, A) => B): Rx[B]`
