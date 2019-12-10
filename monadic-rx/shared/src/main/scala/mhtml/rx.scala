@@ -171,6 +171,7 @@ case class RxImpureOps[+A](self: Rx[A]) extends AnyVal {
 object Rx {
   /** Creates a constant `Rx`. */
   def apply[A](v: A): Rx[A] = Var.create(v)(_ => Cancelable.empty)
+  def descend[T](rx: Rx[Set[T]]): Descend[T] = Descend(rx)
 
   final case class Map     [A, B]     (self: Rx[A], f: A => B)                      extends Rx[B]
   final case class FlatMap [A, B]     (self: Rx[A], f: A => Rx[B])                  extends Rx[B]
@@ -185,6 +186,15 @@ object Rx {
     protected[Rx] val sharingMemo: Var[Option[A]] = Var(None)
     protected[Rx] def isSharing = !(sharingCancelable == Cancelable.empty)
     protected[Rx] var sharingCancelable: Cancelable = Cancelable.empty
+  }
+
+  final case class Descend[T](self: Rx[Set[T]]) extends Rx[T] {
+    def delta(previous: Set[T], current: Set[T], mapping: Predef.Map[T, Var[T]]): Predef.Map[T, Var[T]] = {
+      val inserted = current -- previous
+      mapping.filterKeys(current) ++ inserted.toList.map(e => (e, Var(e)))
+    }
+
+    protected[Rx] var cached = Predef.Map.empty[T, Var[T]]
   }
 
   /**
@@ -289,12 +299,28 @@ object Rx {
         }
       }
 
+    case rx: Descend[A] => val Descend(self) = rx
+      var previous: Set[A] = Set.empty[A]
+      val foreachCancelable = buffer.empty[Cancelable]
+      run(self) { current =>
+        rx.cached = rx.delta(previous,current, rx.cached)
+        val allChanged = rx.cached.keySet -- previous
+        allChanged.map(rx.cached).foreach { changed =>
+          foreachCancelable += changed.foreach(effect)
+        }
+        previous = current
+      }
+      Cancelable { () =>
+        foreachCancelable.foreach(_.cancel)
+      }
+
     case leaf: Var[A] =>
       leaf.foreach(effect)
 
     case null => throw new NullPointerException("null is not a valid Rx!")
   }
 }
+
 
 /** A smart variable that can be set manually. */
 class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx[A] {

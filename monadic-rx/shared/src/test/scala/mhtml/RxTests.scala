@@ -432,4 +432,29 @@ class RxTests extends FunSuite {
     assert(checkCount == 5)
     assert(a.isCold)
   }
+
+  test("sequence test") {
+    trait Seen
+    object SeenInitially extends Seen
+    object SeenInitiallyAndInUpdate extends Seen
+    object SeenInUpdate extends Seen
+
+    var check1: List[Seen] = List.empty[Seen]
+    var check2: List[Seen] = List.empty[Seen]
+    val nrs = Var(Set(SeenInitially, SeenInitiallyAndInUpdate))
+    val seqNrs = Rx.Descend(nrs)
+    val descended1 = seqNrs.map(nr => check1 = check1 :+ nr)
+    val descended2 = seqNrs.map(nr => check2 = check2 :+ nr)
+
+    val cc1 = descended1.impure.run(_ => ())
+
+    nrs := Set(SeenInitiallyAndInUpdate, SeenInUpdate)
+
+    val cc2 = descended2.impure.run(_ => ())
+    cc1.cancel
+    cc2.cancel
+
+    assert(check1 == List(SeenInitially, SeenInitiallyAndInUpdate, SeenInUpdate))
+    assert(check2 == List(SeenInitiallyAndInUpdate, SeenInUpdate))
+  }
 }
