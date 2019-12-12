@@ -128,7 +128,7 @@ object mount {
       }
     }
 
-    // Creats and inserts two empty text nodes into the DOM, which delimitate
+    // Creates and inserts two empty text nodes into the DOM, which delimitate
     // a mounting region between them point. Because the DOM API only exposes
     // `.insertBefore` things are reversed: at the position of the `}`
     // character in our binding example, we insert the start point, and at `{`
