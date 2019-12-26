@@ -204,9 +204,9 @@ This section presents the `Rx` API in its entirety. Let's start with the referen
     val r1: Rx[Int]
     val r2: Rx[Int]
     val merged: Rx[Int] = r1.merge(r2)
-    // r1     => 0 8     3 ...
-    // r2     => 1   4 3   ...
-    // merged => 0 8 4 3 3 ...
+    // r1     => 0   8     3 ...
+    // r2     => 1     4 3   ...
+    // merged => 0 1 8 4 3 3 ...
     ```
 
     With this operation, `Rx` forms a `Semigroup`. [Proof](https://github.com/OlivierBlanvillain/monadic-html/blob/master/monadic-rx-cats/shared/src/main/scala/mhtml/implicits/cats.scala).
@@ -491,7 +491,7 @@ val fst = snd.map(1.+).merge(source)
 val snd = fst.keepIf(isOdd)(-1)
 ```
 
-The typical *imitate* pattern involves a pair `Rx`/`Var`, `snd` and `sndProxy` in this case, that are later reconsolidated by having `sndProxy` imitating `snd`:
+The typical *imitate* pattern involves a pair `Rx`/`Var`, `snd` and `sndProxy` in this case, that are later consolidated by having `sndProxy` imitating `snd`:
 
 ```
 val sndProxy = Var(1)
