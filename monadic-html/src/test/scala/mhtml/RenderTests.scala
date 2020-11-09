@@ -2,9 +2,9 @@ package mhtml
 
 import org.scalajs.dom
 import org.scalajs.dom.raw.SVGAElement
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-class RenderTests extends FunSuite {
+class RenderTests extends AnyFunSuite {
   def render(node: xml.Node): String = mountNode(node).innerHTML
 
   def mountNode(node: xml.Node): dom.raw.Element = {

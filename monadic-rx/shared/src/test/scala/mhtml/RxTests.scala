@@ -1,12 +1,12 @@
 package mhtml
 
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-class RxTests extends FunSuite {
+class RxTests extends AnyFunSuite {
   implicit class MoreImpureStuff[A](impure: RxImpureOps[A]) {
     def value: A = {
       var v: Option[A] = None
-      impure.run(a => v = Some(a)).cancel
+      impure.run(a => v = Some(a)).cancel()
       // This can never happen if using the default Rx/Var constructors and
       // methods. The proof is a simple case analysis showing that every method
       // preserves non emptiness. Var created with unsafeCreate Messing up with
@@ -41,7 +41,7 @@ class RxTests extends FunSuite {
     b := 4
     assert((104, 105) == result)
 
-    cc.cancel
+    cc.cancel()
     assert(a.isCold && b.isCold)
   }
 
@@ -74,8 +74,8 @@ class RxTests extends FunSuite {
     sourceVar := 1
     assert(noshare1.impure.value == 1)
     assert(count == 6) // Note: impure.value calls increment also
-    cc_ns1.cancel
-    cc_ns2.cancel
+    cc_ns1.cancel()
+    cc_ns2.cancel()
 
     // Demonstrate sharing
     sourceVar := 0
@@ -91,8 +91,8 @@ class RxTests extends FunSuite {
     sourceVar := 1
     assert(share1.impure.value == 1)
     assert(count == 2)
-    cc_s1.cancel
-    cc_s2.cancel
+    cc_s1.cancel()
+    cc_s2.cancel()
 
     assert(sourceVar.isCold)
   }
@@ -110,7 +110,7 @@ class RxTests extends FunSuite {
     value := 5
     assert(current == 5)
 
-    cc.cancel
+    cc.cancel()
     assert(value.isCold)
   }
 
@@ -129,8 +129,8 @@ class RxTests extends FunSuite {
     assert(numbersList == List(0, 0, 3, 4, 5, 6))
     assert(evenList == List(0, 0, 4, 6))
 
-    cc1.cancel
-    cc2.cancel
+    cc1.cancel()
+    cc2.cancel()
     assert(numbers.isCold)
   }
 
@@ -158,8 +158,8 @@ class RxTests extends FunSuite {
     assert(numbersList == List(0, 0, 3, 4, 5, 6))
     assert(evenList == List(-1, 3, 5))
 
-    cc1.cancel
-    cc2.cancel
+    cc1.cancel()
+    cc2.cancel()
     assert(numbers.isCold)
   }
 
@@ -177,8 +177,8 @@ class RxTests extends FunSuite {
     numbers := 6
     assert(numbersList == List(0, 2, 3, 4, 5, 6))
     assert(evenList == List(0, 20, 40, 60))
-    cc1.cancel
-    cc2.cancel
+    cc1.cancel()
+    cc2.cancel()
     assert(numbers.isCold)
   }
 
@@ -208,8 +208,8 @@ class RxTests extends FunSuite {
     assert(numbersList == List(0, 0, 3, 3, 5, 5, 5, 4))
     assert(noDupsList == List(0, 3, 5, 4))
 
-    cc1.cancel
-    cc2.cancel
+    cc1.cancel()
+    cc2.cancel()
     assert(numbers.isCold)
   }
 
@@ -231,9 +231,9 @@ class RxTests extends FunSuite {
     assert(rx2List == List(1, 4, 3))
     assert(mergedList == List(0, 1, 8, 4, 3, 3))
 
-    cc1.cancel
-    cc2.cancel
-    ccm.cancel
+    cc1.cancel()
+    cc2.cancel()
+    ccm.cancel()
     assert(rx1.isCold && rx2.isCold)
   }
 
@@ -251,7 +251,7 @@ class RxTests extends FunSuite {
     rx2 := 4
     assert(value == 4)
 
-    cc.cancel
+    cc.cancel()
     assert(rx1.isCold && rx2.isCold)
   }
 
@@ -279,7 +279,7 @@ class RxTests extends FunSuite {
       assert(list == List(3, 5, 5, 5, 5, 7))
       assert(count == 2)
 
-      cc.cancel
+      cc.cancel()
       assert(rx1.isCold && rx2.isCold)
     }
 
@@ -305,7 +305,7 @@ class RxTests extends FunSuite {
       assert(list == List(3, 3, 3, 5, 7))
       assert(count == 5) // 5 > 2!
 
-      cc.cancel
+      cc.cancel()
       assert(rx1.isCold && rx2.isCold)
     }
 
@@ -328,7 +328,7 @@ class RxTests extends FunSuite {
       assert(list == List(3, 3, 3, 3, 5, 7))
       assert(count == 6) // 6 > 2!
 
-      cc.cancel
+      cc.cancel()
       assert(rx1.isCold && rx2.isCold)
     }
   }
@@ -351,9 +351,9 @@ class RxTests extends FunSuite {
     assert(rx1List == List(0, 8, 9))
     assert(rx2List == List(1, 4, 5, 6))
     assert(zipList == List((0, 1), (8, 1), (8, 4), (8, 5), (8, 6), (9, 6)))
-    cc1.cancel
-    cc2.cancel
-    ccm.cancel
+    cc1.cancel()
+    cc2.cancel()
+    ccm.cancel()
     assert(rx1.isCold && rx2.isCold)
   }
 
@@ -403,9 +403,9 @@ class RxTests extends FunSuite {
     source := 6
     source := 7
 
-    cc1.cancel
-    cc2.cancel
-    cc3.cancel
+    cc1.cancel()
+    cc2.cancel()
+    cc3.cancel()
 
     assert(fstList == List(0, -100, 2, 1, 6, 8, 7))
     assert(sndList == List(-101, 1, 7))
@@ -427,7 +427,7 @@ class RxTests extends FunSuite {
     a := 3
     a := 4
 
-    cc.cancel
+    cc.cancel()
 
     assert(checkCount == 5)
     assert(a.isCold)

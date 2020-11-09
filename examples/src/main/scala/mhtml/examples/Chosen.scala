@@ -132,7 +132,7 @@ object Chosen {
       <div class="chosen-wrapper">
         <input type="text" class="chosen-searchbar"
           mhtml-onmount   = { selectionHandler _ }
-          mhtml-onunmount = { cancelableSelectionHandler.cancel _ }
+          mhtml-onunmount = { () => cancelableSelectionHandler.cancel() }
           placeholder     = { placeholder }
           onfocus         = { () => focusEvents := (()) }
           onkeydown       = { onkeydown _ }

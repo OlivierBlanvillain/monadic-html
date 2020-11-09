@@ -199,10 +199,10 @@ object Rx {
       var c1 = Cancelable.empty
       val c2 = run(self) { a =>
         val rxb = f(a)
-        c1.cancel
+        c1.cancel()
         c1 = run(rxb)(effect)
       }
-      Cancelable { () => c1.cancel; c2.cancel }
+      Cancelable { () => c1.cancel(); c2.cancel() }
 
     case Zip(self, other) =>
       var go = false
@@ -212,7 +212,7 @@ object Rx {
       val c2 = run(other) { b => v2 = b; if(go) effect((v1, v2)) }
       go = true
       effect((v1, v2))
-      Cancelable { () => c1.cancel; c2.cancel }
+      Cancelable { () => c1.cancel(); c2.cancel() }
 
     case DropRep(self) =>
       var previous: Option[A] = None
@@ -226,7 +226,7 @@ object Rx {
     case Merge(self, other) =>
       val c1 = run(self)(effect)
       val c2 = run(other)(effect)
-      Cancelable { () => c1.cancel; c2.cancel }
+      Cancelable { () => c1.cancel(); c2.cancel() }
 
     // Workaround required because otherwise scalac messes up GADT skolems. Note: dotty doesn't need it.
     case rx: Foldp[t,A] => val Foldp(self, seed, step) = rx
@@ -264,7 +264,7 @@ object Rx {
       var currentA: A = null.asInstanceOf[A]
       val ca = run(self)(currentA = _)
       val cb = run(other)(_ => effect(currentA))
-      Cancelable { () => ca.cancel; cb.cancel }
+      Cancelable { () => ca.cancel(); cb.cancel() }
 
     case im: Imitate[A] => val Imitate(self, other) = im
       if (!self.imitating) {
@@ -273,7 +273,7 @@ object Rx {
           self := a
           effect(a)
         }
-        Cancelable { () => cc.cancel; self.imitating = false }
+        Cancelable { () => cc.cancel(); self.imitating = false }
       } else run(other)(effect)
 
     case rx: Sharing[A] => val Sharing(self) = rx
@@ -282,9 +282,9 @@ object Rx {
       }
       val foreachCancelable = rx.sharingMemo.foreach(_.foreach(effect))
       Cancelable { () =>
-        foreachCancelable.cancel
+        foreachCancelable.cancel()
         if (rx.sharingMemo.subscribers.isEmpty) {
-          rx.sharingCancelable.cancel
+          rx.sharingCancelable.cancel()
           rx.sharingCancelable = Cancelable.empty
         }
       }
@@ -316,7 +316,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
     subscribers += s
     Cancelable { () =>
       subscribers -= s
-      if (isCold) registration.cancel
+      if (isCold) registration.cancel()
     }
   }
 
@@ -355,7 +355,7 @@ class Var[A](initialValue: Option[A], register: Var[A] => Cancelable) extends Rx
 
   /** Updates the value of this `Var`. Triggers recalculation of depending `Rx`s. */
   def update(f: A => A): Unit =
-    foreach(a => :=(f(a))).cancel
+    foreach(a => :=(f(a))).cancel()
 
   override def toString: String =
     s"Var(${cacheElem.orNull})"
@@ -387,7 +387,7 @@ final class Cancelable(val cancelFunction: () => Unit) extends AnyVal {
   // parenthesis, this will stay a side-effecting nullary method...
 
   /** Cancel this subscription. */
-  def cancel: Unit = cancelFunction()
+  def cancel(): Unit = cancelFunction()
 }
 
 object Cancelable {

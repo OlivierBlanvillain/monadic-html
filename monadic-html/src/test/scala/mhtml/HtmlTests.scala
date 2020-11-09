@@ -3,11 +3,12 @@ package mhtml
 import org.scalajs.dom
 import org.scalajs.dom.MouseEvent
 import org.scalajs.dom.raw.HTMLElement
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
+import scala.scalajs.js
 
 import scala.xml.{Elem, Group}
 
-class HtmlTests extends FunSuite {
+class HtmlTests extends AnyFunSuite {
 
   test("Mounting Elem") {
     val div = dom.document.createElement("div")
@@ -252,7 +253,7 @@ class HtmlTests extends FunSuite {
 
     def mouseClick(hTMLElement: HTMLElement) = {
       val evt = dom.document.createEvent("MouseEvents").asInstanceOf[MouseEvent]
-      evt.initMouseEvent("click", true, true, dom.window,
+      evt.asInstanceOf[js.Dynamic].initMouseEvent("click", true, true, dom.window,
         0, 0, 0, 0, 0, false, false, false, false, 0, null)
       hTMLElement.dispatchEvent(evt)
     }
@@ -323,7 +324,7 @@ class HtmlTests extends FunSuite {
       (node, fugitive)
     }
 
-    val (n, r) = myCounter
+    val (n, r) = myCounter()
   }
 
   test("setUnsafeRawHTML") {
