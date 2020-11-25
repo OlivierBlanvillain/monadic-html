@@ -25,3 +25,4 @@ project/plugins/project/
 # scala.js + node.js
 /node_modules
 /package-lock.json
+.bsp

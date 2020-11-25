@@ -1,5 +1,7 @@
 import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 inThisBuild(List(
   crossScalaVersions := Seq("2.13.3", "2.12.12"),
   scalaVersion := crossScalaVersions.value.head,
