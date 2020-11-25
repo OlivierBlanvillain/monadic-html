@@ -29,17 +29,17 @@ final case class Elem(
   child: Node*
 ) extends Node {
   def this(p: String, l: String, a: MetaData, s: Scope, m: Boolean, c: Node*) =
-    this(Option(p), l, {
-      // Merges attributes stored in as scope with other metadata
-      def merge(acc: MetaData, s: Scope): MetaData = s match {
-        case NamespaceBinding(null, url, next) =>
-          merge(UnprefixedAttribute("xmlns", url, acc), next)
-        case NamespaceBinding(key, url, next) =>
-          merge(PrefixedAttribute("xmlns", key, Text(url), acc), next)
-        case _ => acc
-      }
-      merge(a, s)
-    }, Some(s), m, c: _*)
+    this(Option(p), l, Elem.merge(a, s), Some(s), m, c: _*)
+}
+object Elem {
+  // Merges attributes stored in as scope with other metadata
+  private def merge(acc: MetaData, s: Scope): MetaData = s match {
+    case NamespaceBinding(null, url, next) =>
+      merge(UnprefixedAttribute("xmlns", url, acc), next)
+    case NamespaceBinding(key, url, next) =>
+      merge(PrefixedAttribute("xmlns", key, Text(url), acc), next)
+    case _ => acc
+  }
 }
 
 /** XML leaf for comments. */

@@ -1,8 +1,9 @@
 package mhtml
 
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
 
-class RxTests extends FunSuite {
+@deprecated("Deprecated to be able to test deprecated methods without warnings", "1.0.0")
+class RxTests extends AnyFunSuite {
   implicit class MoreImpureStuff[A](impure: RxImpureOps[A]) {
     def value: A = {
       var v: Option[A] = None
