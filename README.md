@@ -1,4 +1,4 @@
-# monadic-html [![Travis](https://travis-ci.org/OlivierBlanvillain/monadic-html.svg?branch=master)](https://travis-ci.org/OlivierBlanvillain/monadic-html) [![Gitter](https://badges.gitter.im/.svg)](https://gitter.im/monadic-html/Lobby) [![Maven](https://img.shields.io/maven-central/v/in.nvilla/monadic-html_sjs0.6_2.12.svg?label=maven)](https://repo1.maven.org/maven2/in/nvilla/monadic-html_sjs0.6_2.12/)
+# monadic-html [![Gitter](https://badges.gitter.im/.svg)](https://gitter.im/monadic-html/Lobby) [![Maven](https://img.shields.io/maven-central/v/in.nvilla/monadic-html_sjs0.6_2.12.svg?label=maven)](https://repo1.maven.org/maven2/in/nvilla/monadic-html_sjs0.6_2.12/)
 
 <img align=right src="project/cats.jpg"/>
 
