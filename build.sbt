@@ -11,7 +11,8 @@ inThisBuild(List(
     "-feature",
     "-unchecked",
     // "-Xfatal-warnings", see Cancelable#cancel
-    "-Xlint",
+    "-Xlint:-unused,_",
+    "-language:higherKinds",
     "-Ywarn-numeric-widen",
     "-Ywarn-value-discard"),
   organization := "in.nvilla",
@@ -69,13 +70,9 @@ lazy val `examples` = project
     testSettings,
     skip in publish := true,
     test in Test := {},
-    libraryDependencies += "com.github.japgolly.scalacss" %%% "core" % "0.6.1",
-    artifactPath in (Compile, fastLinkJS) :=
-      ((crossTarget in (Compile, fastLinkJS)).value /
-        ((moduleName in fastLinkJS).value + "-opt.js")))
+    libraryDependencies += "com.github.japgolly.scalacss" %%% "core" % "0.6.1")
 
 
 lazy val testSettings = Seq(
   testOptions  in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"),
-  scalaJSStage in Test := FastOptStage,
   jsEnv        in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv())
