@@ -11,7 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - uses: olafurpg/setup-scala@v10
-      - uses: olafurpg/setup-gpg@v3
       - run: git fetch --tags || true
       - name: Publish ${{ github.ref }}
         run: sbt ci-release
