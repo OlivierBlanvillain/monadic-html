@@ -13,7 +13,7 @@ import org.scalajs.dom.ext.Ajax
 
 trait Example {
   def app: Node
-  def cancel: Unit = ()
+  def cancel(): Unit = ()
   val name = {
     val simpleName = this.getClass.getSimpleName
     if (simpleName.endsWith("$"))
@@ -82,7 +82,7 @@ object Main {
 
   dom.window.onhashchange = { _: Event =>
     activeExample.update { old =>
-      old.cancel
+      old.cancel()
       getActiveApp
     }
   }

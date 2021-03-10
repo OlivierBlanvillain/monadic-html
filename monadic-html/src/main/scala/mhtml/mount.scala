@@ -23,7 +23,7 @@ object mount {
         val cancelMetadata = metadata.map { m => mountMetadata(elemNode, scope, m, m.value) }
         val cancelChild = e.child.map(c => mountNode(elemNode, c, None))
         parent.mountHere(elemNode, startPoint)
-        Cancelable { () => cancelMetadata.foreach(_.cancel); cancelChild.foreach(_.cancel) }
+        Cancelable { () => cancelMetadata.foreach(_.cancel()); cancelChild.foreach(_.cancel()) }
 
       case EntityRef(entityName)  =>
         val node = dom.document.createTextNode("").asInstanceOf[dom.Element]
@@ -37,7 +37,7 @@ object mount {
 
       case Group(nodes)  =>
         val cancels = nodes.map(n => mountNode(parent, n, startPoint))
-        Cancelable(() => cancels.foreach(_.cancel))
+        Cancelable(() => cancels.foreach(_.cancel()))
 
       case a: Atom[_] => a.data match {
         case n: XmlNode  => mountNode(parent, n, startPoint)
@@ -46,10 +46,10 @@ object mount {
           var c1 = Cancelable.empty
           val c2 = rx.impure.run { v =>
             parent.cleanMountSection(start, end)
-            c1.cancel
+            c1.cancel()
             c1 = mountNode(parent, new Atom(v), Some(start))
           }
-          Cancelable { () => c1.cancel; c2.cancel }
+          Cancelable { () => c1.cancel(); c2.cancel() }
         case Some(x)     => mountNode(parent, new Atom(x), startPoint)
         case None        => Cancelable.empty
         case seq: Seq[_] => mountNode(parent, new Group(seq.map(new Atom(_))), startPoint)
@@ -72,10 +72,10 @@ object mount {
       val rx: Rx[_] = r
       var c1 = Cancelable.empty
       val c2 = rx.impure.run { value =>
-        c1.cancel
+        c1.cancel()
         c1 = mountMetadata(parent, scope, m, value)
       }
-      Cancelable { () => c1.cancel; c2.cancel }
+      Cancelable { () => c1.cancel(); c2.cancel() }
 
     case f: Function0[Unit @ unchecked] =>
       if (m.key == onMountAtt) {
