@@ -10,8 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
+        with:
+          fetch-depth: 0
       - uses: olafurpg/setup-scala@v10
-      - run: git fetch --tags || true
       - name: Publish ${{ github.ref }}
         run: sbt ci-release
         env:
