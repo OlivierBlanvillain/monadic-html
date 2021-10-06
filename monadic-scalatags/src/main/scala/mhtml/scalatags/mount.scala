@@ -2,6 +2,7 @@ package mhtml.scalatags
 
 import mhtml.{Cancelable, Rx}
 import org.scalajs.dom
+import org.scalajs.dom.Element
 import org.scalajs.dom.raw.Node
 import scalatags.JsDom.all.{Frag, s}
 import scalatags.Text.all._
@@ -28,7 +29,7 @@ object mount {
     }
   }
 
-  implicit def bindRx(implicit cancelables: Cancelables) =
+  implicit def bindRx(implicit cancelables: Cancelables): generic.AttrValue[Element, Rx[String]] =
     new generic.AttrValue[dom.Element, Rx[String]]{
       def apply(t: dom.Element, a: generic.Attr, rx: Rx[String]): Unit = {
         val c = rx.impure.run { value =>
