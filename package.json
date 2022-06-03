@@ -1,6 +1,6 @@
 {
   "name": "monadic-html",
-  "version": "0.4.0",
+  "version": "1.0.0",
   "description": "Tiny DOM binding library for Scala.js",
   "main": "index.js",
   "directories": {

@@ -3,7 +3,7 @@ package examples
 import scala.scalajs.js.annotation._
 import scala.util.Success
 import scala.xml.Node
-import scala.concurrent.ExecutionContext.Implicits.global
+import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
 
 import mhtml._
 import mhtml.future.syntax._

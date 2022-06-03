@@ -1,7 +1,7 @@
 package mhtml
 
 import org.scalajs.dom
-import org.scalajs.dom.raw.{Node => DomNode}
+import org.scalajs.dom.{Node => DomNode}
 import scala.scalajs.js
 import scala.xml.{Node => XmlNode, _}
 

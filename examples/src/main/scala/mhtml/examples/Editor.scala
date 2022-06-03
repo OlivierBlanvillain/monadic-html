@@ -5,7 +5,7 @@ import styles.NeptuneStyles
 import scala.scalajs.js
 import org.scalajs.dom
 import dom.{document, window}
-import dom.raw.{MouseEvent, MutationObserver, MutationObserverInit, MutationRecord}
+import dom.{MouseEvent, MutationObserver, MutationObserverInit, MutationRecord}
 import org.scalajs.dom.html.Div
 import scalacss.ProdDefaults._
 import scala.xml.Node
