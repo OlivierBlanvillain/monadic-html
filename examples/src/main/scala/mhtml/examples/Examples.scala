@@ -9,7 +9,6 @@ import mhtml._
 import mhtml.future.syntax._
 import org.scalajs.dom
 import org.scalajs.dom.Event
-import org.scalajs.dom.ext.Ajax
 
 trait Example {
   def app: Node

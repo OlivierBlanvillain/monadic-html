@@ -8,7 +8,6 @@ import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
 import mhtml._
 import mhtml.future.syntax._
 import org.scalajs.dom
-import org.scalajs.dom.ext.Ajax
 
 case class Country(name: String, isoCode: String) {
   def svgUrl(iso: String): String =

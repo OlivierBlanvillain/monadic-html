@@ -11,7 +11,6 @@ import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
 
 import mhtml._
 import mhtml.future.syntax._
-import org.scalajs.dom.ext.Ajax
 
 @js.native
 trait GhUser extends js.Object {
