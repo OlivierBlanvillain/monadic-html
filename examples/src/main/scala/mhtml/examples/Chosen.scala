@@ -6,8 +6,8 @@ import mhtml._
 import mhtml.implicits.cats._
 import cats.implicits._
 import org.scalajs.dom.KeyboardEvent
-import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.raw.HTMLInputElement
+import org.scalajs.dom.KeyCode
+import org.scalajs.dom.HTMLInputElement
 
 /** Typeclass for [[Chosen]] select lists */
 trait Searcheable[T] {

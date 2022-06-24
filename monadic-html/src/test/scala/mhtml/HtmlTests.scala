@@ -2,7 +2,7 @@ package mhtml
 
 import org.scalajs.dom
 import org.scalajs.dom.MouseEvent
-import org.scalajs.dom.raw.HTMLElement
+import org.scalajs.dom.HTMLElement
 import org.scalatest.funsuite.AnyFunSuite
 import scala.scalajs.js
 

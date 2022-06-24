@@ -28,7 +28,7 @@ inThisBuild(List(
   )
 )))
 
-val scalajsdom = "1.1.0"
+val scalajsdom = "2.2.0"
 val scalatest  = "3.2.2"
 val cats       = "2.2.0"
 
@@ -70,7 +70,8 @@ lazy val `examples` = project
     testSettings,
     skip in publish := true,
     test in Test := {},
-    libraryDependencies += "com.github.japgolly.scalacss" %%% "core" % "0.6.1")
+    libraryDependencies += "com.github.japgolly.scalacss" %%% "core" % "1.0.0",
+    libraryDependencies += "org.scala-js" %%% "scala-js-macrotask-executor" % "1.0.0")
 
 
 lazy val testSettings = Seq(

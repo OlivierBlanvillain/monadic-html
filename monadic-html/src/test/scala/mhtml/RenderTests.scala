@@ -1,13 +1,13 @@
 package mhtml
 
 import org.scalajs.dom
-import org.scalajs.dom.raw.SVGAElement
+import org.scalajs.dom.SVGAElement
 import org.scalatest.funsuite.AnyFunSuite
 
 class RenderTests extends AnyFunSuite {
   def render(node: xml.Node): String = mountNode(node).innerHTML
 
-  def mountNode(node: xml.Node): dom.raw.Element = {
+  def mountNode(node: xml.Node): dom.Element = {
     val div = dom.document.createElement("div")
     mount(div, node)
     div
@@ -87,6 +87,6 @@ class RenderTests extends AnyFunSuite {
     assert(divNode.namespaceURI == "http://www.w3.org/1999/xhtml")
   }
 
-  def firstByTagName(parent: dom.raw.Element, tagName: String): dom.Element =
+  def firstByTagName(parent: dom.Element, tagName: String): dom.Element =
     parent.getElementsByTagName(tagName)(0).asInstanceOf[dom.Element]
 }
