@@ -76,7 +76,7 @@ object NamespaceBinding {
   def unapply(s: NamespaceBinding): NamespaceBinding = s
 }
 
-final case object TopScope extends NamespaceBinding(null, null, null) {
+case object TopScope extends NamespaceBinding(null, null, null) {
   override def namespaceURI(prefix: String): Option[String] = None
 }
 

@@ -300,13 +300,13 @@ object cats {
   // Custom syntax instances for Vars. Without these, users would have to
   // manually upcast their `Var`s as `Rx`s to be able to use `mapN` and `|+|`.
 
-  implicit def mhtmlVarSyntaxCartesian[A](fa: Var[A]) =
+  implicit def mhtmlVarSyntaxCartesian[A](fa: Var[A]): _root_.cats.syntax.SemigroupalOps[Rx, A] =
     new _root_.cats.syntax.SemigroupalOps[Rx, A] {
       type TypeClassType = Monad[Rx]
       val self = fa
       val typeClassInstance = mhtmlRxMonadIntstance
     }
 
-  implicit def mhtmlVarSyntaxSemigroup[A](fa: Var[A]) =
+  implicit def mhtmlVarSyntaxSemigroup[A](fa: Var[A]): _root_.cats.syntax.SemigroupOps[Rx[A]] =
     new _root_.cats.syntax.SemigroupOps[Rx[A]](fa)(mhtmlRxSemigroupIntstance)
 }

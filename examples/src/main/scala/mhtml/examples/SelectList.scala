@@ -26,7 +26,7 @@ case class Country(name: String, isoCode: String) {
   }
 }
 object Country {
-  implicit val countrySearchable = Searcheable.instance[Country](_.name)
+  implicit val countrySearchable: examples.Searcheable[examples.Country] = Searcheable.instance[Country](_.name)
 }
 
 object SelectList extends Example {

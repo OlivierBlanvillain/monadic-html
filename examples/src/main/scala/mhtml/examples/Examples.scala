@@ -79,7 +79,7 @@ object Main {
 
   val activeExample: Var[Example] = Var(getActiveApp)
 
-  dom.window.onhashchange = { _: Event =>
+  dom.window.onhashchange = { (_: Event) =>
     activeExample.update { old =>
       old.cancel
       getActiveApp

@@ -3,7 +3,7 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 inThisBuild(List(
-  crossScalaVersions := Seq("2.13.8"),
+  crossScalaVersions := Seq("2.13.8", "3.1.3"),
   scalaVersion := crossScalaVersions.value.head,
   scalacOptions := Seq(
     "-deprecation",

@@ -13,8 +13,8 @@ object Mario extends Example {
   // MODEL
 
   sealed trait Direction
-  final case object Left  extends Direction
-  final case object Right extends Direction
+  case object Left  extends Direction
+  case object Right extends Direction
 
   case class Model(x: Double, y: Double, vx: Double, vy: Double, dir: Direction)
   case class Keys(x: Int, y: Int)
@@ -64,7 +64,7 @@ object Mario extends Example {
   // SIGNALS
 
   val deltas: Rx[Double] = InputLib.fps(60).map(_ / 10)
-  val keys: Rx[Keys] = InputLib.arrows.map(tupled(Keys))
+  val keys: Rx[Keys] = InputLib.arrows.map(tupled(Keys.apply))
   val inputs: Rx[(Double, Keys)] = deltas.zip(keys).sampleOn(deltas)
 
   val mari0 = Model(x = 0, y = 0, vx = 0, vy = 0, dir = Right)
@@ -90,7 +90,7 @@ object InputLib {
   val arrows: Rx[(Int, Int)] =
     Var.create[(Int, Int)]((0, 0))({ out =>
       // Simplistic implementation: DR DL UL results in neutral instead of L.
-      dom.document.onkeydown = { e: KeyboardEvent =>
+      dom.document.onkeydown = { (e: KeyboardEvent) =>
         e.keyCode match {
           case KeyCode.Left  => out.update(_.copy(_1 = -1))
           case KeyCode.Right => out.update(_.copy(_1 =  1))
@@ -98,7 +98,7 @@ object InputLib {
           case _ => ()
         }
       }
-      dom.document.onkeyup = { e: KeyboardEvent =>
+      dom.document.onkeyup = { (e: KeyboardEvent) =>
         e.keyCode match {
           case KeyCode.Left  => out.update(_.copy(_1 = 0))
           case KeyCode.Right => out.update(_.copy(_1 = 0))
