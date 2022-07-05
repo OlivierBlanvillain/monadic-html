@@ -1,7 +1,7 @@
 package examples
 
 import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLInputElement
+import org.scalajs.dom.HTMLInputElement
 
 object FocusElement extends Example {
   val id = "theInput"

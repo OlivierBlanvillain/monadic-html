@@ -9,7 +9,6 @@ import mhtml._
 import mhtml.future.syntax._
 import org.scalajs.dom
 import org.scalajs.dom.Event
-import org.scalajs.dom.ext.Ajax
 
 trait Example {
   def app: Node
@@ -80,7 +79,7 @@ object Main {
 
   val activeExample: Var[Example] = Var(getActiveApp)
 
-  dom.window.onhashchange = { _: Event =>
+  dom.window.onhashchange = { (_: Event) =>
     activeExample.update { old =>
       old.cancel
       getActiveApp

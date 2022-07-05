@@ -6,10 +6,9 @@
   "directories": {
     "example": "examples"
   },
-  "dependencies": {
-    "jsdom": "^11.12.0"
+  "devDependencies": {
+    "jsdom": "^20.0.0"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

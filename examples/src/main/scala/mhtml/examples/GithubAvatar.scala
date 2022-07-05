@@ -11,7 +11,6 @@ import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
 
 import mhtml._
 import mhtml.future.syntax._
-import org.scalajs.dom.ext.Ajax
 
 @js.native
 trait GhUser extends js.Object {
@@ -27,7 +26,7 @@ trait GhRepo extends js.Object {
 }
 
 object GhRepo {
-  implicit val GhRepoSearchable = Searcheable.instance[GhRepo](_.name)
+  implicit val GhRepoSearchable: examples.Searcheable[examples.GhRepo] = Searcheable.instance[GhRepo](_.name)
 }
 
 object GithubAvatar extends Example {

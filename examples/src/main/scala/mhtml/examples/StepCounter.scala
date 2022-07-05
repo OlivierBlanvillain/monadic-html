@@ -7,13 +7,13 @@ object StepCounter extends Example {
   def app: xml.Node = {
     sealed trait Operation
     final case class IncrementStep(step: Int) extends Operation
-    final case object Reset                   extends Operation
+    case object Reset                         extends Operation
 
     val step = Var(1)
     val incrementClicks = Var(())
     val resetClicks = Var(Reset)
 
-    val incrementOps =  step.sampleOn(incrementClicks).map(IncrementStep)
+    val incrementOps =  step.sampleOn(incrementClicks).map(IncrementStep.apply)
     val allOps: Rx[Operation] = incrementOps.merge(resetClicks)
 
     val counter = allOps.foldp(0) { (prev, op) =>

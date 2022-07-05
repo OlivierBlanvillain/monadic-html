@@ -66,12 +66,12 @@ object Chosen {
         case _ => 0 // This reset corresponds to an acquisition of focus.
       }
 
-    val rxFocused: Rx[Boolean] = // LOL scalafmt
+    val rxFocused: Rx[Boolean] = (
                focusEvents.map(_ => true ) |+|
                queryEvents.map(_ => true ) |+|
         arrowPressedEvents.map(_ => true ) |+|
         enterPressedEvents.map(_ => false) |+|
-      clickSelectionEvents.map(_ => false)
+      clickSelectionEvents.map(_ => false))
 
     val rxHighlightedCandidate: Rx[Option[T]] =
       (rxFilteredCandidates, rxIndex).mapN { case (cands, index) =>

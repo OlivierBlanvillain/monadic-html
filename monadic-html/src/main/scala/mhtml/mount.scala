@@ -5,7 +5,7 @@ import org.scalajs.dom.{Node => DomNode}
 import scala.scalajs.js
 import scala.xml.{Node => XmlNode, _}
 
-/** Side-effectly mounts an `xml.Node` to a `org.scalajs.dom.raw.Node`. */
+/** Side-effectly mounts an `xml.Node` to a `org.scalajs.dom.Node`. */
 object mount {
   private val onMountAtt   = "mhtml-onmount"
   private val onUnmountAtt = "mhtml-onunmount"

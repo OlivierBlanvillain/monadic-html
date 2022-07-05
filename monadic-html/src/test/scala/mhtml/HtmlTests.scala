@@ -117,7 +117,7 @@ class HtmlTests extends AnyFunSuite {
 
     def tbodyRx: Elem =
       <tbody>{
-          usersRx.flatMap { userList: List[User] =>
+          usersRx.flatMap { (userList: List[User]) =>
             userList
               .map(shouldShow) // List[Rx[Boolean]]
               .sequence        // Rx[List[Boolean]]

@@ -3,18 +3,14 @@ import sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}
 Global / onChangedBuildSource := ReloadOnSourceChanges
 
 inThisBuild(List(
-  crossScalaVersions := Seq("2.13.3", "2.12.12"),
+  crossScalaVersions := Seq("2.13.8", "3.1.3"),
   scalaVersion := crossScalaVersions.value.head,
   scalacOptions := Seq(
     "-deprecation",
     "-encoding", "UTF-8",
     "-feature",
     "-unchecked",
-    // "-Xfatal-warnings", see Cancelable#cancel
-    "-Xlint:-unused,_",
-    "-language:higherKinds",
-    "-Ywarn-numeric-widen",
-    "-Ywarn-value-discard"),
+    "-language:higherKinds"),
   organization := "in.nvilla",
   scalaJSLinkerConfig ~= { _.withSourceMap(true) },
   licenses := Seq(("MIT", url("http://opensource.org/licenses/MIT"))),
@@ -29,10 +25,10 @@ inThisBuild(List(
 )))
 
 val scalajsdom = "2.2.0"
-val scalatest  = "3.2.2"
-val cats       = "2.2.0"
+val scalatest  = "3.2.12"
+val cats       = "2.7.0"
 
-skip in publish := true
+publish / skip := true
 
 lazy val `monadic-html` = project
   .enablePlugins(ScalaJSPlugin)
@@ -48,7 +44,7 @@ lazy val `monadic-rxJS`  = `monadic-rx`.js
 lazy val `monadic-rxJVM` = `monadic-rx`.jvm
 lazy val `monadic-rx`    = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Full)
-  .jvmSettings(skip in publish := true)
+  .jvmSettings(publish / skip := true)
   .jsSettings(testSettings)
   .settings(
     libraryDependencies += "org.scalatest" %%% "scalatest" % scalatest % Test)
@@ -57,7 +53,7 @@ lazy val `monadic-rx-catsJS`  = `monadic-rx-cats`.js
 lazy val `monadic-rx-catsJVM` = `monadic-rx-cats`.jvm
 lazy val `monadic-rx-cats`    = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Pure)
-  .jvmSettings(skip in publish := true)
+  .jvmSettings(publish / skip := true)
   .dependsOn(`monadic-rx`)
   .settings(
     testSettings,
@@ -68,12 +64,11 @@ lazy val `examples` = project
   .dependsOn(`monadic-html`, `monadic-rx-catsJS`)
   .settings(
     testSettings,
-    skip in publish := true,
-    test in Test := {},
+    publish / skip := true,
+    Test / test := {},
     libraryDependencies += "com.github.japgolly.scalacss" %%% "core" % "1.0.0",
     libraryDependencies += "org.scala-js" %%% "scala-js-macrotask-executor" % "1.0.0")
 
-
 lazy val testSettings = Seq(
-  testOptions  in Test += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"),
-  jsEnv        in Test := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv())
+  Test / testOptions += Tests.Argument(TestFrameworks.ScalaTest, "-oDF"),
+  Test / jsEnv       := new org.scalajs.jsenv.jsdomnodejs.JSDOMNodeJSEnv())

@@ -208,10 +208,10 @@ object Rx {
       var go = false
       var v1: Any = null
       var v2: Any = null
-      val c1 = run(self)  { a => v1 = a; if(go) effect((v1, v2)) }
-      val c2 = run(other) { b => v2 = b; if(go) effect((v1, v2)) }
+      val c1 = run(self)  { a => v1 = a; if(go) effect((v1, v2).asInstanceOf[A]) }
+      val c2 = run(other) { b => v2 = b; if(go) effect((v1, v2).asInstanceOf[A]) }
       go = true
-      effect((v1, v2))
+      effect((v1, v2).asInstanceOf[A])
       Cancelable { () => c1.cancel; c2.cancel }
 
     case DropRep(self) =>
@@ -229,7 +229,7 @@ object Rx {
       Cancelable { () => c1.cancel; c2.cancel }
 
     // Workaround required because otherwise scalac messes up GADT skolems. Note: dotty doesn't need it.
-    case rx: Foldp[t,A] => val Foldp(self, seed, step) = rx
+    case rx: Foldp[t, A @unchecked] => val Foldp(self, seed, step) = rx
       var b = seed
       run(self) { a =>
         val next = step(b, a)
@@ -266,7 +266,7 @@ object Rx {
       val cb = run(other)(_ => effect(currentA))
       Cancelable { () => ca.cancel; cb.cancel }
 
-    case im: Imitate[A] => val Imitate(self, other) = im
+    case im: Imitate[A @unchecked] => val Imitate(self, other) = im
       if (!self.imitating) {
         self.imitating = true
         val cc = run(other) { case a =>
@@ -276,7 +276,7 @@ object Rx {
         Cancelable { () => cc.cancel; self.imitating = false }
       } else run(other)(effect)
 
-    case rx: Sharing[A] => val Sharing(self) = rx
+    case rx: Sharing[A @unchecked] => val Sharing(self) = rx
       if (!rx.isSharing) {
         rx.sharingCancelable = run(self)(rx.sharingMemo := Some(_))
       }
@@ -289,7 +289,7 @@ object Rx {
         }
       }
 
-    case leaf: Var[A] =>
+    case leaf: Var[A @unchecked] =>
       leaf.foreach(effect)
 
     case null => throw new NullPointerException("null is not a valid Rx!")
