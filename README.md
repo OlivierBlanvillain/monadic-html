@@ -1,4 +1,4 @@
-# monadic-html [![Gitter](https://badges.gitter.im/.svg)](https://gitter.im/monadic-html/Lobby) [![Maven](https://img.shields.io/maven-central/v/in.nvilla/monadic-html_sjs0.6_2.12.svg?label=maven)](https://repo1.maven.org/maven2/in/nvilla/monadic-html_sjs0.6_2.12/)
+# monadic-html [![Gitter](https://badges.gitter.im/.svg)](https://gitter.im/monadic-html/Lobby) [![Maven](https://img.shields.io/maven-central/v/in.nvilla/monadic-html_sjs1_3.svg?label=maven)](https://repo1.maven.org/maven2/in/nvilla/monadic-html_sjs0.6_2.12/)
 
 <img align=right src="project/cats.jpg"/>
 
@@ -7,7 +7,7 @@ Tiny DOM binding library for Scala.js
 Main Objectives: friendly syntax for frontend developers (XHTML) and fast compilation speeds (no macros).
 
 ```scala
-"in.nvilla" %%% "monadic-html" % "0.4.0"
+"in.nvilla" %%% "monadic-html" % "<version>"
 ```
 
 The core value propagation library is also available separately for both platforms as `monadic-rx`. Integration with [cats](https://github.com/typelevel/cats) is optionally available as `monadic-rx-cats`.
