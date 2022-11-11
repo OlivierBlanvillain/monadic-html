@@ -16,16 +16,40 @@ object mount {
 
   trait Cancelables {
     def register(c: Cancelable): Cancelable
-    def cancelAll(): Unit
+    def cancelAll: Unit
   }
 
   class BufferCancelable extends Cancelables {
     val buffer: mutable.Set[Cancelable] = mutable.Set.empty[Cancelable]
 
-    override def cancelAll: Unit = buffer.foreach(_.cancel())
+    override def cancelAll: Unit = buffer.foreach(_.cancel)
     def register(c: Cancelable): Cancelable = {
       buffer += c
       Cancelable(() => buffer -= c)
+    }
+  }
+
+
+  implicit class RxSeqFrag[A](rx: Rx[Seq[A]])(implicit ev: A => Frag, cancelables: Cancelables) extends Frag {
+    Objects.requireNonNull(rx)
+    def applyTo(t: dom.Element): Unit = {
+      val (start, end) = t.createMountSection()
+      val c1 = rx.impure.run { a =>
+        t.cleanMountSection(start, end)
+        println(s"rendering ${a.size} elements")
+        a.map(_.render).foreach(t.mountHere(_, Some(start)))
+      }
+      cancelables.register(c1)
+    }
+
+    def render: dom.Node = {
+      val frag = org.scalajs.dom.document.createDocumentFragment()
+      val c = rx.impure.run {
+        a =>
+          a.map(_.render).foreach(frag.appendChild)
+      }
+      cancelables.register(c)
+      frag
     }
   }
 
@@ -62,7 +86,7 @@ object mount {
   }
 
 
-  implicit class NodeExtra(node: Node) {
+  implicit class NodeExtra(node: dom.Node) {
     def setEventListener[A](key: String, listener: A => Unit): Cancelable = {
       val dyn = node.asInstanceOf[js.Dynamic]
       dyn.updateDynamic(key)(listener)
@@ -74,7 +98,7 @@ object mount {
     // `.insertBefore` things are reversed: at the position of the `}`
     // character in our binding example, we insert the start point, and at `{`
     // goes the end.
-    def createMountSection(): (Node, Node) = {
+    def createMountSection(): (dom.Node, dom.Node) = {
       val start = dom.document.createTextNode("")
       val end   = dom.document.createTextNode("")
       node.appendChild(end)
@@ -85,13 +109,13 @@ object mount {
     // Elements are then "inserted before" the start point, such that
     // inserting List(a, b) looks as follows: `}` → `a}` → `ab}`. Note that a
     // reference to the start point is sufficient here. */
-    def mountHere(child: Node, start: Option[Node]): Unit =
+    def mountHere(child: dom.Node, start: Option[dom.Node]): Unit =
       { start.fold(node.appendChild(child))(point => node.insertBefore(child, point)); () }
 
     // Cleaning stuff is equally simple, `cleanMountSection` takes a references
     // to start and end point, and (tail recursively) deletes nodes at the
     // left of the start point until it reaches end of the mounting section. */
-    def cleanMountSection(start: Node, end: Node): Unit = {
+    def cleanMountSection(start: dom.Node, end: dom.Node): Unit = {
       val next = start.previousSibling
       if (next != end) {
         node.removeChild(next)
