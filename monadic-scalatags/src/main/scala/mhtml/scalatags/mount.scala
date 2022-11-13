@@ -86,12 +86,6 @@ object mount {
 
 
   implicit class NodeExtra(node: dom.Node) {
-    def setEventListener[A](key: String, listener: A => Unit): Cancelable = {
-      val dyn = node.asInstanceOf[js.Dynamic]
-      dyn.updateDynamic(key)(listener)
-      Cancelable(() => dyn.updateDynamic(key)(null))
-    }
-
     // Creates and inserts two empty text nodes into the DOM, which delimitate
     // a mounting region between them point. Because the DOM API only exposes
     // `.insertBefore` things are reversed: at the position of the `}`
