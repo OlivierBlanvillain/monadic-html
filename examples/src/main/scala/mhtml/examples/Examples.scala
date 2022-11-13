@@ -99,9 +99,7 @@ object Main {
 
   @JSExport
   def main(args: Array[String]): Unit = {
-    /*val div = dom.document.createElement("div")
-    div.appendChild(STContactList.app)
-    dom.document.body.appendChild(div)*/
+    dom.document.body.appendChild(STContactList.app)
     ()
   }
 }

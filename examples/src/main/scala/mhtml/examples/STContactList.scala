@@ -36,7 +36,7 @@ object STContactList {
     section()(
       div()(
         button(
-          onclick := { contacts.update(x => Contact(Var("Olaf")) +: x)},
+          onclick := { () => contacts.update(x => Contact(Var("Olaf")) +: x)},
           "Add a contact"
         )
       ),
