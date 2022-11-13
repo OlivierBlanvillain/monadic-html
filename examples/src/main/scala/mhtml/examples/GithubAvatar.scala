@@ -26,7 +26,7 @@ trait GhRepo extends js.Object {
 }
 
 object GhRepo {
-  implicit val GhRepoSearchable: examples.Searcheable[examples.GhRepo] = Searcheable.instance[GhRepo](_.name)
+  implicit val GhRepoSearchable: Searcheable[GhRepo] = Searcheable.instance[GhRepo](_.name)
 }
 
 object GithubAvatar extends Example {

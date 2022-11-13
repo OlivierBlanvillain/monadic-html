@@ -59,14 +59,25 @@ lazy val `monadic-rx-cats`    = crossProject(JSPlatform, JVMPlatform)
     testSettings,
     libraryDependencies += "org.typelevel" %%% "cats-core" % cats)
 
+lazy val `monadic-scalatags` = project
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(`monadic-rx`.js)
+  .settings(
+    testSettings,
+    libraryDependencies += "com.lihaoyi" %%% "scalatags" % "0.12.0",
+    libraryDependencies += "org.scala-js" %%% "scalajs-dom" % scalajsdom,
+    libraryDependencies += "org.scalatest" %%% "scalatest" % scalatest % Test
+  )
+
 lazy val `examples` = project
   .enablePlugins(ScalaJSPlugin)
-  .dependsOn(`monadic-html`, `monadic-rx-catsJS`)
+  .dependsOn(`monadic-html`, `monadic-rx-catsJS`, `monadic-scalatags`)
   .settings(
     testSettings,
     publish / skip := true,
     Test / test := {},
     libraryDependencies += "com.github.japgolly.scalacss" %%% "core" % "1.0.0",
+    libraryDependencies += "com.lihaoyi" %%% "scalatags" % "0.12.0",
     libraryDependencies += "org.scala-js" %%% "scala-js-macrotask-executor" % "1.0.0")
 
 lazy val testSettings = Seq(

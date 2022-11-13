@@ -4,8 +4,8 @@ import scala.scalajs.js.annotation._
 import scala.util.Success
 import scala.xml.Node
 import org.scalajs.macrotaskexecutor.MacrotaskExecutor.Implicits._
-
 import mhtml._
+import mhtml.examples.STContactList
 import mhtml.future.syntax._
 import org.scalajs.dom
 import org.scalajs.dom.Event
@@ -99,7 +99,7 @@ object Main {
 
   @JSExport
   def main(args: Array[String]): Unit = {
-    mount(dom.document.body, mainApp)
+    dom.document.body.appendChild(STContactList.app)
     ()
   }
 }
