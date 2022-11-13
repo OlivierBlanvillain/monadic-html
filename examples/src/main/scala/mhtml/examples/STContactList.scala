@@ -13,11 +13,6 @@ object STContactList {
 
   implicit val cancelables = new BufferCancelable()
 
-  val container = dom.document.createElement("container")
-  val classVar: Var[String] = Var("foo")
-  val classRx: Rx[String] = classVar
-  container.appendChild(span(cls := classRx)().render)
-
   def row(contact: Contact) = {
     tr()(
       td(contact.name),
