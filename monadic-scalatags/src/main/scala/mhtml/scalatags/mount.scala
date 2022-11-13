@@ -36,8 +36,7 @@ object mount {
       val (start, end) = t.createMountSection()
       val c1 = rx.impure.run { a =>
         t.cleanMountSection(start, end)
-        println(s"rendering ${a.size} elements")
-        a.map(_.render).foreach(t.mountHere(_, Some(start)))
+        a.map(a => ev(a).render).foreach(t.mountHere(_, Some(start)))
       }
       cancelables.register(c1)
     }
@@ -46,7 +45,7 @@ object mount {
       val frag = org.scalajs.dom.document.createDocumentFragment()
       val c = rx.impure.run {
         a =>
-          a.map(_.render).foreach(frag.appendChild)
+          a.map(a => ev(a).render).foreach(frag.appendChild)
       }
       cancelables.register(c)
       frag
@@ -69,7 +68,7 @@ object mount {
       val (start, end) = t.createMountSection()
       val c1 = rx.impure.run { a =>
         t.cleanMountSection(start, end)
-        t.mountHere(a.render, Some(start))
+        t.mountHere(ev(a).render, Some(start))
       }
       cancelables.register(c1)
     }
@@ -78,7 +77,7 @@ object mount {
       val frag = org.scalajs.dom.document.createDocumentFragment()
       val c = rx.impure.run {
         a =>
-          frag.appendChild(a.render)
+          frag.appendChild(ev(a).render)
       }
       cancelables.register(c)
       frag
